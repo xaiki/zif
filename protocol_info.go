@@ -24,8 +24,6 @@ var (
 	proto_ping = []byte{0x02, 0x00}
 	proto_pong = []byte{0x02, 0x01}
 
-	proto_dht_ping     = []byte{0x03, 0x00}
-	proto_dht_pong     = []byte{0x03, 0x01}
-	proto_dht_query    = []byte{0x03, 0x02}
-	proto_dht_announce = []byte{0x03, 0x03}
+	proto_dht_query    = []byte{0x03, 0x00}
+	proto_dht_announce = []byte{0x03, 0x01}
 )

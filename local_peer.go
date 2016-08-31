@@ -5,6 +5,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 
 	"golang.org/x/crypto/ed25519"
@@ -13,19 +14,39 @@ import (
 type LocalPeer struct {
 	Peer
 	Entry        Entry
-	RPC          RPC
 	RoutingTable RoutingTable
-	privateKey   ed25519.PrivateKey
+	Server       Server
+
+	privateKey ed25519.PrivateKey
+	entrySig   [64]byte
 }
 
 func (lp *LocalPeer) Setup() {
 	lp.ZifAddress.Generate(lp.publicKey)
-	lp.RPC.Setup()
+}
+
+func (lp *LocalPeer) SignEntry() {
+	str := fmt.Sprintf("%v", lp.Entry)
+	copy(lp.entrySig[:], ed25519.Sign(lp.privateKey, []byte(str)))
+}
+
+func (lp *LocalPeer) Sign(msg []byte) []byte {
+	return ed25519.Sign(lp.privateKey, msg)
+}
+
+func (lp *LocalPeer) ProtocolHeader() ProtocolHeader {
+	var ph ProtocolHeader
+
+	copy(ph.Zif[:], proto_zif)
+	copy(ph.Version[:], proto_version)
+	copy(ph.PublicKey[:], lp.publicKey[:])
+
+	return ph
 }
 
 // address, router (TCP) port, dht (udp) port
 func (lp *LocalPeer) Listen(addr string) {
-	go lp.RPC.Listen(addr)
+	go lp.Server.Listen(addr)
 }
 
 func (lp *LocalPeer) GenerateKey() {

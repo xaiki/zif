@@ -19,3 +19,7 @@ func net_recvall(buf []byte, conn net.Conn) error {
 
 	return nil
 }
+
+func check_ok() {
+
+}

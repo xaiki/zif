@@ -38,11 +38,14 @@ func (hs *HTTPServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	var peer Peer
-	peer.PublicAddress = vars["address"]
+	c, ok := ConnectClient(vars["address"], hs.localPeer)
 
-	peer.Connect()
-	peer.Ping()
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Connection failed"))
+	}
+
+	c.Handshake()
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Done."))
@@ -68,8 +71,8 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	peer.PublicAddress = vars["address"]
 
 	peer.Connect()
-	peer.Announce(hs.localPeer.Entry)
+	ok := peer.Announce(&hs.localPeer.Entry)
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Done."))
+	w.Write([]byte(ok))
 }
