@@ -14,9 +14,8 @@ type Entry struct {
 	Name          string
 	Desc          string
 	PublicAddress string
-	UDPPort       int
-	TCPPort       int
 	PublicKey     []byte
+	Port          int
 
 	// Used in the FindClosest function, for sorting.
 	distance Address

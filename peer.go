@@ -6,92 +6,43 @@ package main
 
 import (
 	"fmt"
-	"net"
 
+	"github.com/valyala/gorpc"
 	"golang.org/x/crypto/ed25519"
 )
 
 type Peer struct {
-	RouterAddress string
-	DHTAddress    string
 	ZifAddress    Address
+	PublicAddress string
+	Client        *gorpc.Client
+	Dispatch      *gorpc.DispatcherClient
 	publicKey     ed25519.PublicKey
 
-	// TODO: Split out router connections like DHTClient -> RouterClient
-	// TODO: Also think of a better name than Router. It sucks.
-	router_conn net.Conn
-	dht_client  DHTClient
-
-	// Private key will only exist if this is the local peer.
+	dispatcher *gorpc.Dispatcher
 }
 
-func CreatePeerConn(conn net.Conn, pub ed25519.PublicKey, router_addr, dht_addr string) Peer {
-	var ret Peer
-
-	ret.router_conn = conn
-	ret.publicKey = pub
-	ret.RouterAddress = router_addr
-	ret.DHTAddress = dht_addr
-	ret.ZifAddress.Generate(ret.publicKey)
-
-	return ret
-}
-
-func CreatePeer(pub ed25519.PublicKey, router_addr, dht_addr string) Peer {
+func CreatePeer(pub ed25519.PublicKey, addr string, port int) Peer {
 	var ret Peer
 
 	ret.publicKey = pub
-	ret.RouterAddress = router_addr
-	ret.DHTAddress = dht_addr
 	ret.ZifAddress.Generate(ret.publicKey)
 
 	return ret
-}
-
-func CreateUDPPeer(pub ed25519.PublicKey, addr string) Peer {
-	var ret Peer
-
-	ret.publicKey = pub
-	ret.DHTAddress = addr
-	ret.ZifAddress.Generate(ret.publicKey)
-
-	ret.ConnectUDP()
-
-	return ret
-}
-
-func (p *Peer) ConnectUDP() {
-	p.dht_client.Connect(p.DHTAddress)
 }
 
 func (p *Peer) Connect() {
-	// TODO: Check if an onion address. If so, DO NOT resolve. Let SOCKS do
-	// that.
-	addr, err := net.ResolveTCPAddr("tcp", p.RouterAddress)
+	p.dispatcher = gorpc.NewDispatcher()
+	p.dispatcher.AddService("service", &RPCService{})
 
-	if err != nil {
-		fmt.Println("Error resolving address")
-		return
-	}
-
-	p.router_conn, err = net.DialTCP("tcp", nil, addr)
-
-	if err != nil {
-		fmt.Println("Error connecting")
-		return
-	}
-
-	p.ConnectUDP()
+	p.Client = gorpc.NewTCPClient(p.PublicAddress)
+	p.Dispatch = p.dispatcher.NewServiceClient("service", p.Client)
+	p.Client.Start()
 }
 
-func (p *Peer) Ping(from *LocalPeer) {
-	p.dht_client.Ping(from)
+func (p *Peer) Ping() {
+	fmt.Println(p.Dispatch.Call("Ping", nil))
 }
 
-func (p *Peer) Announce(from *LocalPeer, entry Entry) {
-	p.dht_client.Announce(from, entry)
-}
-
-func (p *Peer) Query(from *LocalPeer, target Address) {
-	p.dht_client.Query(from, target)
+func (p *Peer) Announce(entry Entry) {
+	p.Dispatch.Call("Announce", entry)
 }

@@ -4,9 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+
 	"golang.org/x/crypto/ed25519"
-	"strconv"
-	"strings"
 )
 
 const PacketSize = 2 + ed25519.PublicKeySize + 8 + 8 + 20 + 8
@@ -94,18 +93,6 @@ func MakePacket(proto_msg, cookie []byte, from *LocalPeer) Packet {
 
 	copy(packet.protoMsg[:], proto_msg)
 	copy(packet.publicKey[:], from.publicKey)
-
-	udp_port, err := strconv.Atoi(strings.Split(from.DHTAddress, ":")[1])
-	tcp_port, err := strconv.Atoi(strings.Split(from.RouterAddress, ":")[1])
-
-	if err != nil {
-		panic(err)
-	}
-
-	binary.PutVarint(packet.udpPort[:], int64(udp_port))
-	binary.PutVarint(packet.tcpPort[:], int64(tcp_port))
-
-	copy(packet.cookie[:], RandBytes(20))
 
 	return packet
 }
