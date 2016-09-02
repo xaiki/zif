@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 
 	"golang.org/x/crypto/ed25519"
 )
@@ -21,8 +22,28 @@ type LocalPeer struct {
 	entrySig   [64]byte
 }
 
+func (lp *LocalPeer) CreatePeer(conn net.Conn, header ProtocolHeader) Peer {
+	var ret Peer
+
+	ret.ZifAddress = header.zifAddress
+	ret.publicKey = header.PublicKey[:]
+	ret.client.conn = conn
+	ret.client.localPeer = lp
+
+	return ret
+}
+
+func (lp *LocalPeer) ConnectPeer(addr string) err {
+	var p Peer
+	p.client.localPeer = lp
+	p.Connect(addr)
+
+	return p.Handshake()
+}
+
 func (lp *LocalPeer) Setup() {
 	lp.ZifAddress.Generate(lp.publicKey)
+	lp.Server.localPeer = lp
 }
 
 func (lp *LocalPeer) SignEntry() {

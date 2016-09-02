@@ -3,13 +3,16 @@ package main
 // tcp server
 
 import (
+	"bytes"
 	"fmt"
-	"golang.org/x/crypto/ed25519"
 	"net"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 type Server struct {
-	listener net.Listener
+	listener  net.Listener
+	localPeer *LocalPeer
 }
 
 func (s *Server) Listen(addr string) {
@@ -53,14 +56,17 @@ func (s *Server) Handshake(conn net.Conn) {
 	header := make([]byte, ProtocolHeaderSize)
 	err := net_recvall(header, conn)
 	if check(err) {
+		conn.Write(proto_no)
 		return
 	}
-	fmt.Println("new peer")
 
 	pHeader, err := ProtocolHeaderFromBytes(header)
 	if check(err) {
+		conn.Write(proto_no)
 		return
 	}
+
+	conn.Write(proto_no)
 
 	fmt.Println("Incoming connection from", pHeader.zifAddress.Encode())
 
@@ -81,13 +87,29 @@ func (s *Server) Handshake(conn net.Conn) {
 
 	if !verified {
 		fmt.Println("Failed to verify peer", pHeader.zifAddress.Encode())
+		conn.Write(proto_no)
 		conn.Close()
 		return
 	}
 
+	conn.Write(proto_ok)
+
 	fmt.Println(fmt.Sprintf("%s verified", pHeader.zifAddress.Encode()))
+
+	s.Handle(s.localPeer.CreatePeer(conn, pHeader))
 }
 
-func (s *Server) Handle(conn net.Conn) {
+func (s *Server) Handle(peer Peer) {
+	msg := make([]byte, 2)
 
+	for {
+		net_recvall(msg, peer.client.conn)
+
+		if bytes.Equal(msg, proto_terminate) {
+			fmt.Println("Peer closed connection")
+			return
+		}
+
+		RouteMessage(msg, peer)
+	}
 }

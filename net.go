@@ -2,7 +2,10 @@
 
 package main
 
-import "net"
+import (
+	"bytes"
+	"net"
+)
 
 func net_recvall(buf []byte, conn net.Conn) error {
 	read := 0
@@ -20,6 +23,10 @@ func net_recvall(buf []byte, conn net.Conn) error {
 	return nil
 }
 
-func check_ok() {
+func check_ok(conn net.Conn) bool {
+	buf := make([]byte, 2)
 
+	net_recvall(buf, conn)
+
+	return bytes.Equal(buf, proto_ok)
 }

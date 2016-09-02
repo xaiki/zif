@@ -9,15 +9,9 @@ var (
 	proto_version = []byte{0x00, 0x00} //version 0 atm :D
 
 	// inform a peer on the status of the latest request
-	proto_ok = []byte{0x6f, 0x6b}
-	proto_no = []byte{0x6e, 0x6f}
-	// if the peer is busy, could ask to wait.
-	// if we have no other choice, wait a random amount of time.
-	proto_wait = []byte{0x77, 0x74}
-
-	// this is used to ask for permission to begin asking for data.
-	// will respond with ok/no
-	proto_send_perm = []byte{0x00, 0x00}
+	proto_ok        = []byte{0x00, 0x00}
+	proto_no        = []byte{0x00, 0x01}
+	proto_terminate = []byte{0x00, 0x02}
 
 	proto_msg_latest = []byte{0x01, 0x00}
 

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"net"
 )
@@ -31,12 +33,16 @@ func (c *Client) Connect(addr string) bool {
 	return true
 }
 
-func (c *Client) Handshake() {
+func (c *Client) Handshake() error {
 	fmt.Println("Handshaking with", c.conn.RemoteAddr().String())
 	//ph := c.localPeer.ProtocolHeader()
 
 	header := c.localPeer.ProtocolHeader()
 	c.conn.Write(header.Bytes())
+
+	if !check_ok(c.conn) {
+		return errors.New("Server refused header")
+	}
 
 	// The server will want us to sign this. Proof of identity and all that.
 	cookie := make([]byte, 20)
@@ -44,4 +50,23 @@ func (c *Client) Handshake() {
 
 	sig := c.localPeer.Sign(cookie)
 	c.conn.Write(sig)
+
+	if !check_ok(c.conn) {
+		return errors.New("Server refused signature")
+	}
+
+	return nil
+}
+
+func (c *Client) Ping() bool {
+	c.conn.Write(proto_ping)
+
+	buf := make([]byte, 2)
+	net_recvall(buf, c.conn)
+
+	return bytes.Equal(buf, proto_pong)
+}
+
+func (c *Client) Pong() {
+	c.conn.Write(proto_pong)
 }

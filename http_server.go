@@ -45,7 +45,14 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Connection failed"))
 	}
 
-	c.Handshake()
+	err := c.Handshake()
+
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(err.Error()))
+
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Done."))
@@ -70,7 +77,7 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	var peer Peer
 	peer.PublicAddress = vars["address"]
 
-	peer.Connect()
+	peer.Connect(vars["address"])
 	ok := peer.Announce(&hs.localPeer.Entry)
 
 	w.WriteHeader(http.StatusOK)
