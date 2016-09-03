@@ -2,21 +2,16 @@ package main
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
+	"encoding/binary"
 	"net"
+
+	log "github.com/sirupsen/logrus"
 )
 
-type Client struct {
-	conn      net.Conn
-	localPeer *LocalPeer
-}
+const EntryLengthMax = 1024
 
-// Returns a client and true on success
-func ConnectClient(addr string, lp *LocalPeer) (Client, bool) {
-	var client Client
-	client.localPeer = lp
-	return client, client.Connect(addr)
+type Client struct {
+	conn net.Conn
 }
 
 // Attempt to connect a client to an address, return true on success.
@@ -26,36 +21,35 @@ func (c *Client) Connect(addr string) bool {
 	c.conn, err = net.Dial("tcp", addr)
 
 	if err != nil {
-		fmt.Println("Error:", err.Error())
+		log.Error(err.Error())
 		return false
 	}
 
 	return true
 }
 
-func (c *Client) Handshake() error {
-	fmt.Println("Handshaking with", c.conn.RemoteAddr().String())
-	//ph := c.localPeer.ProtocolHeader()
+func (c *Client) Close() {
+	c.conn.Write(proto_terminate)
+	c.conn.Close()
+}
 
-	header := c.localPeer.ProtocolHeader()
-	c.conn.Write(header.Bytes())
+func (c *Client) Handshake(lp *LocalPeer) (ProtocolHeader, error) {
+	// I use the term "server" somewhat loosely. It's the "server" part of a peer.
+	err := handshake_send(c.conn, lp)
 
-	if !check_ok(c.conn) {
-		return errors.New("Server refused header")
+	// server now knows that we are definitely who we say we are.
+	// but...
+	// is the server who we think it is?
+	// better check!
+	server_header, err := handshake_recieve(c.conn)
+
+	if err != nil {
+		return server_header, err
 	}
 
-	// The server will want us to sign this. Proof of identity and all that.
-	cookie := make([]byte, 20)
-	net_recvall(cookie, c.conn)
+	server_header.zifAddress.Generate(server_header.PublicKey[:])
 
-	sig := c.localPeer.Sign(cookie)
-	c.conn.Write(sig)
-
-	if !check_ok(c.conn) {
-		return errors.New("Server refused signature")
-	}
-
-	return nil
+	return server_header, nil
 }
 
 func (c *Client) Ping() bool {
@@ -69,4 +63,39 @@ func (c *Client) Ping() bool {
 
 func (c *Client) Pong() {
 	c.conn.Write(proto_pong)
+}
+
+func (c *Client) Who() (Entry, error) {
+	c.conn.Write(proto_who)
+
+	entry, err := recieve_entry(c.conn)
+
+	if err != nil {
+		c.Close()
+	}
+
+	return entry, err
+}
+
+func (c *Client) SendEntry(e *Entry, sig []byte) {
+	json, err := EntryToJson(e)
+
+	if err != nil {
+		log.Error(err.Error())
+		c.conn.Close()
+		return
+	}
+
+	length := len(json)
+	length_b := make([]byte, 8)
+	binary.PutVarint(length_b, int64(length))
+
+	c.conn.Write(length_b)
+	c.conn.Write(json)
+	c.conn.Write(sig)
+}
+
+func (c *Client) Announce(e *Entry, sig []byte) {
+	c.conn.Write(proto_dht_announce)
+	c.SendEntry(e, sig)
 }

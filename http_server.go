@@ -3,10 +3,11 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type HTTPServer struct {
@@ -18,10 +19,11 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 
 	router.HandleFunc("/", hs.IndexHandler)
 	router.HandleFunc("/ping/{address}/", hs.Ping)
+	router.HandleFunc("/who/{address}/", hs.Who)
 	/*router.HandleFunc("/query/{address}/{dht}/{target}/", hs.Query)*/
 	router.HandleFunc("/announce/{address}/", hs.Announce)
 
-	fmt.Println("Starting HTTP server on", addr)
+	log.Info("Starting HTTP server on ", addr)
 
 	err := http.ListenAndServe(addr, router)
 
@@ -38,14 +40,8 @@ func (hs *HTTPServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	c, ok := ConnectClient(vars["address"], hs.localPeer)
-
-	if !ok {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Connection failed"))
-	}
-
-	err := c.Handshake()
+	peer, err := hs.localPeer.ConnectPeer(vars["address"])
+	defer peer.Close()
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -54,32 +50,60 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	peer.Ping()
+
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Done."))
 }
 
-/*func (hs *HTTPServer) Query(w http.ResponseWriter, r *http.Request) {
+func (hs *HTTPServer) Who(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	var peer Peer
-	peer.DHTAddress = fmt.Sprintf("%s:%v", vars["address"], vars["dht"])
+	peer, err := hs.localPeer.ConnectPeer(vars["address"])
+	defer peer.Close()
 
-	peer.ConnectUDP()
-	peer.dht_client.Query(hs.localPeer, DecodeAddress(vars["target"]))
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(err.Error()))
+
+		return
+	}
+
+	entry, err := peer.Who()
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	ret, err := EntryToJson(&entry)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Done."))
-}*/
+	w.Write(ret)
+}
 
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	var peer Peer
-	peer.PublicAddress = vars["address"]
+	peer, err := hs.localPeer.ConnectPeer(vars["address"])
+	defer peer.Close()
 
-	peer.Connect(vars["address"])
-	ok := peer.Announce(&hs.localPeer.Entry)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(err.Error()))
+
+		return
+	}
+
+	peer.Announce(&hs.localPeer.Entry)
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(ok))
+	w.Write([]byte("ok"))
 }

@@ -5,7 +5,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net"
 
@@ -28,27 +27,25 @@ func (lp *LocalPeer) CreatePeer(conn net.Conn, header ProtocolHeader) Peer {
 	ret.ZifAddress = header.zifAddress
 	ret.publicKey = header.PublicKey[:]
 	ret.client.conn = conn
-	ret.client.localPeer = lp
+	ret.localPeer = lp
 
 	return ret
 }
 
-func (lp *LocalPeer) ConnectPeer(addr string) err {
+func (lp *LocalPeer) ConnectPeer(addr string) (Peer, error) {
 	var p Peer
-	p.client.localPeer = lp
+	p.localPeer = lp
 	p.Connect(addr)
 
-	return p.Handshake()
+	return p, p.Handshake()
 }
 
 func (lp *LocalPeer) Setup() {
 	lp.ZifAddress.Generate(lp.publicKey)
-	lp.Server.localPeer = lp
 }
 
 func (lp *LocalPeer) SignEntry() {
-	str := fmt.Sprintf("%v", lp.Entry)
-	copy(lp.entrySig[:], ed25519.Sign(lp.privateKey, []byte(str)))
+	copy(lp.entrySig[:], ed25519.Sign(lp.privateKey, EntryToBytes(&lp.Entry)))
 }
 
 func (lp *LocalPeer) Sign(msg []byte) []byte {
@@ -68,6 +65,7 @@ func (lp *LocalPeer) ProtocolHeader() ProtocolHeader {
 // address, router (TCP) port, dht (udp) port
 func (lp *LocalPeer) Listen(addr string) {
 	go lp.Server.Listen(addr)
+
 }
 
 func (lp *LocalPeer) GenerateKey() {

@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 )
 
 import "strings"
@@ -28,6 +30,8 @@ func SetupLocalPeer(addr string, newAddr bool) LocalPeer {
 
 func main() {
 
+	log.SetLevel(log.DebugLevel)
+
 	var addr = flag.String("address", "0.0.0.0:5050", "Bind address")
 	var newAddr = flag.Bool("new", false, "Ignore identity file and create a new address")
 
@@ -47,8 +51,9 @@ func main() {
 	lp.SignEntry()
 
 	lp.Listen(*addr)
+	lp.Server.localPeer = &lp
 
-	fmt.Println("My address:", lp.ZifAddress.Encode())
+	log.Info("My address: ", lp.ZifAddress.Encode())
 
 	var httpServer HTTPServer
 	httpServer.localPeer = &lp

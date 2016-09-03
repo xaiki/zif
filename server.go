@@ -4,10 +4,9 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"net"
 
-	"golang.org/x/crypto/ed25519"
+	log "github.com/sirupsen/logrus"
 )
 
 type Server struct {
@@ -24,13 +23,13 @@ func (s *Server) Listen(addr string) {
 		panic(err)
 	}
 
-	fmt.Println("Listening on", addr)
+	log.Info("Listening on ", addr)
 
 	for {
 		conn, err := s.listener.Accept()
 
 		if err != nil {
-			fmt.Println("Error accepting:", err.Error())
+			log.Error(err.Error())
 		}
 
 		go s.Handshake(conn)
@@ -41,75 +40,37 @@ func (s *Server) Close() {
 	s.listener.Close()
 }
 
-func (s *Server) Handshake(conn net.Conn) {
+func (s *Server) Handshake(conn net.Conn) error {
+	header, err := handshake_recieve(conn)
 
-	check := func(e error) bool {
-		if e != nil {
-			fmt.Println("Error:", e.Error())
-			conn.Close()
-			return true
-		}
-
-		return false
+	if err != nil {
+		return err
 	}
 
-	header := make([]byte, ProtocolHeaderSize)
-	err := net_recvall(header, conn)
-	if check(err) {
-		conn.Write(proto_no)
-		return
+	err = handshake_send(conn, s.localPeer)
+
+	if err != nil {
+		return err
 	}
 
-	pHeader, err := ProtocolHeaderFromBytes(header)
-	if check(err) {
-		conn.Write(proto_no)
-		return
-	}
-
-	conn.Write(proto_no)
-
-	fmt.Println("Incoming connection from", pHeader.zifAddress.Encode())
-
-	// Send the client a cookie for them to sign, this proves they have the
-	// private key, and it is highly unlikely an attacker has a signed cookie
-	// cached.
-	cookie, err := RandBytes(20)
-	if check(err) {
-		return
-	}
-
-	conn.Write(cookie)
-
-	sig := make([]byte, ed25519.SignatureSize)
-	net_recvall(sig, conn)
-
-	verified := ed25519.Verify(pHeader.PublicKey[:], cookie, sig)
-
-	if !verified {
-		fmt.Println("Failed to verify peer", pHeader.zifAddress.Encode())
-		conn.Write(proto_no)
-		conn.Close()
-		return
-	}
-
-	conn.Write(proto_ok)
-
-	fmt.Println(fmt.Sprintf("%s verified", pHeader.zifAddress.Encode()))
-
-	s.Handle(s.localPeer.CreatePeer(conn, pHeader))
+	s.Handle(s.localPeer.CreatePeer(conn, header))
+	return nil
 }
 
 func (s *Server) Handle(peer Peer) {
 	msg := make([]byte, 2)
-
 	for {
-		net_recvall(msg, peer.client.conn)
-
-		if bytes.Equal(msg, proto_terminate) {
-			fmt.Println("Peer closed connection")
+		err := net_recvall(msg, peer.client.conn)
+		if err != nil {
+			log.Error(err.Error())
 			return
 		}
 
-		RouteMessage(msg, peer)
+		if bytes.Equal(msg, proto_terminate) {
+			log.Debug(peer.ZifAddress.Encode(), " closed connection")
+			return
+		}
+
+		RouteMessage(msg, peer, s.localPeer)
 	}
 }
