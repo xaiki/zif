@@ -22,6 +22,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/who/{address}/", hs.Who)
 	/*router.HandleFunc("/query/{address}/{dht}/{target}/", hs.Query)*/
 	router.HandleFunc("/announce/{address}/", hs.Announce)
+	router.HandleFunc("/set_address/{address}/", hs.SetAddress)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -103,6 +104,15 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	peer.Announce()
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ok"))
+}
+
+func (hs *HTTPServer) SetAddress(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	hs.localPeer.Entry.PublicAddress = vars["address"]
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))

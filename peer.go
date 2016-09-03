@@ -65,6 +65,8 @@ func (p *Peer) Announce() {
 		p.localPeer.Entry.PublicAddress = external_ip()
 	}
 
+	p.localPeer.SignEntry()
+
 	p.client.Announce(&p.localPeer.Entry, p.localPeer.entrySig[:])
 }
 
