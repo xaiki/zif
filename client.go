@@ -68,7 +68,7 @@ func (c *Client) Pong() {
 func (c *Client) Who() (Entry, error) {
 	c.conn.Write(proto_who)
 
-	entry, err := recieve_entry(c.conn)
+	entry, _, err := recieve_entry(c.conn)
 
 	if err != nil {
 		c.Close()

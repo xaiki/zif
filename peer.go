@@ -7,8 +7,8 @@
 package main
 
 import "golang.org/x/crypto/ed25519"
-import "fmt"
 import log "github.com/sirupsen/logrus"
+import "strconv"
 
 type Peer struct {
 	ZifAddress    Address
@@ -27,12 +27,12 @@ func (p *Peer) Close() {
 }
 
 func (p *Peer) Ping() {
-	fmt.Println("Pinging", p.ZifAddress.Encode())
+	log.Debug("Pinging", p.ZifAddress.Encode())
 	p.client.Ping()
 }
 
 func (p *Peer) Pong() {
-	fmt.Println("Ping from", p.ZifAddress.Encode())
+	log.Debug("Ping from", p.ZifAddress.Encode())
 	p.client.Pong()
 }
 
@@ -58,16 +58,23 @@ func (p *Peer) SendWho() {
 	p.client.SendEntry(&p.localPeer.Entry, p.localPeer.entrySig[:])
 }
 
-func (p *Peer) Announce(entry *Entry) {
-	p.client.Announce(entry, p.localPeer.entrySig[:])
+func (p *Peer) Announce() {
+	log.Debug("Sending announce to ", p.ZifAddress.Encode())
+
+	if p.localPeer.Entry.PublicAddress == "" {
+		p.localPeer.Entry.PublicAddress = external_ip()
+	}
+
+	p.client.Announce(&p.localPeer.Entry, p.localPeer.entrySig[:])
 }
 
 func (p *Peer) RecievedAnnounce() {
-	entry, err := recieve_entry(p.client.conn)
+	log.Debug("Recieved announce")
+	entry, sig, err := recieve_entry(p.client.conn)
 
 	if err != nil {
 		p.Close()
-		fmt.Println("Error recieving announce:", err.Error())
+		log.Error(err.Error())
 		return
 	}
 
@@ -75,4 +82,27 @@ func (p *Peer) RecievedAnnounce() {
 	addr.Generate(entry.PublicKey[:])
 
 	log.Debug("Announce from ", addr.Encode())
+
+	saved := p.localPeer.RoutingTable.Update(entry)
+
+	if saved {
+		log.Info("Saved new peer ", addr.Encode())
+	}
+
+	// next up, tell other people!
+	closest := p.localPeer.RoutingTable.FindClosest(addr, BucketSize)
+
+	// TODO: Parallize this
+	for _, i := range closest {
+		peer, err := p.localPeer.ConnectPeer(i.PublicAddress + ":" + strconv.Itoa(i.Port))
+
+		if err != nil ||
+			i.ZifAddress.Equals(&entry.ZifAddress) {
+
+			continue
+		}
+
+		peer.client.conn.Write(proto_dht_announce)
+		peer.client.SendEntry(&entry, sig)
+	}
 }

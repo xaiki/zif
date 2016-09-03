@@ -49,14 +49,14 @@ func (rt *RoutingTable) Setup(addr Address) {
 	}
 }
 
-func (rt *RoutingTable) Update(entry Entry) {
+func (rt *RoutingTable) Update(entry Entry) bool {
 	zero_count := entry.ZifAddress.Xor(&rt.LocalAddress).LeadingZeroes()
 	bucket := rt.Buckets[zero_count]
 
 	// TODO: Ping peers, starting from back. If none reply, remove them.
 	// Ensures only active peers are stored.
 	if bucket.Len() == BucketSize {
-		return
+		return false
 	}
 
 	var foundEntry *list.Element = nil
@@ -71,6 +71,8 @@ func (rt *RoutingTable) Update(entry Entry) {
 	} else {
 		bucket.MoveToFront(foundEntry)
 	}
+
+	return true
 }
 
 func copyToEntrySlice(slice *[]*Entry, begin *list.Element, count int) {

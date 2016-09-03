@@ -102,7 +102,7 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	peer.Announce(&hs.localPeer.Entry)
+	peer.Announce()
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))

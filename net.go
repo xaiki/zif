@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/ed25519"
+	"io/ioutil"
 	"net"
+	"net/http"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -119,13 +121,13 @@ func handshake_send(conn net.Conn, lp *LocalPeer) error {
 	return nil
 }
 
-func recieve_entry(conn net.Conn) (Entry, error) {
+func recieve_entry(conn net.Conn) (Entry, []byte, error) {
 	length_b := make([]byte, 8)
 	net_recvall(length_b, conn)
 	length, _ := binary.Varint(length_b)
 
 	if length > EntryLengthMax {
-		return Entry{}, errors.New("Peer entry larger than max")
+		return Entry{}, nil, errors.New("Peer entry larger than max")
 	}
 
 	entry_json := make([]byte, length)
@@ -136,11 +138,29 @@ func recieve_entry(conn net.Conn) (Entry, error) {
 	sig := make([]byte, ed25519.SignatureSize)
 	net_recvall(sig, conn)
 
-	verified := ed25519.Verify(entry.PublicKey, EntryToBytes(&entry), sig)
-
-	if !verified {
-		return entry, errors.New("Failed to verify entry")
+	if !ValidateEntry(&entry, sig) {
+		return entry, sig, errors.New("Failed to validate entry")
 	}
 
-	return entry, err
+	return entry, sig, err
+}
+
+// TODO: Make this check using UpNp/NAT_PMP first, then query services.
+func external_ip() string {
+	resp, err := http.Get("https://api.ipify.org/")
+	defer resp.Body.Close()
+
+	if err != nil {
+		log.Error("Failed to get external ip: try setting manually")
+		return ""
+	}
+
+	ret, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Error("Failed to get external ip: try setting manually")
+		return ""
+	}
+
+	return string(ret)
 }
