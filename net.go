@@ -15,10 +15,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type ConnHeader struct {
+	conn   net.Conn
+	header ProtocolHeader
+}
+
 func net_recvall(buf []byte, conn net.Conn) error {
 	read := 0
 
 	for read < len(buf) {
+
+		if conn == nil {
+			return errors.New("Cannot read, connection nil")
+		}
+
 		r, err := conn.Read(buf[read:])
 
 		if err != nil {

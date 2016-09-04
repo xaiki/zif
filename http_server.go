@@ -41,7 +41,7 @@ func (hs *HTTPServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer, err := hs.localPeer.ConnectPeer(vars["address"])
+	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
 	defer peer.Close()
 
 	if err != nil {
@@ -60,7 +60,7 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Who(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer, err := hs.localPeer.ConnectPeer(vars["address"])
+	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
 	defer peer.Close()
 
 	if err != nil {
@@ -93,7 +93,7 @@ func (hs *HTTPServer) Who(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer, err := hs.localPeer.ConnectPeer(vars["address"])
+	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
 	defer peer.Close()
 
 	if err != nil {

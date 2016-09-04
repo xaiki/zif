@@ -18,10 +18,6 @@ type Peer struct {
 	localPeer     *LocalPeer
 }
 
-func (p *Peer) Connect(addr string) {
-	p.client.Connect(addr)
-}
-
 func (p *Peer) Close() {
 	p.client.Close()
 }
@@ -34,20 +30,6 @@ func (p *Peer) Ping() {
 func (p *Peer) Pong() {
 	log.Debug("Ping from", p.ZifAddress.Encode())
 	p.client.Pong()
-}
-
-func (p *Peer) Handshake() error {
-	header, err := p.client.Handshake(p.localPeer)
-
-	if err != nil {
-		return err
-	}
-
-	p.ZifAddress.Bytes = make([]byte, AddressBinarySize)
-	copy(p.ZifAddress.Bytes[:], header.zifAddress.Bytes)
-	copy(p.publicKey, header.PublicKey[:])
-
-	return err
 }
 
 func (p *Peer) Who() (Entry, error) {
@@ -96,7 +78,7 @@ func (p *Peer) RecievedAnnounce() {
 
 	// TODO: Parallize this
 	for _, i := range closest {
-		peer, err := p.localPeer.ConnectPeer(i.PublicAddress + ":" + strconv.Itoa(i.Port))
+		peer, err := p.localPeer.ConnectPeerDirect(i.PublicAddress + ":" + strconv.Itoa(i.Port))
 
 		if err != nil ||
 			i.ZifAddress.Equals(&entry.ZifAddress) {

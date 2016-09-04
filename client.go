@@ -14,42 +14,9 @@ type Client struct {
 	conn net.Conn
 }
 
-// Attempt to connect a client to an address, return true on success.
-func (c *Client) Connect(addr string) bool {
-	var err error
-
-	c.conn, err = net.Dial("tcp", addr)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	return true
-}
-
 func (c *Client) Close() {
 	c.conn.Write(proto_terminate)
 	c.conn.Close()
-}
-
-func (c *Client) Handshake(lp *LocalPeer) (ProtocolHeader, error) {
-	// I use the term "server" somewhat loosely. It's the "server" part of a peer.
-	err := handshake_send(c.conn, lp)
-
-	// server now knows that we are definitely who we say we are.
-	// but...
-	// is the server who we think it is?
-	// better check!
-	server_header, err := handshake_recieve(c.conn)
-
-	if err != nil {
-		return server_header, err
-	}
-
-	server_header.zifAddress.Generate(server_header.PublicKey[:])
-
-	return server_header, nil
 }
 
 func (c *Client) Ping() bool {
