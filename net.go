@@ -7,10 +7,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/ed25519"
 	"io/ioutil"
 	"net"
 	"net/http"
+
+	"golang.org/x/crypto/ed25519"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -75,7 +76,7 @@ func handshake_recieve(conn net.Conn) (ProtocolHeader, error) {
 
 	conn.Write(proto_ok)
 
-	log.Debug("Incoming connection from ", pHeader.zifAddress.Encode())
+	log.Info("Incoming connection from ", pHeader.zifAddress.Encode())
 
 	// Send the client a cookie for them to sign, this proves they have the
 	// private key, and it is highly unlikely an attacker has a signed cookie
@@ -101,7 +102,7 @@ func handshake_recieve(conn net.Conn) (ProtocolHeader, error) {
 
 	conn.Write(proto_ok)
 
-	log.Debug(fmt.Sprintf("Verified %s", pHeader.zifAddress.Encode()))
+	log.Info(fmt.Sprintf("Verified %s", pHeader.zifAddress.Encode()))
 
 	return pHeader, nil
 }

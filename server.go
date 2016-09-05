@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"net"
 
+	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,20 +59,24 @@ func (s *Server) Handshake(conn net.Conn) error {
 
 	s.localPeer.connections[header.zifAddress.Encode()] = ConnHeader{conn, header}
 
-	go s.ListenStream(conn, header)
+	go s.ListenStream(conn, header, nil)
 
 	return nil
 }
 
-func (s *Server) ListenStream(conn net.Conn, header ProtocolHeader) {
-	session, err := s.localPeer.CreateServer(header.zifAddress.Encode())
-	conn.Write(proto_ok)
+func (s *Server) ListenStream(conn net.Conn, header ProtocolHeader, session *yamux.Session) {
+	var err error
+	if session == nil {
+		session, err = s.localPeer.CreateServer(header.zifAddress.Encode())
+	}
 
 	if err != nil {
 		log.Error(err.Error())
 		conn.Close()
 		return
 	}
+
+	conn.Write(proto_ok)
 
 	for {
 		log.Debug("Session listening for streams")

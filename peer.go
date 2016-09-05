@@ -8,6 +8,8 @@ package main
 
 import "golang.org/x/crypto/ed25519"
 import log "github.com/sirupsen/logrus"
+import "github.com/hashicorp/yamux"
+
 import "strconv"
 
 type Peer struct {
@@ -18,18 +20,48 @@ type Peer struct {
 	localPeer     *LocalPeer
 }
 
+func (p *Peer) OpenStream() (Client, error) {
+	log.Debug("Opening new stream for ", p.ZifAddress.Encode())
+	var ret Client
+	client, err := p.localPeer.CreateServer(p.ZifAddress.Encode())
+
+	if err != nil {
+		log.Error(err.Error())
+		return ret, err
+	}
+
+	stream, err := client.OpenStream()
+
+	if err != nil {
+		log.Error(err.Error())
+		return ret, err
+	}
+
+	ret.conn = stream
+
+	return ret, nil
+}
+
 func (p *Peer) Close() {
 	p.client.Close()
 }
 
 func (p *Peer) Ping() {
-	log.Debug("Pinging", p.ZifAddress.Encode())
+	log.Info("Pinging ", p.ZifAddress.Encode())
 	p.client.Ping()
 }
 
 func (p *Peer) Pong() {
 	log.Debug("Ping from", p.ZifAddress.Encode())
-	p.client.Pong()
+
+	return_stream, err := p.OpenStream()
+
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	return_stream.Pong()
 }
 
 func (p *Peer) Who() (Entry, error) {
@@ -88,5 +120,26 @@ func (p *Peer) RecievedAnnounce() {
 
 		peer.client.conn.Write(proto_dht_announce)
 		peer.client.SendEntry(&entry, sig)
+	}
+}
+
+// Very much the same as the counterpart in Server, just a little different as
+// this peer is the one that *started* the TCP connection.
+func (p *Peer) ListenStream(header ProtocolHeader, client *yamux.Session) {
+	msg := make([]byte, 2)
+
+	for {
+		stream, err := client.Accept()
+
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		log.Debug("Client accepted new stream from ", header.zifAddress.Encode())
+
+		net_recvall(msg, stream)
+
+		RouteMessage(msg, p.localPeer.CreatePeer(stream, header), p.localPeer)
 	}
 }

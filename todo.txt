@@ -1,0 +1,2 @@
+Recycle yamux streams
+Make sure TCP and yamux streams are correctly closed

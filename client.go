@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/binary"
 	"net"
 
@@ -19,13 +18,8 @@ func (c *Client) Close() {
 	c.conn.Close()
 }
 
-func (c *Client) Ping() bool {
+func (c *Client) Ping() {
 	c.conn.Write(proto_ping)
-
-	buf := make([]byte, 2)
-	net_recvall(buf, c.conn)
-
-	return bytes.Equal(buf, proto_pong)
 }
 
 func (c *Client) Pong() {

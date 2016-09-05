@@ -81,6 +81,8 @@ func (lp LocalPeer) ConnectPeerDirect(addr string) (Peer, error) {
 
 	check_ok(pair.conn)
 
+	ret.ZifAddress = pair.header.zifAddress
+
 	client, err := lp.CreateClient(pair.header.zifAddress.Encode())
 	log.Debug("Created local client")
 
@@ -89,13 +91,17 @@ func (lp LocalPeer) ConnectPeerDirect(addr string) (Peer, error) {
 	}
 
 	stream, err := client.OpenStream()
-	log.Debug("Opened client stream")
+	log.Debug("Opened client stream #", client.NumStreams())
 
 	if err != nil {
 		return ret, err
 	}
 
 	ret.client.conn = stream
+
+	// Next up we need to make a server listen as well, this way connections can
+	// be initiated by our peer.
+	go ret.ListenStream(pair.header, client)
 
 	return ret, nil
 }
@@ -149,6 +155,18 @@ func (lp *LocalPeer) CreateServer(addr string) (*yamux.Session, error) {
 	lp.servers[addr] = server
 
 	return server, nil
+}
+
+func (lp *LocalPeer) GetSession(addr string) *yamux.Session {
+	if s, ok := lp.servers[addr]; ok {
+		return s
+	}
+
+	if c, ok := lp.clients[addr]; ok {
+		return c
+	}
+
+	return nil
 }
 
 func (lp *LocalPeer) SignEntry() {
