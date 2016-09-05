@@ -42,7 +42,7 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
-	defer peer.Close()
+	defer peer.Terminate()
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -61,7 +61,7 @@ func (hs *HTTPServer) Who(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
-	defer peer.Close()
+	defer peer.CloseStreams()
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -94,7 +94,7 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
-	defer peer.Close()
+	defer peer.CloseStreams()
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)

@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net"
 
-	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
 )
@@ -22,58 +21,32 @@ type LocalPeer struct {
 	privateKey ed25519.PrivateKey
 	entrySig   [64]byte
 
-	// Currently open TCP connections
-	connections map[string]ConnHeader
-
-	// Open yamux servers
-	servers map[string]*yamux.Session
-
-	// Open yamux clients
-	clients map[string]*yamux.Session
+	streams StreamManager
 }
 
 func (lp *LocalPeer) Setup() {
-	lp.connections = make(map[string]ConnHeader)
-	lp.servers = make(map[string]*yamux.Session)
-	lp.clients = make(map[string]*yamux.Session)
-
 	lp.ZifAddress.Generate(lp.publicKey)
 }
 
 func (lp *LocalPeer) CreatePeer(conn net.Conn, header ProtocolHeader) Peer {
 	var ret Peer
+	ret.Setup()
 
 	ret.ZifAddress = header.zifAddress
 	ret.publicKey = header.PublicKey[:]
-	ret.client.conn = conn
+	ret.clients[0].conn = conn
 	ret.localPeer = lp
 
 	return ret
 }
 
-func (lp *LocalPeer) ConnectDirect(addr string) (ConnHeader, error) {
-	if c, ok := lp.connections[addr]; ok {
-		return c, nil
-	}
-
-	conn, err := net.Dial("tcp", addr)
-
-	if err != nil {
-		return ConnHeader{conn, ProtocolHeader{}}, err
-	}
-
-	header, err := lp.Handshake(conn)
-	pair := ConnHeader{conn, header}
-	lp.connections[header.zifAddress.Encode()] = pair
-
-	return pair, nil
-}
-
 func (lp LocalPeer) ConnectPeerDirect(addr string) (Peer, error) {
 	var ret Peer
+	ret.Setup()
+
 	ret.localPeer = &lp
 
-	pair, err := lp.ConnectDirect(addr)
+	pair, err := lp.streams.OpenTCP(addr)
 
 	if err != nil {
 		return ret, err
@@ -83,7 +56,7 @@ func (lp LocalPeer) ConnectPeerDirect(addr string) (Peer, error) {
 
 	ret.ZifAddress = pair.header.zifAddress
 
-	client, err := lp.CreateClient(pair.header.zifAddress.Encode())
+	client, err := lp.streams.ConnectClient(pair)
 	log.Debug("Created local client")
 
 	if err != nil || client == nil {
@@ -97,76 +70,13 @@ func (lp LocalPeer) ConnectPeerDirect(addr string) (Peer, error) {
 		return ret, err
 	}
 
-	ret.client.conn = stream
+	ret.clients[0].conn = stream
 
 	// Next up we need to make a server listen as well, this way connections can
 	// be initiated by our peer.
 	go ret.ListenStream(pair.header, client)
 
 	return ret, nil
-}
-
-func (lp *LocalPeer) Handshake(conn net.Conn) (ProtocolHeader, error) {
-	// I use the term "server" somewhat loosely. It's the "server" part of a peer.
-	err := handshake_send(conn, lp)
-
-	// server now knows that we are definitely who we say we are.
-	// but...
-	// is the server who we think it is?
-	// better check!
-	server_header, err := handshake_recieve(conn)
-
-	if err != nil {
-		return server_header, err
-	}
-
-	server_header.zifAddress.Generate(server_header.PublicKey[:])
-
-	return server_header, nil
-}
-
-func (lp *LocalPeer) CreateClient(addr string) (*yamux.Session, error) {
-	if c, ok := lp.clients[addr]; ok {
-		return c, nil
-	}
-
-	client, err := yamux.Client(lp.connections[addr].conn, nil)
-
-	if err != nil {
-		return client, err
-	}
-
-	lp.clients[addr] = client
-
-	return client, nil
-}
-
-func (lp *LocalPeer) CreateServer(addr string) (*yamux.Session, error) {
-	if s, ok := lp.servers[addr]; ok {
-		return s, nil
-	}
-
-	server, err := yamux.Server(lp.connections[addr].conn, nil)
-
-	if err != nil {
-		return server, err
-	}
-
-	lp.servers[addr] = server
-
-	return server, nil
-}
-
-func (lp *LocalPeer) GetSession(addr string) *yamux.Session {
-	if s, ok := lp.servers[addr]; ok {
-		return s
-	}
-
-	if c, ok := lp.clients[addr]; ok {
-		return c
-	}
-
-	return nil
 }
 
 func (lp *LocalPeer) SignEntry() {

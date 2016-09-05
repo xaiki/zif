@@ -102,7 +102,8 @@ func (s *Server) Handle(peer Peer) {
 		}
 
 		if bytes.Equal(msg, proto_terminate) {
-			log.Debug(peer.ZifAddress.Encode(), " closed connection")
+			s.localPeer.GetSession(peer.ZifAddress.Encode()).Close()
+			log.Debug("Closed connection with ", peer.ZifAddress.Encode())
 			return
 		}
 

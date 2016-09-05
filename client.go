@@ -13,8 +13,11 @@ type Client struct {
 	conn net.Conn
 }
 
-func (c *Client) Close() {
+func (c *Client) Terminate() {
 	c.conn.Write(proto_terminate)
+}
+
+func (c *Client) Close() {
 	c.conn.Close()
 }
 

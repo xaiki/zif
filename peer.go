@@ -15,57 +15,46 @@ import "strconv"
 type Peer struct {
 	ZifAddress    Address
 	PublicAddress string
-	client        Client
+	clients       []Client
 	publicKey     ed25519.PublicKey
 	localPeer     *LocalPeer
 }
 
-func (p *Peer) OpenStream() (Client, error) {
-	log.Debug("Opening new stream for ", p.ZifAddress.Encode())
-	var ret Client
-	client, err := p.localPeer.CreateServer(p.ZifAddress.Encode())
-
-	if err != nil {
-		log.Error(err.Error())
-		return ret, err
-	}
-
-	stream, err := client.OpenStream()
-
-	if err != nil {
-		log.Error(err.Error())
-		return ret, err
-	}
-
-	ret.conn = stream
-
-	return ret, nil
+func (p *Peer) Setup() {
+	p.clients = make([]Client, 2)
 }
 
-func (p *Peer) Close() {
-	p.client.Close()
+func (p *Peer) Terminate() {
+	p.localPeer.streams.GetSession(p.ZifAddress.Encode()).Close()
+}
+
+func (p *Peer) OpenStream() Client {
+	return p.localPeer.OpenStream()
+}
+
+func (p *Peer) CloseStreams() {
+	for _, i := range p.clients {
+		i.Close()
+	}
 }
 
 func (p *Peer) Ping() {
+	stream := p.OpenStream()
 	log.Info("Pinging ", p.ZifAddress.Encode())
-	p.client.Ping()
+	stream.Ping()
+	stream.Close()
 }
 
 func (p *Peer) Pong() {
 	log.Debug("Ping from", p.ZifAddress.Encode())
 
-	return_stream, err := p.OpenStream()
-
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-
-	return_stream.Pong()
+	stream := p.OpenStream()
+	stream.Pong()
+	stream.Close()
 }
 
 func (p *Peer) Who() (Entry, error) {
-	return p.client.Who()
+
 }
 
 func (p *Peer) SendWho() {
@@ -89,7 +78,7 @@ func (p *Peer) RecievedAnnounce() {
 	entry, sig, err := recieve_entry(p.client.conn)
 
 	if err != nil {
-		p.Close()
+		p.CloseStream()
 		log.Error(err.Error())
 		return
 	}
