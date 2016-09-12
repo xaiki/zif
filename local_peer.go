@@ -24,6 +24,7 @@ type LocalPeer struct {
 }
 
 func (lp *LocalPeer) Setup() {
+	lp.peers = cmap.New()
 	lp.ZifAddress.Generate(lp.publicKey)
 }
 
