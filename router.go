@@ -20,6 +20,6 @@ func RouteMessage(msg_type []byte, peer *Peer, stream net.Conn) {
 		peer.GetStream(stream).
 			SendEntry(&peer.localPeer.Entry, peer.localPeer.entrySig[:])
 	} else if bytes.Equal(msg_type, proto_dht_announce) {
-		peer.RecievedAnnounce()
+		peer.RecievedAnnounce(stream, peer)
 	}
 }

@@ -48,6 +48,7 @@ func main() {
 	lp.Entry.PublicAddress = ""
 	lp.Entry.ZifAddress = lp.ZifAddress
 	lp.Entry.PublicKey = lp.publicKey
+	lp.Entry.PublicAddress = "127.0.0.1"
 	lp.SignEntry()
 
 	lp.Listen(*addr)

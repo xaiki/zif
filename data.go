@@ -45,9 +45,13 @@ func ValidateEntry(entry *Entry, sig []byte) error {
 		return errors.New("Failed to verify signature")
 	}
 
-	// 253 is the maximum length of a domain name
-	if len(entry.PublicAddress) > 0 && len(entry.PublicAddress) < 253 {
+	if len(entry.PublicAddress) == 0 {
 		return errors.New("Public address must be set")
+	}
+
+	// 253 is the maximum length of a domain name
+	if len(entry.PublicAddress) >= 253 {
+		return errors.New("Public address is too large (253 char max)")
 	}
 
 	if entry.Port > 65535 {

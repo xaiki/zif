@@ -20,11 +20,13 @@ type LocalPeer struct {
 	privateKey ed25519.PrivateKey
 	entrySig   [64]byte
 
-	peers cmap.ConcurrentMap
+	peers         cmap.ConcurrentMap
+	public_to_zif cmap.ConcurrentMap
 }
 
 func (lp *LocalPeer) Setup() {
 	lp.peers = cmap.New()
+	lp.public_to_zif = cmap.New()
 	lp.ZifAddress.Generate(lp.publicKey)
 }
 

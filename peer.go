@@ -8,6 +8,7 @@ package main
 
 import (
 	"net"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
@@ -33,6 +34,16 @@ func NewPeer(local_peer *LocalPeer) *Peer {
 }
 
 func (p *Peer) Connect(addr string) error {
+	if p.localPeer.public_to_zif.Has(addr) {
+		peer_addr, _ := (p.localPeer.public_to_zif.Get(addr))
+		peer := p.localPeer.GetPeer(peer_addr.(string))
+
+		p.publicKey = peer.publicKey[:]
+		p.ZifAddress = peer.ZifAddress
+
+		return nil
+	}
+
 	pair, err := p.streams.OpenTCP(addr)
 
 	if err != nil {
@@ -41,7 +52,9 @@ func (p *Peer) Connect(addr string) error {
 
 	p.publicKey = pair.header.PublicKey[:]
 	p.ZifAddress = pair.header.zifAddress
+
 	p.localPeer.peers.Set(p.ZifAddress.Encode(), p)
+	p.localPeer.public_to_zif.Set(addr, p.ZifAddress.Encode())
 
 	return nil
 }
@@ -131,7 +144,10 @@ func (p *Peer) Announce() *Client {
 	log.Debug("Sending announce to ", p.ZifAddress.Encode())
 
 	if p.localPeer.Entry.PublicAddress == "" {
-		p.localPeer.Entry.PublicAddress = external_ip()
+		log.Debug("Local peer public address is nil, attempting to fetch")
+		ip := external_ip()
+		log.Debug("External IP is ", ip)
+		p.localPeer.Entry.PublicAddress = ip
 	}
 
 	p.localPeer.SignEntry()
@@ -142,46 +158,50 @@ func (p *Peer) Announce() *Client {
 	return &stream
 }
 
-func (p *Peer) RecievedAnnounce() {
+func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 	log.Debug("Recieved announce")
 
-	/*	stream, _ := p.OpenStream()
-		//entry, sig, err := recieve_entry(stream.conn)
+	entry, sig, err := recieve_entry(stream)
+
+	if err != nil {
+		stream.Close()
+		log.Error(err.Error())
+		return
+	}
+
+	var addr Address
+	addr.Generate(entry.PublicKey[:])
+
+	log.Debug("Announce from ", addr.Encode())
+
+	saved := p.localPeer.RoutingTable.Update(entry)
+
+	if saved {
+		log.Info("Saved new peer ", addr.Encode())
+	}
+
+	// next up, tell other people!
+	closest := p.localPeer.RoutingTable.FindClosest(addr, BucketSize)
+
+	// TODO: Parallize this
+	for _, i := range closest {
+
+		if i.ZifAddress.Equals(&entry.ZifAddress) || i.ZifAddress.Equals(&from.ZifAddress) {
+			continue
+		}
+
+		peer := NewPeer(p.localPeer)
+		err := peer.Connect(i.PublicAddress + ":" + strconv.Itoa(i.Port))
 
 		if err != nil {
-			stream.Close()
-			log.Error(err.Error())
-			return
+			log.Warn("Failed to connect to peer: ", err.Error())
+			continue
 		}
 
-		var addr Address
-		addr.Generate(entry.PublicKey[:])
-
-		log.Debug("Announce from ", addr.Encode())
-
-		saved := p.localPeer.RoutingTable.Update(entry)
-
-		if saved {
-			log.Info("Saved new peer ", addr.Encode())
-		}
-
-		// next up, tell other people!
-		closest := p.localPeer.RoutingTable.FindClosest(addr, BucketSize)
-
-		// TODO: Parallize this
-		for _, i := range closest {
-			peer, err := p.localPeer.ConnectPeerDirect(i.PublicAddress + ":" + strconv.Itoa(i.Port))
-
-			if err != nil ||
-				i.ZifAddress.Equals(&entry.ZifAddress) {
-
-				continue
-			}
-
-			peer_stream, _ := peer.OpenStream()
-			peer_stream.conn.Write(proto_dht_announce)
-			peer_stream.SendEntry(&entry, sig)
-		}*/
+		peer_stream, _ := peer.OpenStream()
+		peer_stream.conn.Write(proto_dht_announce)
+		peer_stream.SendEntry(&entry, sig)
+	}
 }
 
 // Very much the same as the counterpart in Server, just a little different as

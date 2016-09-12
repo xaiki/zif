@@ -6,9 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"io/ioutil"
 	"net"
-	"net/http"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -69,26 +67,6 @@ func recieve_entry(conn net.Conn) (Entry, []byte, error) {
 	err = ValidateEntry(&entry, sig)
 
 	return entry, sig, err
-}
-
-// TODO: Make this check using UpNp/NAT_PMP first, then query services.
-func external_ip() string {
-	resp, err := http.Get("https://api.ipify.org/")
-	defer resp.Body.Close()
-
-	if err != nil {
-		log.Error("Failed to get external ip: try setting manually")
-		return ""
-	}
-
-	ret, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		log.Error("Failed to get external ip: try setting manually")
-		return ""
-	}
-
-	return string(ret)
 }
 
 func listen_stream(peer *Peer) {
