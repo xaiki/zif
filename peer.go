@@ -4,6 +4,9 @@
 // Just a bit of a wrapper for the client really, that contains most of the
 // networking code, this mostly has the data and a few other things.
 
+// intentional compile error ;P
+TODO: Regularly ping open yamux sessions, remove if no longer connected.
+
 package main
 
 import (
@@ -148,6 +151,7 @@ func (p *Peer) Announce() *Client {
 	return &stream
 }
 
+// TODO: Rate limit this to prevent announce flooding.
 func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 	log.Debug("Recieved announce")
 	defer stream.Close()
@@ -202,6 +206,7 @@ func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 		peer_stream.conn.Write(proto_dht_announce)
 		peer_stream.SendEntry(&entry, sig)
 	}
+
 }
 
 // Very much the same as the counterpart in Server, just a little different as
