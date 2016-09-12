@@ -34,16 +34,6 @@ func NewPeer(local_peer *LocalPeer) *Peer {
 }
 
 func (p *Peer) Connect(addr string) error {
-	if p.localPeer.public_to_zif.Has(addr) {
-		peer_addr, _ := (p.localPeer.public_to_zif.Get(addr))
-		peer := p.localPeer.GetPeer(peer_addr.(string))
-
-		p.publicKey = peer.publicKey[:]
-		p.ZifAddress = peer.ZifAddress
-
-		return nil
-	}
-
 	pair, err := p.streams.OpenTCP(addr)
 
 	if err != nil {
@@ -172,7 +162,7 @@ func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 	var addr Address
 	addr.Generate(entry.PublicKey[:])
 
-	log.Debug("Announce from ", addr.Encode())
+	log.Debug("Announce from ", from.ZifAddress.Encode())
 
 	saved := p.localPeer.RoutingTable.Update(entry)
 
@@ -185,20 +175,29 @@ func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 
 	// TODO: Parallize this
 	for _, i := range closest {
-
 		if i.ZifAddress.Equals(&entry.ZifAddress) || i.ZifAddress.Equals(&from.ZifAddress) {
 			continue
 		}
 
-		peer := NewPeer(p.localPeer)
-		err := peer.Connect(i.PublicAddress + ":" + strconv.Itoa(i.Port))
+		peer := p.localPeer.GetPeer(i.ZifAddress.Encode())
+
+		if peer == nil {
+			log.Debug("Connecting to new peer")
+			peer := NewPeer(p.localPeer)
+			err = peer.Connect(i.PublicAddress + ":" + strconv.Itoa(i.Port))
+		}
 
 		if err != nil {
 			log.Warn("Failed to connect to peer: ", err.Error())
 			continue
 		}
 
-		peer_stream, _ := peer.OpenStream()
+		peer_stream, err := peer.OpenStream()
+
+		if err != nil {
+			log.Error(err.Error())
+		}
+
 		peer_stream.conn.Write(proto_dht_announce)
 		peer_stream.SendEntry(&entry, sig)
 	}

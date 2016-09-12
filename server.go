@@ -47,6 +47,8 @@ func (s *Server) Handshake(conn net.Conn) {
 	peer := NewPeer(s.localPeer)
 	peer.SetTCP(ConnHeader{conn, header})
 
+	s.localPeer.peers.Set(peer.ZifAddress.Encode(), peer)
+
 	listen_stream(peer)
 }
 
