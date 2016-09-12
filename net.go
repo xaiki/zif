@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -50,88 +49,6 @@ func check_ok(conn net.Conn) bool {
 	return bytes.Equal(buf, proto_ok)
 }
 
-func handshake_recieve(conn net.Conn) (ProtocolHeader, error) {
-	check := func(e error) bool {
-		if e != nil {
-			log.Error(e.Error())
-			conn.Close()
-			return true
-		}
-
-		return false
-	}
-
-	header := make([]byte, ProtocolHeaderSize)
-	err := net_recvall(header, conn)
-	if check(err) {
-		conn.Write(proto_no)
-		return ProtocolHeader{}, err
-	}
-
-	pHeader, err := ProtocolHeaderFromBytes(header)
-	if check(err) {
-		conn.Write(proto_no)
-		return pHeader, err
-	}
-
-	conn.Write(proto_ok)
-
-	log.Info("Incoming connection from ", pHeader.zifAddress.Encode())
-
-	// Send the client a cookie for them to sign, this proves they have the
-	// private key, and it is highly unlikely an attacker has a signed cookie
-	// cached.
-	cookie, err := RandBytes(20)
-	if check(err) {
-		return pHeader, err
-	}
-
-	conn.Write(cookie)
-
-	sig := make([]byte, ed25519.SignatureSize)
-	net_recvall(sig, conn)
-
-	verified := ed25519.Verify(pHeader.PublicKey[:], cookie, sig)
-
-	if !verified {
-		log.Error("Failed to verify peer ", pHeader.zifAddress.Encode())
-		conn.Write(proto_no)
-		conn.Close()
-		return pHeader, errors.New("Signature not verified")
-	}
-
-	conn.Write(proto_ok)
-
-	log.Info(fmt.Sprintf("Verified %s", pHeader.zifAddress.Encode()))
-
-	return pHeader, nil
-}
-
-func handshake_send(conn net.Conn, lp *LocalPeer) error {
-	log.Debug("Handshaking with ", conn.RemoteAddr().String())
-	//ph := c.localPeer.ProtocolHeader()
-
-	header := lp.ProtocolHeader()
-	conn.Write(header.Bytes())
-
-	if !check_ok(conn) {
-		return errors.New("Peer refused header")
-	}
-
-	// The server will want us to sign this. Proof of identity and all that.
-	cookie := make([]byte, 20)
-	net_recvall(cookie, conn)
-
-	sig := lp.Sign(cookie)
-	conn.Write(sig)
-
-	if !check_ok(conn) {
-		return errors.New("Peer refused signature")
-	}
-
-	return nil
-}
-
 func recieve_entry(conn net.Conn) (Entry, []byte, error) {
 	length_b := make([]byte, 8)
 	net_recvall(length_b, conn)
@@ -149,9 +66,7 @@ func recieve_entry(conn net.Conn) (Entry, []byte, error) {
 	sig := make([]byte, ed25519.SignatureSize)
 	net_recvall(sig, conn)
 
-	if !ValidateEntry(&entry, sig) {
-		return entry, sig, errors.New("Failed to validate entry")
-	}
+	err = ValidateEntry(&entry, sig)
 
 	return entry, sig, err
 }
@@ -174,4 +89,66 @@ func external_ip() string {
 	}
 
 	return string(ret)
+}
+
+func listen_stream(peer *Peer) {
+	var err error
+	session := peer.GetSession()
+
+	if session == nil {
+		log.Info("Peer has no active session, starting server")
+		session, err = peer.ConnectServer()
+
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+	}
+
+	for {
+		stream, err := session.Accept()
+
+		if err != nil {
+			if err.Error() == "EOF" {
+				log.Info("Peer closed connection")
+			} else {
+				log.Error(err.Error())
+			}
+			return
+		}
+
+		log.Debug("Accepted stream (", session.NumStreams(), " total)")
+
+		peer.AddStream(stream)
+
+		go handle_stream(peer, stream)
+	}
+}
+
+func handle_stream(peer *Peer, stream net.Conn) {
+	log.Debug("Handling stream")
+	msg := make([]byte, 2)
+	for {
+		err := net_recvall(msg, stream)
+
+		if err != nil {
+			if err.Error() == "EOF" {
+				log.Info("Closed stream from ", peer.ZifAddress.Encode())
+			} else {
+				log.Error(err.Error())
+			}
+
+			peer.RemoveStream(stream)
+
+			return
+		}
+
+		if bytes.Equal(msg, proto_terminate) {
+			peer.Terminate()
+			log.Debug("Terminated connection with ", peer.ZifAddress.Encode())
+			return
+		}
+
+		RouteMessage(msg, peer, stream)
+	}
 }

@@ -1,2 +1,4 @@
-Recycle yamux streams
-Make sure TCP and yamux streams are correctly closed
+net.go:74:// TODO: Make this check using UpNp/NAT_PMP first, then query services.
+peer.go:170:		// TODO: Parallize this
+protocol_header.go:23:	// TODO: Also hold other information!
+routing_table.go:56:	// TODO: Ping peers, starting from back. If none reply, remove them.

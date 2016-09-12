@@ -1,7 +1,11 @@
 package main
 
-import "encoding/json"
-import "golang.org/x/crypto/ed25519"
+import (
+	"encoding/json"
+	"errors"
+
+	"golang.org/x/crypto/ed25519"
+)
 
 func EntryToJson(e *Entry) ([]byte, error) {
 	data, err := json.Marshal(e)
@@ -30,15 +34,25 @@ func EntryToBytes(e *Entry) []byte {
 	return []byte(str)
 }
 
-func ValidateEntry(entry *Entry, sig []byte) bool {
+func ValidateEntry(entry *Entry, sig []byte) error {
+	if len(entry.PublicKey) < ed25519.PublicKeySize {
+		return errors.New("Public key too small")
+	}
+
 	verified := ed25519.Verify(entry.PublicKey, EntryToBytes(entry), sig)
 
 	if !verified {
-		return false
+		return errors.New("Failed to verify signature")
 	}
 
 	// 253 is the maximum length of a domain name
-	return len(entry.PublicAddress) > 0 && len(entry.PublicAddress) < 253 &&
-		entry.Port < 65535
+	if len(entry.PublicAddress) > 0 && len(entry.PublicAddress) < 253 {
+		return errors.New("Public address must be set")
+	}
 
+	if entry.Port > 65535 {
+		return errors.New("Port too large (" + string(entry.Port) + ")")
+	}
+
+	return nil
 }

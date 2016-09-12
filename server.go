@@ -3,10 +3,8 @@ package main
 // tcp server
 
 import (
-	"bytes"
 	"net"
 
-	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,75 +36,20 @@ func (s *Server) Listen(addr string) {
 	}
 }
 
-func (s *Server) Close() {
-	s.listener.Close()
-}
-
-func (s *Server) Handshake(conn net.Conn) error {
-	header, err := handshake_recieve(conn)
-
-	if err != nil {
-		return err
-	}
-
-	err = handshake_send(conn, s.localPeer)
-
-	if err != nil {
-		return err
-	}
-
-	//s.Handle(s.localPeer.CreatePeer(conn, header))
-
-	s.localPeer.connections[header.zifAddress.Encode()] = ConnHeader{conn, header}
-
-	go s.ListenStream(conn, header, nil)
-
-	return nil
-}
-
-func (s *Server) ListenStream(conn net.Conn, header ProtocolHeader, session *yamux.Session) {
-	var err error
-	if session == nil {
-		session, err = s.localPeer.CreateServer(header.zifAddress.Encode())
-	}
+func (s *Server) Handshake(conn net.Conn) {
+	header, err := handshake(conn, s.localPeer)
 
 	if err != nil {
 		log.Error(err.Error())
-		conn.Close()
 		return
 	}
 
-	conn.Write(proto_ok)
+	peer := NewPeer(s.localPeer)
+	peer.SetTCP(ConnHeader{conn, header})
 
-	for {
-		log.Debug("Session listening for streams")
-		stream, err := session.Accept()
-
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-
-		go s.Handle(s.localPeer.CreatePeer(stream, header))
-	}
+	listen_stream(peer)
 }
 
-func (s *Server) Handle(peer Peer) {
-	msg := make([]byte, 2)
-	for {
-		err := net_recvall(msg, peer.client.conn)
-
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-
-		if bytes.Equal(msg, proto_terminate) {
-			s.localPeer.GetSession(peer.ZifAddress.Encode()).Close()
-			log.Debug("Closed connection with ", peer.ZifAddress.Encode())
-			return
-		}
-
-		RouteMessage(msg, peer, s.localPeer)
-	}
+func (s *Server) Close() {
+	s.listener.Close()
 }

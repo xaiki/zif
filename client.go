@@ -13,6 +13,12 @@ type Client struct {
 	conn net.Conn
 }
 
+func NewClient(stream net.Conn) Client {
+	var ret Client
+	ret.conn = stream
+	return ret
+}
+
 func (c *Client) Terminate() {
 	c.conn.Write(proto_terminate)
 }
@@ -35,6 +41,8 @@ func (c *Client) Who() (Entry, error) {
 	entry, _, err := recieve_entry(c.conn)
 
 	if err != nil {
+		log.Info(entry.Desc)
+		log.Error(err.Error())
 		c.Close()
 	}
 

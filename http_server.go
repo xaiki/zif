@@ -41,8 +41,8 @@ func (hs *HTTPServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
-	defer peer.Terminate()
+	peer := NewPeer(hs.localPeer)
+	err := peer.Connect(vars["address"])
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -50,8 +50,10 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+	peer.ConnectClient()
 
-	peer.Ping()
+	client := peer.Ping()
+	defer client.Close()
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Done."))
@@ -60,8 +62,19 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Who(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
-	defer peer.CloseStreams()
+	peer := NewPeer(hs.localPeer)
+	err := peer.Connect(vars["address"])
+
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(err.Error()))
+
+		return
+	}
+	peer.ConnectClient()
+
+	client, entry, err := peer.Who()
+	defer client.Close()
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -70,31 +83,24 @@ func (hs *HTTPServer) Who(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entry, err := peer.Who()
+	json, err := EntryToJson(&entry)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte(err.Error()))
-		return
-	}
 
-	ret, err := EntryToJson(&entry)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(ret)
+	w.Write([]byte(json))
 }
 
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
-	defer peer.CloseStreams()
+	peer := NewPeer(hs.localPeer)
+	err := peer.Connect(vars["address"])
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -102,6 +108,7 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+	peer.ConnectClient()
 
 	peer.Announce()
 

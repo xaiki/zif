@@ -6,9 +6,8 @@ package main
 import (
 	"errors"
 	"io/ioutil"
-	"net"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/streamrail/concurrent-map"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -21,62 +20,20 @@ type LocalPeer struct {
 	privateKey ed25519.PrivateKey
 	entrySig   [64]byte
 
-	streams StreamManager
+	peers cmap.ConcurrentMap
 }
 
 func (lp *LocalPeer) Setup() {
 	lp.ZifAddress.Generate(lp.publicKey)
 }
 
-func (lp *LocalPeer) CreatePeer(conn net.Conn, header ProtocolHeader) Peer {
-	var ret Peer
-	ret.Setup()
-
-	ret.ZifAddress = header.zifAddress
-	ret.publicKey = header.PublicKey[:]
-	ret.clients[0].conn = conn
-	ret.localPeer = lp
-
-	return ret
-}
-
-func (lp LocalPeer) ConnectPeerDirect(addr string) (Peer, error) {
-	var ret Peer
-	ret.Setup()
-
-	ret.localPeer = &lp
-
-	pair, err := lp.streams.OpenTCP(addr)
-
-	if err != nil {
-		return ret, err
+func (lp *LocalPeer) GetPeer(addr string) *Peer {
+	if p, ok := lp.peers.Get(addr); ok {
+		peer := p.(*Peer)
+		return peer
 	}
 
-	check_ok(pair.conn)
-
-	ret.ZifAddress = pair.header.zifAddress
-
-	client, err := lp.streams.ConnectClient(pair)
-	log.Debug("Created local client")
-
-	if err != nil || client == nil {
-		return ret, err
-	}
-
-	stream, err := client.OpenStream()
-	log.Debug("Opened client stream #", client.NumStreams())
-
-	if err != nil {
-		return ret, err
-	}
-
-	ret.clients[0].conn = stream
-
-	// Next up we need to make a server listen as well, this way connections can
-	// be initiated by our peer.
-	go ret.ListenStream(pair.header, client)
-
-	return ret, nil
+	return nil
 }
 
 func (lp *LocalPeer) SignEntry() {
