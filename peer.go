@@ -150,11 +150,11 @@ func (p *Peer) Announce() *Client {
 
 func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 	log.Debug("Recieved announce")
+	defer stream.Close()
 
 	entry, sig, err := recieve_entry(stream)
 
 	if err != nil {
-		stream.Close()
 		log.Error(err.Error())
 		return
 	}
@@ -193,6 +193,7 @@ func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 		}
 
 		peer_stream, err := peer.OpenStream()
+		defer peer_stream.Close()
 
 		if err != nil {
 			log.Error(err.Error())
