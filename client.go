@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"errors"
 	"net"
 
 	log "github.com/sirupsen/logrus"
@@ -35,21 +36,7 @@ func (c *Client) Pong() {
 	c.conn.Write(proto_pong)
 }
 
-func (c *Client) Who() (Entry, error) {
-	c.conn.Write(proto_who)
-
-	entry, _, err := recieve_entry(c.conn)
-
-	if err != nil {
-		log.Info(entry.Desc)
-		log.Error(err.Error())
-		c.Close()
-	}
-
-	return entry, err
-}
-
-func (c *Client) SendEntry(e *Entry, sig []byte) {
+func (c *Client) SendEntry(e *Entry) {
 	json, err := EntryToJson(e)
 
 	if err != nil {
@@ -64,10 +51,39 @@ func (c *Client) SendEntry(e *Entry, sig []byte) {
 
 	c.conn.Write(length_b)
 	c.conn.Write(json)
-	c.conn.Write(sig)
 }
 
-func (c *Client) Announce(e *Entry, sig []byte) {
+func (c *Client) Announce(e *Entry) {
 	c.conn.Write(proto_dht_announce)
-	c.SendEntry(e, sig)
+	c.SendEntry(e)
+}
+
+func (c *Client) Query(address string) {
+	c.conn.Write(proto_dht_query)
+	c.conn.Write([]byte(address))
+}
+
+func (c *Client) Bootstrap() error {
+	c.conn.Write(proto_bootstrap)
+
+	length_b := make([]byte, 8)
+	err := net_recvall(length_b, c.conn)
+
+	if err != nil {
+		c.Close()
+		return err
+	}
+
+	length, _ := binary.Uvarint(length_b)
+
+	if length > EntryLengthMax*BucketSize {
+		c.Close()
+		return errors.New("Peer sent too much data")
+	}
+
+	closest_json := make([]byte, length)
+	net_recvall(closest_json, c.conn)
+	log.Debug(string(closest_json))
+
+	return nil
 }

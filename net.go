@@ -8,8 +8,6 @@ import (
 	"errors"
 	"net"
 
-	"golang.org/x/crypto/ed25519"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,13 +45,13 @@ func check_ok(conn net.Conn) bool {
 	return bytes.Equal(buf, proto_ok)
 }
 
-func recieve_entry(conn net.Conn) (Entry, []byte, error) {
+func recieve_entry(conn net.Conn) (Entry, error) {
 	length_b := make([]byte, 8)
 	net_recvall(length_b, conn)
 	length, _ := binary.Varint(length_b)
 
 	if length > EntryLengthMax {
-		return Entry{}, nil, errors.New("Peer entry larger than max")
+		return Entry{}, errors.New("Peer entry larger than max")
 	}
 
 	entry_json := make([]byte, length)
@@ -61,12 +59,9 @@ func recieve_entry(conn net.Conn) (Entry, []byte, error) {
 
 	entry, err := JsonToEntry(entry_json)
 
-	sig := make([]byte, ed25519.SignatureSize)
-	net_recvall(sig, conn)
+	err = ValidateEntry(&entry)
 
-	err = ValidateEntry(&entry, sig)
-
-	return entry, sig, err
+	return entry, err
 }
 
 func listen_stream(peer *Peer) {

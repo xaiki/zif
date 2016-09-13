@@ -15,7 +15,13 @@ type Entry struct {
 	Desc          string
 	PublicAddress string
 	PublicKey     []byte
-	Port          int
+
+	// The owner of this entry should have signed it, we need to store the
+	// sigature. It's actually okay as we can verify that a peer owns a public
+	// key by generating an address from it - if the address is not the peers,
+	// then Mallory is just using someone elses entry for their own address.
+	Signature []byte
+	Port      int
 
 	// Used in the FindClosest function, for sorting.
 	distance Address

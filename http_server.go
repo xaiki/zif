@@ -17,12 +17,13 @@ type HTTPServer struct {
 func (hs *HTTPServer) ListenHTTP(addr string) {
 	router := mux.NewRouter().StrictSlash(true)
 
+	// TODO: Bootstrap request
 	router.HandleFunc("/", hs.IndexHandler)
 	router.HandleFunc("/ping/{address}/", hs.Ping)
-	router.HandleFunc("/who/{address}/", hs.Who)
-	/*router.HandleFunc("/query/{address}/{dht}/{target}/", hs.Query)*/
+	router.HandleFunc("/query/{address}/", hs.Query)
 	router.HandleFunc("/announce/{address}/", hs.Announce)
 	router.HandleFunc("/set_address/{address}/", hs.SetAddress)
+	router.HandleFunc("/bootstrap/{address}/", hs.Bootstrap)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -59,7 +60,10 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Done."))
 }
 
-func (hs *HTTPServer) Who(w http.ResponseWriter, r *http.Request) {
+// TODO: Query needs to work without specifying a direct connection. Other requests
+// need to be able to as well. So, make a bootstrap request which will kickstart
+// a dht table. Then, all further requests can use this :D
+func (hs *HTTPServer) Query(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	peer := NewPeer(hs.localPeer)
@@ -73,17 +77,12 @@ func (hs *HTTPServer) Who(w http.ResponseWriter, r *http.Request) {
 	}
 	peer.ConnectClient()
 
-	client, entry, err := peer.Who()
-	defer client.Close()
-
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte(err.Error()))
 
 		return
 	}
-
-	json, err := EntryToJson(&entry)
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -93,7 +92,6 @@ func (hs *HTTPServer) Who(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(json))
 }
 
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
@@ -111,6 +109,32 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	peer.ConnectClient()
 
 	peer.Announce()
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ok"))
+}
+
+func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	peer := NewPeer(hs.localPeer)
+	err := peer.Connect(vars["address"])
+
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(err.Error()))
+
+		return
+	}
+	peer.ConnectClient()
+
+	stream, err := peer.Bootstrap()
+	defer stream.Close()
+
+	if err != nil {
+		log.Error("Failed to bootstrap: ", err.Error())
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))

@@ -1,8 +1,7 @@
 // This represents a peer in the network.
 // the minimum that a peer requires to be "valid" is just an address.
 // everything else can be discovered via the network.
-// Just a bit of a wrapper for the client really, that contains most of the
-// networking code, this mostly has the data and a few other things.
+// Just a bit of a wrapper for the client really, that contains most of the networking code, this mostly has the data and a few other things.
 
 /*TODO: Regularly ping open yamux sessions, remove if no longer connected.
   also store announce times for an address, so we don't end up spamming
@@ -11,6 +10,8 @@
 package main
 
 import (
+	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"net"
 	"strconv"
@@ -133,14 +134,6 @@ func (p *Peer) Pong() *Client {
 
 	return &stream
 }
-func (p *Peer) Who() (*Client, Entry, error) {
-	log.Info("Sending who query to ", p.ZifAddress.Encode())
-
-	stream, _ := p.OpenStream()
-	entry, err := stream.Who()
-
-	return &stream, entry, err
-}
 
 func (p *Peer) Announce() *Client {
 	log.Debug("Sending announce to ", p.ZifAddress.Encode())
@@ -155,9 +148,16 @@ func (p *Peer) Announce() *Client {
 	p.localPeer.SignEntry()
 
 	stream, _ := p.OpenStream()
-	stream.Announce(&p.localPeer.Entry, p.localPeer.entrySig[:])
+	stream.Announce(&p.localPeer.Entry)
 
 	return &stream
+}
+
+func (p *Peer) Bootstrap() (*Client, error) {
+	log.Info("Bootstrapping")
+
+	stream, _ := p.OpenStream()
+	return &stream, stream.Bootstrap()
 }
 
 // TODO: Rate limit this to prevent announce flooding.
@@ -167,7 +167,7 @@ func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 
 	defer stream.Close()
 
-	entry, sig, err := recieve_entry(stream)
+	entry, err := recieve_entry(stream)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -218,9 +218,65 @@ func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 		}
 
 		peer_stream.conn.Write(proto_dht_announce)
-		peer_stream.SendEntry(&entry, sig)
+		peer_stream.SendEntry(&entry)
 	}
 
+}
+
+// TODO: Change it so that the LocalPeer is the one that recieves are called on.
+// Maybe make a new file so that things don't get huge... Or a reciever object?
+// Mess :/
+
+// TODO: While I think about it, move all these TODOs to issues or a separate
+// file/issue tracker or something.
+
+// Querying peer sends a Zif address
+// This peer will respond with a list of the k closest peers, ordered by distance.
+// The top peer may well be the one that is being queried for :)
+func (p *Peer) RecieveQuery(stream net.Conn) {
+	address_bin := make([]byte, AddressBinarySize)
+	err := net_recvall(address_bin, stream)
+
+	if err != nil {
+		log.Error("Failed to read query address: ", err.Error())
+		return
+	}
+
+	log.Info("Recieved query for ", string(address_bin))
+	address := DecodeAddress(string(address_bin))
+
+	// TODO: Make it possible to specify a query size, up to a maximum - max
+	// could be the BucketSize.
+	closest := p.localPeer.RoutingTable.FindClosest(address, 10)
+
+	closest_json, err := json.Marshal(closest)
+
+	log.Debug(closest_json)
+}
+
+// TODO: Again, while I think about it. RATE LIMIT!
+// *tidy this shit up a bit*
+
+func (p *Peer) RecieveBootstrap(stream net.Conn) {
+	// just send them the k closest peers to them :)
+	// should begin recieving announces after this to build a more "proper"
+	// table
+
+	closest := p.localPeer.RoutingTable.FindClosest(p.ZifAddress, BucketSize)
+
+	closest_json, err := json.Marshal(closest)
+
+	if err != nil {
+		log.Error("Failed to encode closest peers to json")
+		return
+	}
+
+	length := len(closest_json)
+	length_b := make([]byte, 8)
+	binary.PutUvarint(length_b, uint64(length))
+
+	stream.Write(length_b)
+	stream.Write(closest_json)
 }
 
 // Very much the same as the counterpart in Server, just a little different as

@@ -19,13 +19,13 @@ type LocalPeer struct {
 	Server       Server
 
 	privateKey ed25519.PrivateKey
-	entrySig   [64]byte
 
 	peers         cmap.ConcurrentMap
 	public_to_zif cmap.ConcurrentMap
 }
 
 func (lp *LocalPeer) Setup() {
+	lp.Entry.Signature = make([]byte, ed25519.SignatureSize)
 	lp.peers = cmap.New()
 	lp.public_to_zif = cmap.New()
 	lp.ZifAddress.Generate(lp.publicKey)
@@ -41,7 +41,7 @@ func (lp *LocalPeer) GetPeer(addr string) *Peer {
 }
 
 func (lp *LocalPeer) SignEntry() {
-	copy(lp.entrySig[:], ed25519.Sign(lp.privateKey, EntryToBytes(&lp.Entry)))
+	copy(lp.Entry.Signature, ed25519.Sign(lp.privateKey, EntryToBytes(&lp.Entry)))
 }
 
 func (lp *LocalPeer) Sign(msg []byte) []byte {

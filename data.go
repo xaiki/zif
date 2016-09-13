@@ -34,12 +34,16 @@ func EntryToBytes(e *Entry) []byte {
 	return []byte(str)
 }
 
-func ValidateEntry(entry *Entry, sig []byte) error {
+func ValidateEntry(entry *Entry) error {
 	if len(entry.PublicKey) < ed25519.PublicKeySize {
 		return errors.New("Public key too small")
 	}
 
-	verified := ed25519.Verify(entry.PublicKey, EntryToBytes(entry), sig)
+	if len(entry.Signature) < ed25519.SignatureSize {
+		return errors.New("Signature too small")
+	}
+
+	verified := ed25519.Verify(entry.PublicKey, EntryToBytes(entry), entry.Signature[:])
 
 	if !verified {
 		return errors.New("Failed to verify signature")
