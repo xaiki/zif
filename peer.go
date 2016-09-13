@@ -154,10 +154,10 @@ func (p *Peer) Announce() *Client {
 }
 
 func (p *Peer) Bootstrap() (*Client, error) {
-	log.Info("Bootstrapping")
+	log.Info("Bootstrapping from ", p.streams.connection.conn.RemoteAddr())
 
 	stream, _ := p.OpenStream()
-	return &stream, stream.Bootstrap()
+	return &stream, stream.Bootstrap(&p.localPeer.RoutingTable)
 }
 
 // TODO: Rate limit this to prevent announce flooding.

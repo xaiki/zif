@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"net"
 
@@ -63,7 +64,7 @@ func (c *Client) Query(address string) {
 	c.conn.Write([]byte(address))
 }
 
-func (c *Client) Bootstrap() error {
+func (c *Client) Bootstrap(rt *RoutingTable) error {
 	c.conn.Write(proto_bootstrap)
 
 	length_b := make([]byte, 8)
@@ -83,7 +84,20 @@ func (c *Client) Bootstrap() error {
 
 	closest_json := make([]byte, length)
 	net_recvall(closest_json, c.conn)
-	log.Debug(string(closest_json))
+
+	var closest []Entry
+	err = json.Unmarshal(closest_json, &closest)
+
+	if err != nil {
+		return err
+	}
+
+	// add them all to our routing table! :D
+	for _, e := range closest {
+		rt.Update(e)
+	}
+
+	log.Info("Bootstrapped with ", len(closest), " new peers")
 
 	return nil
 }
