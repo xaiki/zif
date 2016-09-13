@@ -92,6 +92,9 @@ func listen_stream(peer *Peer) {
 			} else {
 				log.Error(err.Error())
 			}
+
+			peer.localPeer.CheckSessions()
+
 			return
 		}
 

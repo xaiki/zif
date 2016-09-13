@@ -31,6 +31,10 @@ func SetupLocalPeer(addr string, newAddr bool) LocalPeer {
 func main() {
 
 	log.SetLevel(log.DebugLevel)
+	formatter := new(log.TextFormatter)
+	formatter.FullTimestamp = true
+	formatter.TimestampFormat = "2006-01-02 15:04:05"
+	log.SetFormatter(formatter)
 
 	var addr = flag.String("address", "0.0.0.0:5050", "Bind address")
 	var newAddr = flag.Bool("new", false, "Ignore identity file and create a new address")

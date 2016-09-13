@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io/ioutil"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/streamrail/concurrent-map"
 	"golang.org/x/crypto/ed25519"
 )
@@ -97,4 +98,29 @@ func (lp *LocalPeer) ReadKey() error {
 	lp.publicKey = lp.privateKey.Public().(ed25519.PublicKey)
 
 	return nil
+}
+
+func (lp *LocalPeer) CheckSessions() {
+	log.Debug("Checking peer sessions")
+
+	// TODO: Stick this in a wait group
+	for p := range lp.peers.Iter() {
+		peer := p.Val.(*Peer)
+
+		_, err := peer.GetSession().Ping()
+
+		if err != nil {
+			log.Debug(err.Error())
+			log.Debug("Removing ", peer.ZifAddress.Encode(), " from map")
+			lp.peers.Remove(peer.ZifAddress.Encode())
+			return
+		}
+
+		if peer.GetSession().IsClosed() {
+			log.Warn("TCP session has closed")
+			log.Debug("Removing ", peer.ZifAddress.Encode(), " from map")
+			lp.peers.Remove(peer.ZifAddress.Encode())
+			return
+		}
+	}
 }

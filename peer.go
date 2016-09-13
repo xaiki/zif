@@ -4,12 +4,14 @@
 // Just a bit of a wrapper for the client really, that contains most of the
 // networking code, this mostly has the data and a few other things.
 
-// intentional compile error ;P
-TODO: Regularly ping open yamux sessions, remove if no longer connected.
+/*TODO: Regularly ping open yamux sessions, remove if no longer connected.
+  also store announce times for an address, so we don't end up spamming
+  announce forwards!*/
 
 package main
 
 import (
+	"errors"
 	"net"
 	"strconv"
 
@@ -84,6 +86,13 @@ func (p *Peer) Terminate() {
 }
 
 func (p *Peer) OpenStream() (Client, error) {
+	if p.GetSession() == nil {
+		return Client{}, errors.New("Peer session nil")
+	}
+
+	if p.GetSession().IsClosed() {
+		return Client{}, errors.New("Peer session closed")
+	}
 	return p.streams.OpenStream()
 }
 
@@ -154,6 +163,8 @@ func (p *Peer) Announce() *Client {
 // TODO: Rate limit this to prevent announce flooding.
 func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 	log.Debug("Recieved announce")
+	p.localPeer.CheckSessions()
+
 	defer stream.Close()
 
 	entry, sig, err := recieve_entry(stream)
@@ -187,13 +198,15 @@ func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 
 		if peer == nil {
 			log.Debug("Connecting to new peer")
-			peer := NewPeer(p.localPeer)
+			peer = NewPeer(p.localPeer)
 			err = peer.Connect(i.PublicAddress + ":" + strconv.Itoa(i.Port))
-		}
 
-		if err != nil {
-			log.Warn("Failed to connect to peer: ", err.Error())
-			continue
+			if err != nil {
+				log.Warn("Failed to connect to peer: ", err.Error())
+				continue
+			}
+
+			peer.ConnectClient()
 		}
 
 		peer_stream, err := peer.OpenStream()
@@ -201,6 +214,7 @@ func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 
 		if err != nil {
 			log.Error(err.Error())
+			continue
 		}
 
 		peer_stream.conn.Write(proto_dht_announce)
