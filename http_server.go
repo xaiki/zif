@@ -120,6 +120,8 @@ func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	addr := vars["address"]
 
+	log.Info("Attempting to resolve address ", addr)
+
 	entry, err := hs.localPeer.Resolve(addr)
 
 	if err != nil {

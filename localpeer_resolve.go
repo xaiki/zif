@@ -20,29 +20,26 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 
 	// First, find the closest peers in our routing table.
 	// Satisfying if we already have the address :D
-	closest := lp.RoutingTable.FindClosest(address, ResolveListSize)
-
-	var client *Client
-	var err error
+	closest := lp.RoutingTable.FindClosest(address, ResolveListSize)[0]
 
 	for {
 		// Check the current closest known peers. First iteration this will be
 		// the ones from our routing table.
-		if len(closest) == 0 {
+		if closest == nil {
 			return nil, errors.New("Address could not be resolved")
 			// The first in the slice is the closest, if we have this entry in our table
 			// then this will be it.
-		} else if closest[0].ZifAddress.Equals(&address) {
-			return &closest[0], nil
+		} else if closest.ZifAddress.Equals(&address) {
+			return closest, nil
 		}
 
 		var peer *Peer
 
 		// If the peer is not already connected, then connect.
-		if peer = lp.GetPeer(closest[0].ZifAddress.Encode()); peer == nil {
+		if peer = lp.GetPeer(closest.ZifAddress.Encode()); peer == nil {
 
 			peer = NewPeer(lp)
-			err := peer.Connect(closest[0].PublicAddress)
+			err := peer.Connect(closest.PublicAddress)
 
 			if err != nil {
 				return nil, err
@@ -55,7 +52,8 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 			}
 		}
 
-		client, closest, err = peer.Query(closest[0].ZifAddress.Encode())
+		client, results, err := peer.Query(closest.ZifAddress.Encode())
+		closest = &results[0]
 		defer client.Close()
 
 		if err != nil {
