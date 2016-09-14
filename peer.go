@@ -3,14 +3,9 @@
 // everything else can be discovered via the network.
 // Just a bit of a wrapper for the client really, that contains most of the networking code, this mostly has the data and a few other things.
 
-/*TODO: Regularly ping open yamux sessions, remove if no longer connected.
-  also store announce times for an address, so we don't end up spamming
-  announce forwards!*/
-
 package main
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"net"
@@ -157,7 +152,7 @@ func (p *Peer) Bootstrap() (*Client, error) {
 	log.Info("Bootstrapping from ", p.streams.connection.conn.RemoteAddr())
 
 	stream, _ := p.OpenStream()
-	return &stream, stream.Bootstrap(&p.localPeer.RoutingTable)
+	return &stream, stream.Bootstrap(&p.localPeer.RoutingTable, p.localPeer.ZifAddress)
 }
 
 // TODO: Rate limit this to prevent announce flooding.
@@ -233,51 +228,39 @@ func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 // Querying peer sends a Zif address
 // This peer will respond with a list of the k closest peers, ordered by distance.
 // The top peer may well be the one that is being queried for :)
-func (p *Peer) RecieveQuery(stream net.Conn) {
-	address_bin := make([]byte, AddressBinarySize)
-	err := net_recvall(address_bin, stream)
+func (p *Peer) RecieveQuery(stream net.Conn) error {
+	address_length, err := net_recvlength(stream)
 
 	if err != nil {
-		log.Error("Failed to read query address: ", err.Error())
-		return
+		return err
 	}
 
-	log.Info("Recieved query for ", string(address_bin))
-	address := DecodeAddress(string(address_bin))
+	address_bin := make([]byte, address_length)
+	err = net_recvall(address_bin, stream)
 
-	// TODO: Make it possible to specify a query size, up to a maximum - max
-	// could be the BucketSize.
-	closest := p.localPeer.RoutingTable.FindClosest(address, 10)
+	if err != nil {
+		return err
+	}
+
+	address := DecodeAddress(string(address_bin))
+	log.Info("Recieved query for ", address.Encode())
+
+	closest := p.localPeer.RoutingTable.FindClosest(address, BucketSize)
 
 	closest_json, err := json.Marshal(closest)
 
-	log.Debug(closest_json)
+	if err != nil {
+		return errors.New("Failed to encode closest peers to json")
+	}
+
+	net_sendlength(stream, uint64(len(closest_json)))
+	stream.Write(closest_json)
+
+	return nil
 }
 
 // TODO: Again, while I think about it. RATE LIMIT!
 // *tidy this shit up a bit*
-
-func (p *Peer) RecieveBootstrap(stream net.Conn) {
-	// just send them the k closest peers to them :)
-	// should begin recieving announces after this to build a more "proper"
-	// table
-
-	closest := p.localPeer.RoutingTable.FindClosest(p.ZifAddress, BucketSize)
-
-	closest_json, err := json.Marshal(closest)
-
-	if err != nil {
-		log.Error("Failed to encode closest peers to json")
-		return
-	}
-
-	length := len(closest_json)
-	length_b := make([]byte, 8)
-	binary.PutUvarint(length_b, uint64(length))
-
-	stream.Write(length_b)
-	stream.Write(closest_json)
-}
 
 // Very much the same as the counterpart in Server, just a little different as
 // this peer is the one that *started* the TCP connection.

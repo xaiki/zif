@@ -37,6 +37,33 @@ func net_recvall(buf []byte, conn net.Conn) error {
 	return nil
 }
 
+// len returns an int
+// so why uint64?
+// One day this protocol may be implemented in not-Go, and I'd just rather not
+// be constrained to signed integers that could be either 32 or 64 bit :)
+// this way it is known what is going on
+func net_sendlength(conn net.Conn, length uint64) error {
+	length_b := make([]byte, 8)
+	binary.PutUvarint(length_b, length)
+
+	_, err := conn.Write(length_b)
+
+	return err
+}
+
+func net_recvlength(conn net.Conn) (uint64, error) {
+	length_b := make([]byte, 8)
+	err := net_recvall(length_b, conn)
+
+	if err != nil {
+		return 0, err
+	}
+
+	length, _ := binary.Uvarint(length_b)
+
+	return length, nil
+}
+
 func check_ok(conn net.Conn) bool {
 	buf := make([]byte, 2)
 

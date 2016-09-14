@@ -59,27 +59,17 @@ func (c *Client) Announce(e *Entry) {
 	c.SendEntry(e)
 }
 
-func (c *Client) Query(address string) {
+func (c *Client) Query(address string) ([]Entry, error) {
 	c.conn.Write(proto_dht_query)
+
+	net_sendlength(c.conn, uint64(len(address)))
 	c.conn.Write([]byte(address))
-}
 
-func (c *Client) Bootstrap(rt *RoutingTable) error {
-	c.conn.Write(proto_bootstrap)
-
-	length_b := make([]byte, 8)
-	err := net_recvall(length_b, c.conn)
-
-	if err != nil {
-		c.Close()
-		return err
-	}
-
-	length, _ := binary.Uvarint(length_b)
+	length, err := net_recvlength(c.conn)
 
 	if length > EntryLengthMax*BucketSize {
 		c.Close()
-		return errors.New("Peer sent too much data")
+		return nil, errors.New("Peer sent too much data")
 	}
 
 	closest_json := make([]byte, length)
@@ -89,15 +79,31 @@ func (c *Client) Bootstrap(rt *RoutingTable) error {
 	err = json.Unmarshal(closest_json, &closest)
 
 	if err != nil {
+		return nil, err
+	}
+
+	return closest, nil
+}
+
+func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
+	peers, err := c.Query(address.Encode())
+
+	if err != nil {
 		return err
 	}
 
 	// add them all to our routing table! :D
-	for _, e := range closest {
+	for _, e := range peers {
 		rt.Update(e)
 	}
 
-	log.Info("Bootstrapped with ", len(closest), " new peers")
+	if len(peers) > 1 {
+		log.Info("Bootstrapped with ", len(peers), " new peers")
+	} else if len(peers) == 1 {
+		log.Info("Bootstrapped with 1 new peer")
+	} else {
+		log.Info("Bootstrapped was unsuccessful, no peers recieved")
+	}
 
 	return nil
 }

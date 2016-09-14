@@ -20,7 +20,5 @@ func RouteMessage(msg_type []byte, peer *Peer, stream net.Conn) {
 		peer.RecievedAnnounce(stream, peer)
 	} else if bytes.Equal(msg_type, proto_dht_query) {
 		peer.RecieveQuery(stream)
-	} else if bytes.Equal(msg_type, proto_bootstrap) {
-		peer.RecieveBootstrap(stream)
 	}
 }
