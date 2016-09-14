@@ -20,10 +20,11 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	// TODO: Bootstrap request
 	router.HandleFunc("/", hs.IndexHandler)
 	router.HandleFunc("/ping/{address}/", hs.Ping)
-	router.HandleFunc("/query/{address}/", hs.Query)
 	router.HandleFunc("/announce/{address}/", hs.Announce)
 	router.HandleFunc("/set_address/{address}/", hs.SetAddress)
 	router.HandleFunc("/bootstrap/{address}/", hs.Bootstrap)
+
+	router.HandleFunc("/{address}/resolve/", hs.Resolve)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -58,40 +59,6 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Done."))
-}
-
-// TODO: Query needs to work without specifying a direct connection. Other requests
-// need to be able to as well. So, make a bootstrap request which will kickstart
-// a dht table. Then, all further requests can use this :D
-func (hs *HTTPServer) Query(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	peer := NewPeer(hs.localPeer)
-	err := peer.Connect(vars["address"])
-
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(err.Error()))
-
-		return
-	}
-	peer.ConnectClient()
-
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(err.Error()))
-
-		return
-	}
-
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(err.Error()))
-
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
@@ -147,4 +114,30 @@ func (hs *HTTPServer) SetAddress(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
+}
+
+func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	addr := vars["address"]
+
+	entry, err := hs.localPeer.Resolve(addr)
+
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(err.Error()))
+
+		return
+	}
+
+	entry_json, err := EntryToJson(entry)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(entry_json)
 }

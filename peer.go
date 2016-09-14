@@ -155,6 +155,14 @@ func (p *Peer) Bootstrap() (*Client, error) {
 	return &stream, stream.Bootstrap(&p.localPeer.RoutingTable, p.localPeer.ZifAddress)
 }
 
+func (p *Peer) Query(address string) (*Client, []Entry, error) {
+	log.Info("Querying for ", address)
+
+	stream, _ := p.OpenStream()
+	entry, err := stream.Query(address)
+	return &stream, entry, err
+}
+
 // TODO: Rate limit this to prevent announce flooding.
 func (p *Peer) RecievedAnnounce(stream net.Conn, from *Peer) {
 	log.Debug("Recieved announce")
