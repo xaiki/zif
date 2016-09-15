@@ -1,6 +1,9 @@
 package main
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 // At the moment just query for the closest known peer
 const ResolveListSize = 1
@@ -39,7 +42,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		if peer = lp.GetPeer(closest.ZifAddress.Encode()); peer == nil {
 
 			peer = NewPeer(lp)
-			err := peer.Connect(closest.PublicAddress)
+			err := peer.Connect(closest.PublicAddress + ":" + strconv.Itoa(closest.Port))
 
 			if err != nil {
 				return nil, err
