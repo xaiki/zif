@@ -124,3 +124,40 @@ func (lp *LocalPeer) CheckSessions() {
 		}
 	}
 }
+
+func (lp *LocalPeer) ListenStream(peer *Peer) {
+	var err error
+	session := peer.GetSession()
+
+	if session == nil {
+		log.Info("Peer has no active session, starting server")
+		session, err = peer.ConnectServer()
+
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+	}
+
+	for {
+		stream, err := session.Accept()
+
+		if err != nil {
+			if err.Error() == "EOF" {
+				log.Info("Peer closed connection")
+			} else {
+				log.Error(err.Error())
+			}
+
+			peer.localPeer.CheckSessions()
+
+			return
+		}
+
+		log.Debug("Accepted stream (", session.NumStreams(), " total)")
+
+		peer.AddStream(stream)
+
+		go lp.HandleStream(peer, stream)
+	}
+}

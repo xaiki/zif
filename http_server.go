@@ -19,12 +19,13 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 
 	// TODO: Bootstrap request
 	router.HandleFunc("/", hs.IndexHandler)
-	router.HandleFunc("/ping/{address}/", hs.Ping)
-	router.HandleFunc("/announce/{address}/", hs.Announce)
-	router.HandleFunc("/set_address/{address}/", hs.SetAddress)
+
+	// This should be the ONLY route where the address is a non-Zif address
 	router.HandleFunc("/bootstrap/{address}/", hs.Bootstrap)
 
-	router.HandleFunc("/{address}/resolve/", hs.Resolve)
+	router.HandleFunc("/peer/{address}/resolve/", hs.Resolve)
+	router.HandleFunc("/peer/{address}/ping/", hs.Ping)
+	router.HandleFunc("/peer/{address}/announce/", hs.Resolve)
 
 	log.Info("Starting HTTP server on ", addr)
 

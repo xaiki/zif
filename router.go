@@ -9,7 +9,7 @@ import (
 
 // routes and handles tcp messages
 
-func RouteMessage(msg_type []byte, peer *Peer, stream net.Conn) {
+func (lp *LocalPeer) RouteMessage(msg_type []byte, from *Peer, stream net.Conn) {
 	//log.Debug("Routing message ", msg_type)
 
 	if bytes.Equal(msg_type, proto_ping) {
