@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"net"
@@ -9,6 +8,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
+
+// TODO: Move this into some sort of handler object, can handle general requests.
 
 // TODO: While I think about it, move all these TODOs to issues or a separate
 // file/issue tracker or something.
@@ -33,7 +34,15 @@ func (lp *LocalPeer) HandleQuery(stream net.Conn) error {
 	address := DecodeAddress(string(address_bin))
 	log.Info("Recieved query for ", address.Encode())
 
-	closest := lp.RoutingTable.FindClosest(address, BucketSize)
+	var closest []*Entry
+
+	if address.Equals(&lp.ZifAddress) {
+		closest = make([]*Entry, 1)
+		closest[0] = &lp.Entry
+	} else {
+
+		closest = lp.RoutingTable.FindClosest(address, BucketSize)
+	}
 
 	closest_json, err := json.Marshal(closest)
 
@@ -85,8 +94,9 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 
 		if peer == nil {
 			log.Debug("Connecting to new peer")
-			peer = NewPeer(lp)
-			err = peer.Connect(i.PublicAddress + ":" + strconv.Itoa(i.Port))
+
+			var peer Peer
+			err = peer.Connect(i.PublicAddress+":"+strconv.Itoa(i.Port), lp)
 
 			if err != nil {
 				log.Warn("Failed to connect to peer: ", err.Error())
@@ -110,30 +120,6 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 
 }
 
-func (lp *LocalPeer) HandleStream(peer *Peer, stream net.Conn) {
-	log.Debug("Handling stream")
-	msg := make([]byte, 2)
-	for {
-		err := net_recvall(msg, stream)
-
-		if err != nil {
-			if err.Error() == "EOF" {
-				log.Info("Closed stream from ", peer.ZifAddress.Encode())
-			} else {
-				log.Error(err.Error())
-			}
-
-			peer.RemoveStream(stream)
-
-			return
-		}
-
-		if bytes.Equal(msg, proto_terminate) {
-			peer.Terminate()
-			log.Debug("Terminated connection with ", peer.ZifAddress.Encode())
-			return
-		}
-
-		lp.RouteMessage(msg, peer, stream)
-	}
+func (lp *LocalPeer) ListenStream(peer *Peer) {
+	lp.Server.ListenStream(peer)
 }

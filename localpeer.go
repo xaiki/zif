@@ -23,7 +23,10 @@ type LocalPeer struct {
 
 	privateKey ed25519.PrivateKey
 
-	peers         cmap.ConcurrentMap
+	// a map of zif addresses to peers
+	peers cmap.ConcurrentMap
+
+	// maps public addresses to zif address
 	public_to_zif cmap.ConcurrentMap
 }
 
@@ -32,6 +35,65 @@ func (lp *LocalPeer) Setup() {
 	lp.peers = cmap.New()
 	lp.public_to_zif = cmap.New()
 	lp.ZifAddress.Generate(lp.publicKey)
+}
+
+// Creates a peer, connects to a public address
+func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
+	lp.CheckSessions()
+
+	zif_address, ok := lp.public_to_zif.Get(addr)
+
+	if ok {
+		return lp.GetPeer(zif_address.(string)), nil
+	}
+
+	var peer Peer
+	err := peer.Connect(addr, lp)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return lp.AddPeer(&peer), nil
+}
+
+// Creates a peer, resolves a zif address then connects to the assosciated
+// public address
+func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
+	lp.CheckSessions()
+
+	peer := lp.GetPeer(addr)
+
+	if peer != nil {
+		return peer, nil
+	}
+
+	entry, err := lp.Resolve(addr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if entry == nil {
+
+	}
+
+	// now should have an entry for the peer, connect to it!
+	log.Debug("Connecting to ", entry.ZifAddress.Encode())
+	err = peer.Connect(entry.PublicAddress+":"+strconv.Itoa(entry.Port), lp)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return lp.AddPeer(peer), nil
+}
+
+func (lp *LocalPeer) AddPeer(peer *Peer) *Peer {
+	lp.peers.Set(peer.ZifAddress.Encode(), peer)
+	lp.public_to_zif.Set(peer.PublicAddress, peer.ZifAddress.Encode())
+
+	return peer
 }
 
 func (lp *LocalPeer) GetPeer(addr string) *Peer {
@@ -126,43 +188,8 @@ func (lp *LocalPeer) CheckSessions() {
 			return
 		}
 	}
-}
 
-func (lp *LocalPeer) ListenStream(peer *Peer) {
-	var err error
-	session := peer.GetSession()
-
-	if session == nil {
-		log.Info("Peer has no active session, starting server")
-		session, err = peer.ConnectServer()
-
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-	}
-
-	for {
-		stream, err := session.Accept()
-
-		if err != nil {
-			if err.Error() == "EOF" {
-				log.Info("Peer closed connection")
-			} else {
-				log.Error(err.Error())
-			}
-
-			peer.localPeer.CheckSessions()
-
-			return
-		}
-
-		log.Debug("Accepted stream (", session.NumStreams(), " total)")
-
-		peer.AddStream(stream)
-
-		go lp.HandleStream(peer, stream)
-	}
+	log.Debug("Peer sessions checked")
 }
 
 // At the moment just query for the closest known peer
@@ -178,6 +205,7 @@ func (lp *LocalPeer) ListenStream(peer *Peer) {
 // Takes a string as the API will just be passing a Zif address as a string.
 // May well change, I'm unsure really.
 func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
+	log.Debug("Resolving ", addr)
 	address := DecodeAddress(addr)
 
 	// First, find the closest peers in our routing table.
@@ -192,6 +220,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 			// The first in the slice is the closest, if we have this entry in our table
 			// then this will be it.
 		} else if closest.ZifAddress.Equals(&address) {
+			log.Debug("Found ", closest.ZifAddress.Encode())
 			return closest, nil
 		}
 
@@ -200,8 +229,8 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		// If the peer is not already connected, then connect.
 		if peer = lp.GetPeer(closest.ZifAddress.Encode()); peer == nil {
 
-			peer = NewPeer(lp)
-			err := peer.Connect(closest.PublicAddress + ":" + strconv.Itoa(closest.Port))
+			var peer Peer
+			err := peer.Connect(closest.PublicAddress+":"+strconv.Itoa(closest.Port), lp)
 
 			if err != nil {
 				return nil, err

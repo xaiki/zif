@@ -101,8 +101,6 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 		log.Info("Bootstrapped with ", len(peers), " new peers")
 	} else if len(peers) == 1 {
 		log.Info("Bootstrapped with 1 new peer")
-	} else {
-		log.Info("Bootstrapped was unsuccessful, no peers recieved")
 	}
 
 	return nil

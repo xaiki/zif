@@ -21,19 +21,15 @@ type StreamManager struct {
 
 	// Open yamux streams
 	clients []Client
-
-	local_peer *LocalPeer
 }
 
 func (sm *StreamManager) Setup(lp *LocalPeer) {
 	sm.server = nil
 	sm.client = nil
 	sm.clients = make([]Client, 0, 10)
-
-	sm.local_peer = lp
 }
 
-func (sm *StreamManager) OpenTCP(addr string) (ConnHeader, error) {
+func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (ConnHeader, error) {
 	if sm.connection.conn != nil {
 		return sm.connection, nil
 	}
@@ -44,16 +40,21 @@ func (sm *StreamManager) OpenTCP(addr string) (ConnHeader, error) {
 		return ConnHeader{conn, ProtocolHeader{}}, err
 	}
 
-	header, err := sm.Handshake(conn)
+	header, err := sm.Handshake(conn, lp)
+
+	if err != nil {
+		return ConnHeader{conn, ProtocolHeader{}}, err
+	}
+
 	pair := ConnHeader{conn, header}
 	sm.connection = pair
 
 	return pair, nil
 }
 
-func (sm *StreamManager) Handshake(conn net.Conn) (ProtocolHeader, error) {
+func (sm *StreamManager) Handshake(conn net.Conn, lp *LocalPeer) (ProtocolHeader, error) {
 	// I use the term "server" somewhat loosely. It's the "server" part of a peer.
-	err := handshake_send(conn, sm.local_peer)
+	err := handshake_send(conn, lp)
 
 	// server now knows that we are definitely who we say we are.
 	// but...

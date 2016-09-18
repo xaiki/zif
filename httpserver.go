@@ -25,7 +25,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 
 	router.HandleFunc("/peer/{address}/resolve/", hs.Resolve)
 	router.HandleFunc("/peer/{address}/ping/", hs.Ping)
-	router.HandleFunc("/peer/{address}/announce/", hs.Resolve)
+	router.HandleFunc("/peer/{address}/announce/", hs.Announce)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -42,21 +42,6 @@ func (hs *HTTPServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	peer := NewPeer(hs.localPeer)
-	err := peer.Connect(vars["address"])
-
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(err.Error()))
-
-		return
-	}
-	peer.ConnectClient()
-
-	client := peer.Ping()
-	defer client.Close()
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Done."))
@@ -65,8 +50,7 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer := NewPeer(hs.localPeer)
-	err := peer.Connect(vars["address"])
+	peer, err := hs.localPeer.ConnectPeer(vars["address"])
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -74,9 +58,13 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
 	peer.ConnectClient()
 
-	peer.Announce()
+	// TODO: Not have to do this every time I connect a client... hmm.
+	go hs.localPeer.ListenStream(peer)
+
+	peer.Announce(hs.localPeer)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
@@ -85,8 +73,7 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer := NewPeer(hs.localPeer)
-	err := peer.Connect(vars["address"])
+	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -95,23 +82,15 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	peer.ConnectClient()
+	go hs.localPeer.ListenStream(peer)
 
-	stream, err := peer.Bootstrap()
+	stream, err := peer.Bootstrap(&hs.localPeer.RoutingTable)
 	defer stream.Close()
 
 	if err != nil {
 		log.Error("Failed to bootstrap: ", err.Error())
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
-}
-
-func (hs *HTTPServer) SetAddress(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	hs.localPeer.Entry.PublicAddress = vars["address"]
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
