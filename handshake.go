@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net"
 
 	log "github.com/sirupsen/logrus"
@@ -55,7 +54,7 @@ func handshake_recieve(conn net.Conn) (ProtocolHeader, error) {
 
 	conn.Write(proto_ok)
 
-	log.Info("Incoming connection from ", pHeader.zifAddress.Encode())
+	log.WithFields(log.Fields{"peer": pHeader.zifAddress.Encode()}).Info("Incoming connection")
 
 	// Send the client a cookie for them to sign, this proves they have the
 	// private key, and it is highly unlikely an attacker has a signed cookie
@@ -81,7 +80,7 @@ func handshake_recieve(conn net.Conn) (ProtocolHeader, error) {
 
 	conn.Write(proto_ok)
 
-	log.Info(fmt.Sprintf("Verified %s", pHeader.zifAddress.Encode()))
+	log.WithFields(log.Fields{"peer": pHeader.zifAddress.Encode()}).Info("Verified")
 
 	return pHeader, nil
 }
