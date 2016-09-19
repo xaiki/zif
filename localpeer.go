@@ -71,16 +71,13 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 	entry, err := lp.Resolve(addr)
 
 	if err != nil {
+		log.Error(err.Error())
 		return nil, err
-	}
-
-	if entry == nil {
-
 	}
 
 	// now should have an entry for the peer, connect to it!
 	log.Debug("Connecting to ", entry.ZifAddress.Encode())
-	err = peer.Connect(entry.PublicAddress+":"+strconv.Itoa(entry.Port), lp)
+	peer, err = lp.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
 
 	if err != nil {
 		return nil, err
@@ -210,7 +207,14 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 
 	// First, find the closest peers in our routing table.
 	// Satisfying if we already have the address :D
-	closest := lp.RoutingTable.FindClosest(address, ResolveListSize)[0]
+	var closest *Entry
+	closest_returned := lp.RoutingTable.FindClosest(address, ResolveListSize)
+
+	if len(closest_returned) < 1 {
+		return nil, errors.New("Routing table is empty")
+	}
+
+	closest = closest_returned[0]
 
 	for {
 		// Check the current closest known peers. First iteration this will be
@@ -244,6 +248,11 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		}
 
 		client, results, err := peer.Query(closest.ZifAddress.Encode())
+
+		if closest.ZifAddress.Equals(&results[0].ZifAddress) {
+			return nil, errors.New("Could not find any closer peers")
+		}
+
 		closest = &results[0]
 		defer client.Close()
 

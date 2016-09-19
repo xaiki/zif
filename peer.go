@@ -42,6 +42,7 @@ func (p *Peer) Announce(lp *LocalPeer) {
 }
 
 func (p *Peer) Connect(addr string, lp *LocalPeer) error {
+	log.Debug("Peer connecting to ", addr)
 	pair, err := p.streams.OpenTCP(addr, lp)
 
 	if err != nil {
