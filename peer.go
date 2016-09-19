@@ -24,7 +24,7 @@ type Peer struct {
 	entry *Entry
 }
 
-func (p *Peer) Announce(lp *LocalPeer) {
+func (p *Peer) Announce(lp *LocalPeer) error {
 	log.Debug("Sending announce to ", p.ZifAddress.Encode())
 
 	if lp.Entry.PublicAddress == "" {
@@ -36,9 +36,15 @@ func (p *Peer) Announce(lp *LocalPeer) {
 
 	lp.SignEntry()
 
-	stream, _ := p.OpenStream()
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return err
+	}
+
 	defer stream.Close()
-	stream.Announce(&lp.Entry)
+
+	return stream.Announce(&lp.Entry)
 }
 
 func (p *Peer) Connect(addr string, lp *LocalPeer) error {

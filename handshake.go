@@ -16,6 +16,10 @@ func handshake(conn net.Conn, lp *LocalPeer) (ProtocolHeader, error) {
 		return header, err
 	}
 
+	if lp == nil {
+		return header, errors.New("Handshake passed nil LocalPeer")
+	}
+
 	err = handshake_send(conn, lp)
 
 	if err != nil {
@@ -56,7 +60,7 @@ func handshake_recieve(conn net.Conn) (ProtocolHeader, error) {
 	// Send the client a cookie for them to sign, this proves they have the
 	// private key, and it is highly unlikely an attacker has a signed cookie
 	// cached.
-	cookie, err := RandBytes(20)
+	cookie, err := CryptoRandBytes(20)
 	if check(err) {
 		return pHeader, err
 	}

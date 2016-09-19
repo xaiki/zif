@@ -35,6 +35,8 @@ func (lp *LocalPeer) Setup() {
 	lp.peers = cmap.New()
 	lp.public_to_zif = cmap.New()
 	lp.ZifAddress.Generate(lp.publicKey)
+
+	lp.Server.localPeer = lp
 }
 
 // Creates a peer, connects to a public address

@@ -37,13 +37,12 @@ func (c *Client) Pong() {
 	c.conn.Write(proto_pong)
 }
 
-func (c *Client) SendEntry(e *Entry) {
+func (c *Client) SendEntry(e *Entry) error {
 	json, err := EntryToJson(e)
 
 	if err != nil {
-		log.Error(err.Error())
 		c.conn.Close()
-		return
+		return err
 	}
 
 	length := len(json)
@@ -52,11 +51,13 @@ func (c *Client) SendEntry(e *Entry) {
 
 	c.conn.Write(length_b)
 	c.conn.Write(json)
+
+	return nil
 }
 
-func (c *Client) Announce(e *Entry) {
+func (c *Client) Announce(e *Entry) error {
 	c.conn.Write(proto_dht_announce)
-	c.SendEntry(e)
+	return c.SendEntry(e)
 }
 
 func (c *Client) Query(address string) ([]Entry, error) {

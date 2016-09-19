@@ -56,7 +56,6 @@ func main() {
 	lp.SignEntry()
 
 	lp.Listen(*addr)
-	lp.Server.localPeer = &lp
 
 	log.Info("My address: ", lp.ZifAddress.Encode())
 
