@@ -18,6 +18,8 @@ func CreateLocalPeer(name string, port int) LocalPeer {
 	lp.Entry.Port = port
 	lp.Entry.PublicAddress = "127.0.0.1"
 	lp.Entry.Desc = "Decentralize all the things!"
+	lp.Entry.PublicKey = lp.publicKey
+	lp.Entry.ZifAddress = lp.ZifAddress
 
 	lp.SignEntry()
 
@@ -25,7 +27,7 @@ func CreateLocalPeer(name string, port int) LocalPeer {
 }
 
 func TestLocalPeerAnnounce(t *testing.T) {
-	const peer_count = 40
+	const peer_count = 10
 
 	log.SetLevel(log.InfoLevel)
 
