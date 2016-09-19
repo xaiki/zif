@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"golang.org/x/crypto/ed25519"
 )
@@ -36,7 +37,7 @@ func EntryToBytes(e *Entry) []byte {
 
 func ValidateEntry(entry *Entry) error {
 	if len(entry.PublicKey) < ed25519.PublicKeySize {
-		return errors.New("Public key too small")
+		return errors.New(fmt.Sprintf("Public key too small: %d", len(entry.PublicKey)))
 	}
 
 	if len(entry.Signature) < ed25519.SignatureSize {
