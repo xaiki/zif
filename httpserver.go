@@ -88,7 +88,9 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 	defer stream.Close()
 
 	if err != nil {
-		log.Error("Failed to bootstrap: ", err.Error())
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(err.Error()))
+
 		return
 	}
 

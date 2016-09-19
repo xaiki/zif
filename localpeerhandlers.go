@@ -37,14 +37,16 @@ func (lp *LocalPeer) HandleQuery(stream net.Conn) error {
 	var closest []*Entry
 
 	if address.Equals(&lp.ZifAddress) {
+		log.Debug("Query for local peer")
 		closest = make([]*Entry, 1)
 		closest[0] = &lp.Entry
 	} else {
-
+		log.Debug("Querying routing table")
 		closest = lp.RoutingTable.FindClosest(address, BucketSize)
 	}
 
 	closest_json, err := json.Marshal(closest)
+	log.Debug("Query results: ", string(closest_json))
 
 	if err != nil {
 		return errors.New("Failed to encode closest peers to json")
