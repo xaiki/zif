@@ -44,7 +44,9 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 
 	defer stream.Close()
 
-	return stream.Announce(&lp.Entry)
+	err = stream.Announce(&lp.Entry)
+
+	return err
 }
 
 func (p *Peer) Connect(addr string, lp *LocalPeer) error {

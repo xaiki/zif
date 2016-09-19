@@ -80,7 +80,7 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 	saved := lp.RoutingTable.Update(entry)
 
 	if saved {
-		log.Info("Saved new peer ", addr.Encode())
+		log.WithField("peer", from.ZifAddress.Encode()).Info("Saved new peer")
 	}
 
 	// next up, tell other people!

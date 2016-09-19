@@ -42,7 +42,7 @@ func (s *Server) ListenStream(peer *Peer) {
 	session := peer.GetSession()
 
 	if session == nil {
-		log.Info("Peer has no active session, starting server")
+		log.WithField("peer", peer.ZifAddress.Encode()).Info("No session, starting server")
 		session, err = peer.ConnectServer()
 
 		if err != nil {
@@ -82,7 +82,7 @@ func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 
 		if err != nil {
 			if err.Error() == "EOF" {
-				log.Info("Closed stream from ", peer.ZifAddress.Encode())
+				log.WithField("peer", peer.ZifAddress.Encode()).Info("Closed stream")
 			} else {
 				log.Error(err.Error())
 			}
