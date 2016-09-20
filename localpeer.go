@@ -28,6 +28,8 @@ type LocalPeer struct {
 
 	// maps public addresses to zif address
 	public_to_zif cmap.ConcurrentMap
+
+	msg_chan chan []byte
 }
 
 func (lp *LocalPeer) Setup() {
@@ -37,6 +39,8 @@ func (lp *LocalPeer) Setup() {
 	lp.ZifAddress.Generate(lp.publicKey)
 
 	lp.Server.localPeer = lp
+
+	lp.msg_chan = make(chan []byte)
 }
 
 // Creates a peer, connects to a public address
@@ -129,7 +133,6 @@ func (lp *LocalPeer) ProtocolHeader() ProtocolHeader {
 // address, router (TCP) port, dht (udp) port
 func (lp *LocalPeer) Listen(addr string) {
 	go lp.Server.Listen(addr)
-
 }
 
 func (lp *LocalPeer) GenerateKey() {

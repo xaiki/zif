@@ -180,7 +180,7 @@ func (p *Peer) Bootstrap(rt *RoutingTable) (*Client, error) {
 }
 
 func (p *Peer) Query(address string) (*Client, []Entry, error) {
-	log.Info("Querying for ", address)
+	log.WithField("target", address).Info("Querying")
 
 	stream, _ := p.OpenStream()
 	entry, err := stream.Query(address)

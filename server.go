@@ -92,6 +92,12 @@ func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 			return
 		}
 
+		select {
+		case s.localPeer.msg_chan <- msg:
+
+		default:
+
+		}
 		if bytes.Equal(msg, proto_terminate) {
 			peer.Terminate()
 			log.Debug("Terminated connection with ", peer.ZifAddress.Encode())

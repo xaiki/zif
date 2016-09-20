@@ -32,7 +32,7 @@ func (lp *LocalPeer) HandleQuery(stream net.Conn) error {
 	}
 
 	address := DecodeAddress(string(address_bin))
-	log.Info("Recieved query for ", address.Encode())
+	log.WithField("target", address.Encode()).Info("Recieved query")
 
 	var closest []*Entry
 

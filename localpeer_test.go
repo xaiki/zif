@@ -59,11 +59,8 @@ func TestLocalPeerAnnounce(t *testing.T) {
 	// This peer should be able to resolve the announcers address after it announces
 	lp_test := CreateLocalPeer("test", 5052)
 
-	lp_test2 := CreateLocalPeer("test2", 5053)
-
 	BootstrapLocalPeer(&lp_announcer, &lp_initial, t)
 	BootstrapLocalPeer(&lp_test, &lp_initial, t)
-	BootstrapLocalPeer(&lp_test2, &lp_test, t)
 
 	// announce the test to the initial peer
 	peer, err := lp_test.ConnectPeer(lp_initial.ZifAddress.Encode())
@@ -93,5 +90,11 @@ func TestLocalPeerAnnounce(t *testing.T) {
 		t.Fatal("Failed to store announcements properly")
 	}
 
-	if lp_test
+	// block until the test peer recieved a msg (should be an announce forward)
+	<-lp_test.msg_chan
+
+	if !lp_test.RoutingTable.FindClosest(lp_initial.ZifAddress, 1)[0].
+		ZifAddress.Equals(&lp_initial.ZifAddress) {
+		t.Fatal("Announce forwarding failed")
+	}
 }
