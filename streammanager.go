@@ -114,7 +114,15 @@ func (sm *StreamManager) ConnectServer() (*yamux.Session, error) {
 }
 
 func (sm *StreamManager) Close() {
-	sm.GetSession().Close()
+	session := sm.GetSession()
+
+	if session != nil {
+		session.Close()
+	}
+
+	if sm.connection.conn != nil {
+		sm.connection.conn.Close()
+	}
 }
 
 func (sm *StreamManager) GetSession() *yamux.Session {
