@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -32,8 +33,24 @@ func (c *Client) Close() {
 	}
 }
 
-func (c *Client) Ping() {
+func (c *Client) Ping(timeout time.Duration) bool {
 	c.conn.Write(proto_ping)
+
+	tchan := make(chan bool)
+
+	go func() {
+		buf := make([]byte, 2)
+		net_recvall(buf, c.conn)
+
+		tchan <- true
+	}()
+
+	select {
+	case <-tchan:
+		return true
+	case <-time.After(timeout):
+		return false
+	}
 }
 
 func (c *Client) Pong() {
