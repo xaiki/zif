@@ -74,12 +74,14 @@ func (p *Peer) ConnectServer() (*yamux.Session, error) {
 	return p.streams.ConnectServer()
 }
 
-func (p *Peer) ConnectClient() (*yamux.Session, error) {
+func (p *Peer) ConnectClient(lp *LocalPeer) (*yamux.Session, error) {
 	client, err := p.streams.ConnectClient()
 
 	if err != nil {
 		return client, err
 	}
+
+	go lp.ListenStream(p)
 
 	return client, err
 }

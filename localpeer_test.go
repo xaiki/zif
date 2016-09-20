@@ -3,8 +3,6 @@ package main
 import (
 	"strconv"
 	"testing"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func CreateLocalPeer(name string, port int) LocalPeer {
@@ -23,40 +21,77 @@ func CreateLocalPeer(name string, port int) LocalPeer {
 
 	lp.SignEntry()
 
+	lp.Listen("0.0.0.0:" + strconv.Itoa(port))
+
 	return lp
 }
 
+func BootstrapLocalPeer(lp *LocalPeer, peer *LocalPeer, t *testing.T) {
+	p, err := lp.ConnectPeerDirect(peer.Entry.PublicAddress + ":" +
+		strconv.Itoa(peer.Entry.Port))
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	p.ConnectClient(lp)
+
+	stream, err := p.Bootstrap(&lp.RoutingTable)
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	stream.Close()
+
+}
+
+// Does a *simple* test of announcing.
+// Further testig with a much larger number of networked peers (over the internet)
+// is definitely needed.
 func TestLocalPeerAnnounce(t *testing.T) {
-	const peer_count = 10
+	// both peers know this one
+	lp_initial := CreateLocalPeer("initial", 5050)
 
-	log.SetLevel(log.InfoLevel)
+	// this peers announces itself
+	lp_announcer := CreateLocalPeer("announcer", 5051)
 
-	peers := make([]LocalPeer, 0, peer_count)
+	// This peer should be able to resolve the announcers address after it announces
+	lp_test := CreateLocalPeer("test", 5052)
 
-	for i := 0; i < peer_count; i++ {
-		peers = append(peers, CreateLocalPeer(string(i), 5050+i))
-		peers[i].Listen("0.0.0.0:" + strconv.Itoa(peers[i].Entry.Port))
+	lp_test2 := CreateLocalPeer("test2", 5053)
+
+	BootstrapLocalPeer(&lp_announcer, &lp_initial, t)
+	BootstrapLocalPeer(&lp_test, &lp_initial, t)
+	BootstrapLocalPeer(&lp_test2, &lp_test, t)
+
+	// announce the test to the initial peer
+	peer, err := lp_test.ConnectPeer(lp_initial.ZifAddress.Encode())
+
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
-	// connect half of the peers to the first node
-	for i := 1; i < peer_count/2; i++ {
-		peer, err := peers[i].ConnectPeerDirect(peers[0].Entry.PublicAddress + ":" + strconv.Itoa(peers[0].Entry.Port))
+	peer.Announce(&lp_test)
+	////////////////////////////////////////////
 
-		peer.ConnectClient()
-		// TODO: THIS SUCKS GET RID OF IT
-		go peers[i].ListenStream(peer)
-
-		if err != nil {
-			t.Fatal(err.Error())
-			return
-		}
-
-		err = peer.Announce(&peers[i])
-
-		if err != nil {
-			t.Fatal(err.Error())
-			return
-		}
+	if lp_initial.RoutingTable.NumPeers() != 1 {
+		t.Fatal("Failed to store announcements properly")
 	}
 
+	// announce the announcer to the initial peer
+	peer, err = lp_announcer.ConnectPeer(lp_initial.ZifAddress.Encode())
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	peer.Announce(&lp_announcer)
+	////////////////////////////////////////////
+
+	if lp_initial.RoutingTable.NumPeers() != 2 {
+		t.Fatal("Failed to store announcements properly")
+	}
+
+	if lp_test
 }

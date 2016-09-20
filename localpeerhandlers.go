@@ -81,7 +81,7 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 
 	if saved {
 		stream.Write(proto_ok)
-		log.WithField("peer", from.ZifAddress.Encode()).Info("Saved new peer")
+		log.WithField("peer", entry.ZifAddress.Encode()).Info("Saved new peer")
 
 	} else {
 		stream.Write(proto_no)
@@ -110,7 +110,7 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 				continue
 			}
 
-			p.ConnectClient()
+			p.ConnectClient(lp)
 
 			peer = &p
 		}

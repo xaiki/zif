@@ -59,7 +59,7 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	peer.ConnectClient()
+	peer.ConnectClient(hs.localPeer)
 
 	// TODO: Not have to do this every time I connect a client... hmm.
 	go hs.localPeer.ListenStream(peer)
@@ -81,8 +81,7 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	peer.ConnectClient()
-	go hs.localPeer.ListenStream(peer)
+	peer.ConnectClient(hs.localPeer)
 
 	stream, err := peer.Bootstrap(&hs.localPeer.RoutingTable)
 	defer stream.Close()

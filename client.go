@@ -103,10 +103,6 @@ func (c *Client) Query(address string) ([]Entry, error) {
 		return nil, err
 	}
 
-	if len(closest) < 1 {
-		return nil, errors.New("Query returned no results")
-	}
-
 	return closest, nil
 }
 

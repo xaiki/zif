@@ -77,6 +77,10 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 		return nil, err
 	}
 
+	if entry == nil {
+		return nil, AddressResolutionError{addr}
+	}
+
 	// now should have an entry for the peer, connect to it!
 	log.Debug("Connecting to ", entry.ZifAddress.Encode())
 	peer, err = lp.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
@@ -249,7 +253,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 				return nil, err
 			}
 
-			_, err = peer.ConnectClient()
+			_, err = peer.ConnectClient(lp)
 
 			if err != nil {
 				return nil, err
@@ -259,7 +263,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		client, results, err := peer.Query(closest.ZifAddress.Encode())
 
 		if closest.ZifAddress.Equals(&results[0].ZifAddress) {
-			return nil, errors.New("Could not find any closer peers")
+			return nil, nil
 		}
 
 		closest = &results[0]
