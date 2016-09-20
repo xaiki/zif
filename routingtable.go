@@ -55,6 +55,18 @@ func (rt *RoutingTable) Setup(addr Address) {
 	}
 }
 
+func (rt *RoutingTable) NumPeers() int {
+	count := 0
+
+	for _, b := range rt.Buckets {
+		for i := b.Front(); i != nil; i = i.Next() {
+			count += 1
+		}
+	}
+
+	return count
+}
+
 func (rt *RoutingTable) Update(entry Entry) bool {
 	zero_count := entry.ZifAddress.Xor(&rt.LocalAddress).LeadingZeroes()
 	bucket := rt.Buckets[zero_count]
