@@ -112,7 +112,8 @@ func (s *Server) RouteMessage(msg_type []byte, from *Peer, stream net.Conn) {
 	//log.Debug("Routing message ", msg_type)
 
 	if bytes.Equal(msg_type, proto_ping) {
-		from.Pong()
+		rep := Client{stream}
+		rep.Pong()
 	} else if bytes.Equal(msg_type, proto_pong) {
 		log.Debug("Pong from ", from.ZifAddress.Encode())
 	} else if bytes.Equal(msg_type, proto_dht_announce) {

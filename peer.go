@@ -8,12 +8,12 @@ package main
 import (
 	"errors"
 	"net"
+	"time"
 
+	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
 )
-
-import "github.com/hashicorp/yamux"
 
 type Peer struct {
 	ZifAddress    Address
@@ -142,26 +142,19 @@ func (p *Peer) Entry() (*Entry, error) {
 	return &entries[0], nil
 }
 
-func (p *Peer) Ping() *Client {
+func (p *Peer) Ping() bool {
 	stream, err := p.OpenStream()
+	defer stream.Close()
 
 	if err != nil {
 		log.Error(err.Error())
 	}
 
 	log.Info("Pinging ", p.ZifAddress.Encode())
-	stream.Ping()
+	ret := stream.Ping(time.Second * 3)
 
-	return &stream
-}
+	return ret
 
-func (p *Peer) Pong() *Client {
-	log.Debug("Ping from ", p.ZifAddress.Encode())
-
-	stream, _ := p.OpenStream()
-	stream.Pong()
-
-	return &stream
 }
 
 func (p *Peer) Bootstrap(rt *RoutingTable) (*Client, error) {
