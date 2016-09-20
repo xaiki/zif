@@ -171,7 +171,14 @@ func (lp *LocalPeer) CheckSessions() {
 	for p := range lp.peers.Iter() {
 		peer := p.Val.(*Peer)
 
-		_, err := peer.GetSession().Ping()
+		session := peer.GetSession()
+
+		if session == nil {
+			log.Debug("Peer has no session")
+			return
+		}
+
+		_, err := session.Ping()
 
 		if err != nil {
 			log.Debug(err.Error())
