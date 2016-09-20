@@ -80,7 +80,12 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 	saved := lp.RoutingTable.Update(entry)
 
 	if saved {
+		stream.Write(proto_ok)
 		log.WithField("peer", from.ZifAddress.Encode()).Info("Saved new peer")
+
+	} else {
+		stream.Write(proto_no)
+		stream.Close()
 	}
 
 	// next up, tell other people!
@@ -97,15 +102,17 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 		if peer == nil {
 			log.Debug("Connecting to new peer")
 
-			var peer Peer
-			err = peer.Connect(i.PublicAddress+":"+strconv.Itoa(i.Port), lp)
+			var p Peer
+			err = p.Connect(i.PublicAddress+":"+strconv.Itoa(i.Port), lp)
 
 			if err != nil {
 				log.Warn("Failed to connect to peer: ", err.Error())
 				continue
 			}
 
-			peer.ConnectClient()
+			p.ConnectClient()
+
+			peer = &p
 		}
 
 		peer_stream, err := peer.OpenStream()

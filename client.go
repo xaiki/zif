@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -26,7 +27,9 @@ func (c *Client) Terminate() {
 }
 
 func (c *Client) Close() {
-	c.conn.Close()
+	if c.conn != nil {
+		c.conn.Close()
+	}
 }
 
 func (c *Client) Ping() {
@@ -57,7 +60,24 @@ func (c *Client) SendEntry(e *Entry) error {
 
 func (c *Client) Announce(e *Entry) error {
 	c.conn.Write(proto_dht_announce)
-	return c.SendEntry(e)
+	err := c.SendEntry(e)
+
+	if err != nil {
+		return err
+	}
+
+	buf := make([]byte, 2)
+	err = net_recvall(buf, c.conn)
+
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(buf, proto_ok) {
+		return errors.New("Peer did not ok announce")
+	}
+
+	return nil
 }
 
 func (c *Client) Query(address string) ([]Entry, error) {
