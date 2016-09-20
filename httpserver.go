@@ -17,7 +17,6 @@ type HTTPServer struct {
 func (hs *HTTPServer) ListenHTTP(addr string) {
 	router := mux.NewRouter().StrictSlash(true)
 
-	// TODO: Bootstrap request
 	router.HandleFunc("/", hs.IndexHandler)
 
 	// This should be the ONLY route where the address is a non-Zif address
@@ -60,9 +59,6 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	peer.ConnectClient(hs.localPeer)
-
-	// TODO: Not have to do this every time I connect a client... hmm.
-	go hs.localPeer.ListenStream(peer)
 
 	peer.Announce(hs.localPeer)
 

@@ -1,4 +1,8 @@
-net.go:74:// TODO: Make this check using UpNp/NAT_PMP first, then query services.
-peer.go:170:		// TODO: Parallize this
-protocol_header.go:23:	// TODO: Also hold other information!
-routing_table.go:56:	// TODO: Ping peers, starting from back. If none reply, remove them.
+localpeer.go:177:	// TODO: Stick this in a wait group
+localpeerhandlers.go:12:// TODO: Move this into some sort of handler object, can handle general requests.
+localpeerhandlers.go:14:// TODO: While I think about it, move all these TODOs to issues or a separate
+localpeerhandlers.go:61:// TODO: Rate limit this to prevent announce flooding.
+localpeerhandlers.go:94:	// TODO: Parallize this
+nat.go:10:// TODO: Make this check using UpNp/NAT_PMP first, then query services.
+peer.go:145:// TODO: Timeout
+routingtable.go:74:	// TODO: Ping peers, starting from back. If none reply, remove them.

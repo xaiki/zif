@@ -19,8 +19,6 @@ type ProtocolHeader struct {
 	PublicKey [ed25519.PublicKeySize]byte
 
 	zifAddress Address
-
-	// TODO: Also hold other information!
 }
 
 func ProtocolHeaderFromBytes(raw []byte) (ProtocolHeader, error) {
