@@ -8,6 +8,12 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
+func EntriesToJson(entries []*Entry) ([]byte, error) {
+	data, err := json.Marshal(entries)
+
+	return data, err
+}
+
 func EntryToJson(e *Entry) ([]byte, error) {
 	data, err := json.Marshal(e)
 

@@ -4,6 +4,8 @@ package main
 
 import (
 	"container/list"
+	"encoding/json"
+	"io/ioutil"
 	"sort"
 )
 
@@ -59,6 +61,36 @@ func (rt *RoutingTable) Setup(addr Address) {
 	}
 }
 
+func (rt *RoutingTable) SaveBuckets(buckets []*list.List, filename string) error {
+	all_buckets := make([][]*Entry, 0, len(buckets))
+
+	for _, b := range buckets {
+		slice := make([]*Entry, b.Len())
+
+		index := 0
+		for i := b.Front(); i != nil; i = i.Next() {
+			slice[index] = i.Value.(*Entry)
+			index++
+		}
+
+		all_buckets = append(all_buckets, slice)
+	}
+
+	json, err := json.Marshal(all_buckets)
+
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filename, json, 0600)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (rt *RoutingTable) NumPeers() int {
 	count := 0
 
@@ -73,6 +105,8 @@ func (rt *RoutingTable) NumPeers() int {
 			count += 1
 		}
 	}
+
+	go rt.SaveBuckets(rt.Buckets, "dht")
 
 	return count
 }
