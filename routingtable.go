@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"sort"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const BucketSize = 20
@@ -43,6 +45,11 @@ func (e Entries) Less(i, j int) bool {
 	return e[i].distance.Less(&e[j].distance)
 }
 
+type DhtFile struct {
+	entryCount int
+	entries    [][]Entry
+}
+
 type RoutingTable struct {
 	LocalAddress Address
 	Buckets      []*list.List
@@ -58,6 +65,20 @@ func (rt *RoutingTable) Setup(addr Address) {
 	for i := 0; i < len(rt.LocalAddress.Bytes)*8; i++ {
 		rt.Buckets[i] = list.New()
 		rt.LongBuckets[i] = list.New()
+	}
+}
+
+func (rt *RoutingTable) Save() {
+	err := rt.SaveBuckets(rt.Buckets, "dht_active")
+
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	err = rt.SaveBuckets(rt.LongBuckets, "dht_long")
+
+	if err != nil {
+		log.Error(err.Error())
 	}
 }
 
@@ -91,6 +112,39 @@ func (rt *RoutingTable) SaveBuckets(buckets []*list.List, filename string) error
 	return nil
 }
 
+func (rt *RoutingTable) Load() {
+	err := rt.LoadBuckets(rt.Buckets, "dht_active")
+
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	err = rt.LoadBuckets(rt.LongBuckets, "dht_long")
+
+	if err != nil {
+		log.Error(err.Error())
+	}
+}
+
+func (rt *RoutingTable) LoadBuckets(buckets []*list.List, filename string) error {
+	entries := make([][]Entry, 0, len(buckets))
+	file, err := ioutil.ReadFile(filename)
+
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(file, &entries)
+
+	for i, b := range entries {
+		for _, e := range b {
+			buckets[i].PushBack(&e)
+		}
+	}
+
+	return nil
+}
+
 func (rt *RoutingTable) NumPeers() int {
 	count := 0
 
@@ -105,8 +159,6 @@ func (rt *RoutingTable) NumPeers() int {
 			count += 1
 		}
 	}
-
-	go rt.SaveBuckets(rt.Buckets, "dht")
 
 	return count
 }
@@ -165,11 +217,11 @@ func copyToEntrySlice(slice *[]*Entry, begin *list.Element, count int) {
 
 }
 
-func (rt *RoutingTable) FindClosest(target Address, count int) []*Entry {
+func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Address, count int) []*Entry {
 	ret := make([]*Entry, 0, count)
 
 	bucket_num := target.Xor(&rt.LocalAddress).LeadingZeroes()
-	bucket := rt.Buckets[bucket_num]
+	bucket := buckets[bucket_num]
 
 	copyToEntrySlice(&ret, bucket.Front(), count)
 
@@ -178,12 +230,12 @@ func (rt *RoutingTable) FindClosest(target Address, count int) []*Entry {
 		len(ret) < count; i++ {
 
 		if bucket_num-i >= 0 {
-			bucket = rt.Buckets[bucket_num-i]
+			bucket = buckets[bucket_num-i]
 			copyToEntrySlice(&ret, bucket.Front(), count)
 		}
 
 		if bucket_num+i < len(target.Bytes)*8 {
-			bucket = rt.Buckets[bucket_num+i]
+			bucket = buckets[bucket_num+i]
 			copyToEntrySlice(&ret, bucket.Front(), count)
 		}
 
@@ -196,4 +248,34 @@ func (rt *RoutingTable) FindClosest(target Address, count int) []*Entry {
 	sort.Sort(Entries(ret))
 
 	return ret
+}
+
+func (rt *RoutingTable) FindClosest(target Address, count int) []*Entry {
+	entries := make([]*Entry, 0)
+
+	entries = append(entries, rt.FindClosestInBuckets(rt.Buckets, target, count)...)
+	entries = append(entries, rt.FindClosestInBuckets(rt.Buckets, target, count)...)
+
+	sort.Sort(Entries(entries))
+
+	// then remove duplicates, as the two bucket lists may contain the same
+	// entries
+
+	if len(entries) < 1 {
+		return entries
+	}
+
+	last := entries[0]
+	j := 1
+	for i := 1; i < len(entries); i++ {
+		if entries[i].ZifAddress.Equals(&last.ZifAddress) {
+			continue
+		}
+
+		entries[j] = entries[i]
+		last = entries[i]
+		j++
+	}
+
+	return entries[:j]
 }
