@@ -3,12 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
 	"strconv"
+
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
-
-import "strings"
 
 func SetupLocalPeer(addr string, newAddr bool) LocalPeer {
 	var lp LocalPeer
@@ -61,5 +63,15 @@ func main() {
 
 	var httpServer HTTPServer
 	httpServer.localPeer = &lp
-	httpServer.ListenHTTP(*http)
+	go httpServer.ListenHTTP(*http)
+
+	// Listen for SIGINT
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, os.Interrupt)
+
+	for _ = range sigchan {
+		lp.RoutingTable.Save()
+
+		os.Exit(0)
+	}
 }
