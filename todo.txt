@@ -4,5 +4,4 @@ localpeerhandlers.go:14:// TODO: While I think about it, move all these TODOs to
 localpeerhandlers.go:61:// TODO: Rate limit this to prevent announce flooding.
 localpeerhandlers.go:94:	// TODO: Parallize this
 nat.go:10:// TODO: Make this check using UpNp/NAT_PMP first, then query services.
-peer.go:145:// TODO: Timeout
-routingtable.go:74:	// TODO: Ping peers, starting from back. If none reply, remove them.
+routingtable.go:84:	// TODO: Ping peers, starting from back. If none reply, remove them.

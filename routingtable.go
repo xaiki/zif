@@ -44,14 +44,18 @@ func (e Entries) Less(i, j int) bool {
 type RoutingTable struct {
 	LocalAddress Address
 	Buckets      []*list.List
+	LongBuckets  []*list.List
 }
 
 func (rt *RoutingTable) Setup(addr Address) {
 	rt.LocalAddress = addr
+
 	rt.Buckets = make([]*list.List, len(rt.LocalAddress.Bytes)*8)
+	rt.LongBuckets = make([]*list.List, len(rt.LocalAddress.Bytes)*8)
 
 	for i := 0; i < len(rt.LocalAddress.Bytes)*8; i++ {
 		rt.Buckets[i] = list.New()
+		rt.LongBuckets[i] = list.New()
 	}
 }
 
@@ -64,12 +68,18 @@ func (rt *RoutingTable) NumPeers() int {
 		}
 	}
 
+	for _, b := range rt.LongBuckets {
+		for i := b.Front(); i != nil; i = i.Next() {
+			count += 1
+		}
+	}
+
 	return count
 }
 
-func (rt *RoutingTable) Update(entry Entry) bool {
+func (rt *RoutingTable) UpdateBucket(buckets []*list.List, entry Entry) bool {
 	zero_count := entry.ZifAddress.Xor(&rt.LocalAddress).LeadingZeroes()
-	bucket := rt.Buckets[zero_count]
+	bucket := buckets[zero_count]
 
 	// TODO: Ping peers, starting from back. If none reply, remove them.
 	// Ensures only active peers are stored.
@@ -91,6 +101,26 @@ func (rt *RoutingTable) Update(entry Entry) bool {
 	}
 
 	return true
+}
+
+func (rt *RoutingTable) Update(entry Entry) bool {
+	var success bool
+
+	closest := rt.FindClosest(entry.ZifAddress, 1)
+	if len(closest) == 1 {
+		closest_entry := closest[0]
+
+		dist_closest := closest_entry.ZifAddress.Xor(&entry.ZifAddress)
+		dist_this := rt.LocalAddress.Xor(&entry.ZifAddress)
+
+		if dist_this.Less(dist_closest) {
+			success = rt.UpdateBucket(rt.LongBuckets, entry)
+		}
+	}
+
+	success = rt.UpdateBucket(rt.Buckets, entry)
+
+	return success
 }
 
 func copyToEntrySlice(slice *[]*Entry, begin *list.Element, count int) {
