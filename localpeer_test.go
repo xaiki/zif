@@ -72,7 +72,7 @@ func TestLocalPeerAnnounce(t *testing.T) {
 	peer.Announce(&lp_test)
 	////////////////////////////////////////////
 
-	if lp_initial.RoutingTable.NumPeers() != 1 {
+	if lp_initial.RoutingTable.NumPeers() != 2 {
 		t.Fatal("Failed to store announcements properly")
 	}
 
