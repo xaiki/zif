@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func SetupLocalPeer(addr string, newAddr bool) LocalPeer {
+func SetupLocalPeer(addr string, newAddr bool) *LocalPeer {
 	var lp LocalPeer
 
 	if !newAddr {
@@ -27,7 +27,7 @@ func SetupLocalPeer(addr string, newAddr bool) LocalPeer {
 	lp.Setup()
 	lp.RoutingTable.Setup(lp.ZifAddress)
 
-	return lp
+	return &lp
 }
 
 func main() {
@@ -35,7 +35,7 @@ func main() {
 	log.SetLevel(log.DebugLevel)
 	formatter := new(log.TextFormatter)
 	formatter.FullTimestamp = true
-	formatter.TimestampFormat = "2006-01-02 15:04:05"
+	formatter.TimestampFormat = "15:04:05"
 	log.SetFormatter(formatter)
 
 	var addr = flag.String("address", "0.0.0.0:5050", "Bind address")
@@ -62,7 +62,7 @@ func main() {
 	log.Info("My address: ", lp.ZifAddress.Encode())
 
 	var httpServer HTTPServer
-	httpServer.localPeer = &lp
+	httpServer.localPeer = lp
 	go httpServer.ListenHTTP(*http)
 
 	// Listen for SIGINT

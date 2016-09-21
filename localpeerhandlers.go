@@ -18,6 +18,8 @@ import (
 // This peer will respond with a list of the k closest peers, ordered by distance.
 // The top peer may well be the one that is being queried for :)
 func (lp *LocalPeer) HandleQuery(stream net.Conn) error {
+	log.Debug(lp.Entry.Desc)
+
 	address_length, err := net_recvlength(stream)
 
 	if err != nil {

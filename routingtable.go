@@ -69,13 +69,13 @@ func (rt *RoutingTable) Setup(addr Address) {
 }
 
 func (rt *RoutingTable) Save() {
-	err := rt.SaveBuckets(rt.Buckets, "dht_active")
+	err := rt.SaveBuckets(rt.Buckets, "dht_active.dat")
 
 	if err != nil {
 		log.Error(err.Error())
 	}
 
-	err = rt.SaveBuckets(rt.LongBuckets, "dht_long")
+	err = rt.SaveBuckets(rt.LongBuckets, "dht_long.dat")
 
 	if err != nil {
 		log.Error(err.Error())
@@ -164,6 +164,10 @@ func (rt *RoutingTable) NumPeers() int {
 }
 
 func (rt *RoutingTable) UpdateBucket(buckets []*list.List, entry Entry) bool {
+	if len(entry.ZifAddress.Bytes) < AddressBinarySize {
+		return false
+	}
+
 	zero_count := entry.ZifAddress.Xor(&rt.LocalAddress).LeadingZeroes()
 	bucket := buckets[zero_count]
 
@@ -202,6 +206,8 @@ func (rt *RoutingTable) Update(entry Entry) bool {
 		if dist_this.Less(dist_closest) {
 			success = rt.UpdateBucket(rt.LongBuckets, entry)
 		}
+	} else if len(closest) == 0 {
+		success = rt.UpdateBucket(rt.LongBuckets, entry)
 	}
 
 	success = rt.UpdateBucket(rt.Buckets, entry)
@@ -218,6 +224,10 @@ func copyToEntrySlice(slice *[]*Entry, begin *list.Element, count int) {
 }
 
 func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Address, count int) []*Entry {
+	if len(target.Bytes) != AddressBinarySize {
+		return nil
+	}
+
 	ret := make([]*Entry, 0, count)
 
 	bucket_num := target.Xor(&rt.LocalAddress).LeadingZeroes()

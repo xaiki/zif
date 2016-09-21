@@ -132,6 +132,9 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 
 	// add them all to our routing table! :D
 	for _, e := range peers {
+		if len(e.ZifAddress.Bytes) != AddressBinarySize {
+			continue
+		}
 		rt.Update(e)
 	}
 
