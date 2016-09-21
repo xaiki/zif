@@ -41,6 +41,8 @@ func (lp *LocalPeer) Setup() {
 	lp.Server.localPeer = lp
 
 	lp.msg_chan = make(chan []byte)
+
+	lp.RoutingTable.Setup(lp.ZifAddress)
 }
 
 // Creates a peer, connects to a public address
