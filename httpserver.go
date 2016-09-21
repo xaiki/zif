@@ -1,6 +1,6 @@
 // Used to control the Zif daemon
 
-package main
+package zif
 
 import (
 	"net/http"
@@ -11,7 +11,7 @@ import (
 )
 
 type HTTPServer struct {
-	localPeer *LocalPeer
+	LocalPeer *LocalPeer
 }
 
 func (hs *HTTPServer) ListenHTTP(addr string) {
@@ -49,7 +49,7 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer, err := hs.localPeer.ConnectPeer(vars["address"])
+	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -58,9 +58,9 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	peer.ConnectClient(hs.localPeer)
+	peer.ConnectClient(hs.LocalPeer)
 
-	peer.Announce(hs.localPeer)
+	peer.Announce(hs.LocalPeer)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
@@ -69,7 +69,7 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	peer, err := hs.localPeer.ConnectPeerDirect(vars["address"])
+	peer, err := hs.LocalPeer.ConnectPeerDirect(vars["address"])
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -77,9 +77,9 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	peer.ConnectClient(hs.localPeer)
+	peer.ConnectClient(hs.LocalPeer)
 
-	stream, err := peer.Bootstrap(&hs.localPeer.RoutingTable)
+	stream, err := peer.Bootstrap(&hs.LocalPeer.RoutingTable)
 	defer stream.Close()
 
 	if err != nil {
@@ -99,7 +99,7 @@ func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Attempting to resolve address ", addr)
 
-	entry, err := hs.localPeer.Resolve(addr)
+	entry, err := hs.LocalPeer.Resolve(addr)
 
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)

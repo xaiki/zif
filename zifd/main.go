@@ -1,4 +1,4 @@
-package main
+package zif
 
 import (
 	"flag"
@@ -9,11 +9,13 @@ import (
 
 	"strings"
 
+	"wjh/zif"
+
 	log "github.com/sirupsen/logrus"
 )
 
-func SetupLocalPeer(addr string, newAddr bool) *LocalPeer {
-	var lp LocalPeer
+func SetupLocalPeer(addr string, newAddr bool) *zif.LocalPeer {
+	var lp zif.LocalPeer
 
 	if !newAddr {
 		if lp.ReadKey() != nil {
@@ -52,17 +54,16 @@ func main() {
 	lp.Entry.Desc = "Decentralize all the things! :D"
 	lp.Entry.Port = port
 	lp.Entry.PublicAddress = ""
-	lp.Entry.ZifAddress = lp.ZifAddress
-	lp.Entry.PublicKey = lp.publicKey
 	lp.Entry.PublicAddress = "127.0.0.1"
+	lp.Entry.SetLocalPeer(lp)
 	lp.SignEntry()
 
 	lp.Listen(*addr)
 
 	log.Info("My address: ", lp.ZifAddress.Encode())
 
-	var httpServer HTTPServer
-	httpServer.localPeer = lp
+	var httpServer zif.HTTPServer
+	httpServer.LocalPeer = lp
 	go httpServer.ListenHTTP(*http)
 
 	// Listen for SIGINT

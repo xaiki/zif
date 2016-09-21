@@ -2,7 +2,7 @@
 // Similar to the method Bitcoin uses
 // see: https://en.bitcoin.it/wiki/Technical_background_of_version_1_Bitcoin_addresses
 
-package main
+package zif
 
 import (
 	"bytes"

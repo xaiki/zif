@@ -1,6 +1,6 @@
 // Keeps track of open TCP connections, as well as yamux sessions
 
-package main
+package zif
 
 import (
 	"errors"

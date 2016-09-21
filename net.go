@@ -1,6 +1,6 @@
 // a few network helpers
 
-package main
+package zif
 
 import (
 	"bytes"

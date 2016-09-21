@@ -1,7 +1,7 @@
 // The local peer. This runs on the current node, so we have access to its
 // private key, database, etc.
 
-package main
+package zif
 
 import (
 	"errors"

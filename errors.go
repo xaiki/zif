@@ -1,4 +1,4 @@
-package main
+package zif
 
 type AddressResolutionError struct {
 	address string

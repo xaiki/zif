@@ -1,7 +1,7 @@
-localpeer.go:177:	// TODO: Stick this in a wait group
+localpeer.go:179:	// TODO: Stick this in a wait group
 localpeerhandlers.go:12:// TODO: Move this into some sort of handler object, can handle general requests.
 localpeerhandlers.go:14:// TODO: While I think about it, move all these TODOs to issues or a separate
-localpeerhandlers.go:61:// TODO: Rate limit this to prevent announce flooding.
-localpeerhandlers.go:94:	// TODO: Parallize this
+localpeerhandlers.go:63:// TODO: Rate limit this to prevent announce flooding.
+localpeerhandlers.go:96:	// TODO: Parallize this
 nat.go:10:// TODO: Make this check using UpNp/NAT_PMP first, then query services.
-routingtable.go:84:	// TODO: Ping peers, starting from back. If none reply, remove them.
+routingtable.go:174:	// TODO: Ping peers, starting from back. If none reply, remove them.

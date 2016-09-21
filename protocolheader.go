@@ -1,4 +1,4 @@
-package main
+package zif
 
 import "golang.org/x/crypto/ed25519"
 import "errors"

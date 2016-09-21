@@ -1,6 +1,6 @@
 // Kademlia
 
-package main
+package zif
 
 import (
 	"container/list"
@@ -29,6 +29,11 @@ type Entry struct {
 
 	// Used in the FindClosest function, for sorting.
 	distance Address
+}
+
+func (e *Entry) SetLocalPeer(lp *LocalPeer) {
+	e.ZifAddress = lp.ZifAddress
+	e.PublicKey = lp.publicKey
 }
 
 type Entries []*Entry
