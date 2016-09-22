@@ -21,6 +21,8 @@ type Peer struct {
 	publicKey     ed25519.PublicKey
 	streams       StreamManager
 
+	limiter *PeerLimiter
+
 	entry *Entry
 }
 
@@ -60,6 +62,9 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 	p.publicKey = pair.header.PublicKey[:]
 	p.ZifAddress = pair.header.zifAddress
 
+	p.limiter = &PeerLimiter{}
+	p.limiter.Setup()
+
 	return nil
 }
 
@@ -68,6 +73,9 @@ func (p *Peer) SetTCP(pair ConnHeader) {
 
 	p.publicKey = pair.header.PublicKey[:]
 	p.ZifAddress = pair.header.zifAddress
+
+	p.limiter = &PeerLimiter{}
+	p.limiter.Setup()
 }
 
 func (p *Peer) ConnectServer() (*yamux.Session, error) {

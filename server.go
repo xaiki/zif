@@ -5,6 +5,7 @@ package zif
 import (
 	"bytes"
 	"net"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -38,6 +39,10 @@ func (s *Server) Listen(addr string) {
 }
 
 func (s *Server) ListenStream(peer *Peer) {
+	// Allowed to open 4 streams per second, bursting to three.
+	limiter := NewLimiter(time.Second/4, 3, true)
+	defer limiter.Stop()
+
 	var err error
 	session := peer.GetSession()
 
@@ -53,6 +58,7 @@ func (s *Server) ListenStream(peer *Peer) {
 
 	for {
 		stream, err := session.Accept()
+		limiter.Wait()
 
 		if err != nil {
 			if err.Error() == "EOF" {
@@ -119,7 +125,7 @@ func (s *Server) RouteMessage(msg_type []byte, from *Peer, stream net.Conn) {
 	} else if bytes.Equal(msg_type, proto_dht_announce) {
 		s.localPeer.HandleAnnounce(stream, from)
 	} else if bytes.Equal(msg_type, proto_dht_query) {
-		s.localPeer.HandleQuery(stream)
+		s.localPeer.HandleQuery(stream, from)
 	}
 }
 

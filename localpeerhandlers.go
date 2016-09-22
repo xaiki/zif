@@ -17,7 +17,9 @@ import (
 // Querying peer sends a Zif address
 // This peer will respond with a list of the k closest peers, ordered by distance.
 // The top peer may well be the one that is being queried for :)
-func (lp *LocalPeer) HandleQuery(stream net.Conn) error {
+func (lp *LocalPeer) HandleQuery(stream net.Conn, from *Peer) error {
+	from.limiter.queryLimiter.Wait()
+
 	log.Debug(lp.Entry.Desc)
 
 	address_length, err := net_recvlength(stream)
@@ -60,8 +62,8 @@ func (lp *LocalPeer) HandleQuery(stream net.Conn) error {
 	return nil
 }
 
-// TODO: Rate limit this to prevent announce flooding.
 func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
+	from.limiter.announceLimiter.Wait()
 	log.Debug("Recieved announce")
 	lp.CheckSessions()
 
