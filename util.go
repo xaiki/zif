@@ -3,6 +3,7 @@ package zif
 import (
 	"crypto/rand"
 	"math/big"
+	"time"
 )
 
 func CryptoRandBytes(size int) ([]byte, error) {
@@ -24,4 +25,20 @@ func CryptoRandInt(min, max int64) int64 {
 	}
 
 	return num.Int64() + min
+}
+
+func NewLimiter(rate time.Duration, burst int) (chan time.Time, *time.Ticker) {
+	tick := time.NewTicker(rate)
+	throttle := make(chan time.Time, burst)
+
+	go func() {
+		for t := range tick.C {
+			select {
+			case throttle <- t:
+			default:
+			}
+		}
+	}()
+
+	return throttle, tick
 }
