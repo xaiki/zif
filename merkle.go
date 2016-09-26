@@ -4,12 +4,19 @@
 package zif
 
 import (
-	"github.com/sirupsen/logrus"
+	"errors"
+
 	"golang.org/x/crypto/sha3"
 )
 
+// what is being stored!
+type MerkleEntry struct {
+	Hash []byte
+	Id   uint
+}
+
 type MerkleNode struct {
-	Hash   []byte
+	MerkleEntry
 	Left   *MerkleNode
 	Right  *MerkleNode
 	Parent *MerkleNode
@@ -36,7 +43,6 @@ func (mn *MerkleNode) Update() {
 	data := make([]byte, 0, 64)
 
 	if mn.Left != nil {
-		logrus.Info("updating left")
 		if mn.Left.dirty {
 			mn.Left.Update()
 		}
@@ -45,7 +51,6 @@ func (mn *MerkleNode) Update() {
 	}
 
 	if mn.Right != nil {
-		logrus.Info("updating right")
 		if mn.Right.dirty {
 			mn.Right.Update()
 		}
@@ -65,6 +70,16 @@ func (mn *MerkleNode) Update() {
 	}
 
 	copy(mn.Hash, hash[:])
+}
+
+func (mn *MerkleNode) Insert(entry MerkleEntry) error {
+	if entry.Hash == nil {
+		return errors.New("Invalid entry")
+	}
+
+	//finish this bit and write a test!
+
+	return nil
 }
 
 func (mn *MerkleNode) InsertLeft(left *MerkleNode) {
