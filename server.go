@@ -146,5 +146,7 @@ func (s *Server) Handshake(conn net.Conn) {
 }
 
 func (s *Server) Close() {
-	s.listener.Close()
+	if s.listener != nil {
+		s.listener.Close()
+	}
 }

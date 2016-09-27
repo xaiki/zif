@@ -20,6 +20,8 @@ type LocalPeer struct {
 	Entry        Entry
 	RoutingTable RoutingTable
 	Server       Server
+	Collection   Collection
+	Database     *Database
 
 	privateKey ed25519.PrivateKey
 
@@ -43,6 +45,7 @@ func (lp *LocalPeer) Setup() {
 	lp.msg_chan = make(chan []byte)
 
 	lp.RoutingTable.Setup(lp.ZifAddress)
+	lp.Collection.Setup()
 }
 
 // Creates a peer, connects to a public address
@@ -280,4 +283,15 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	}
 
 	return nil, errors.New("Address could not be resolved")
+}
+
+func (lp *LocalPeer) Close() {
+	lp.Server.Close()
+}
+
+func (lp *LocalPeer) AddPost(p Post) {
+	log.Info("Adding post")
+
+	lp.Collection.AddPost(p)
+	lp.Database.InsertPost(p)
 }

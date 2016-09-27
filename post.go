@@ -6,6 +6,11 @@ import (
 	"net"
 )
 
+const (
+	TitleMax = 144
+	TagsMax  = 256
+)
+
 type Post struct {
 	Id         int
 	InfoHash   string

@@ -54,7 +54,6 @@ const sql_query_post_id string = `SELECT 	 * FROM post
 												 WHERE id = ?`
 
 const sql_query_paged_post string = `SELECT 	 * FROM post
-												 FROM post 
 												 LIMIT ?,?`
 
 // Seeders are weighted, things with more seeders are better than things with

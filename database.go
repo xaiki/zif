@@ -105,7 +105,6 @@ func (db *Database) Search(query string, page int) ([]Post, error) {
 	page_size := 25 // TODO: Configure this elsewhere
 
 	posts := make([]Post, 0, page_size)
-
 	rows, err := db.conn.Query(sql_search_post, query, page*page_size,
 		page_size)
 
@@ -155,6 +154,35 @@ func (db *Database) QueryPostId(id uint) (Post, error) {
 	}
 
 	return post, nil
+}
+
+func (db *Database) QueryPiece(id int) (*Piece, error) {
+	page_size := PieceSize // TODO: Configure this elsewhere
+	var piece Piece
+
+	rows, err := db.conn.Query(sql_query_paged_post, id*page_size,
+		page_size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+
+		var post Post
+
+		err := rows.Scan(&post.Id, &post.InfoHash, &post.Title, &post.Size,
+			&post.FileCount, &post.Seeders, &post.Leechers, &post.UploadDate,
+			&post.Source, &post.Tags)
+
+		if err != nil {
+			return nil, err
+		}
+
+		piece.Add(post)
+	}
+
+	return &piece, nil
 }
 
 func (db *Database) PostCount() uint {

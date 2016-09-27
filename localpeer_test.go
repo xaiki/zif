@@ -19,6 +19,11 @@ func CreateLocalPeer(name string, port int) LocalPeer {
 	lp.Entry.PublicKey = lp.publicKey
 	lp.Entry.ZifAddress = lp.ZifAddress
 
+	lp.Database = &Database{}
+	lp.Database.path = ":memory:"
+
+	lp.Database.Connect()
+
 	lp.SignEntry()
 
 	lp.Listen("0.0.0.0:" + strconv.Itoa(port))

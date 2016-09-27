@@ -6,6 +6,7 @@ type Entry struct {
 	Desc          string
 	PublicAddress string
 	PublicKey     []byte
+	PostCount     int
 
 	// The owner of this entry should have signed it, we need to store the
 	// sigature. It's actually okay as we can verify that a peer owns a public
