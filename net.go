@@ -5,6 +5,7 @@ package zif
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"net"
 )
@@ -60,6 +61,49 @@ func net_recvlength(conn net.Conn) (uint64, error) {
 	length, _ := binary.Uvarint(length_b)
 
 	return length, nil
+}
+
+func net_sendpost(conn net.Conn, post Post) error {
+	json, err := post.Json()
+
+	if err != nil {
+		return err
+	}
+
+	net_sendlength(conn, uint64(len(json)))
+
+	ok := make([]byte, 2)
+	net_recvall(ok, conn)
+
+	if !bytes.Equal(proto_ok, ok) {
+		return errors.New("Peer refused entry")
+	}
+
+	conn.Write(json)
+
+	return nil
+}
+
+func net_recvpost(conn net.Conn) (*Post, error) {
+	length, err := net_recvlength(conn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if length > MaxPostSize {
+		return nil, errors.New("Post too large")
+	}
+
+	conn.Write(proto_ok)
+
+	buf := make([]byte, length)
+	net_recvall(buf, conn)
+
+	var post Post
+	json.Unmarshal(buf, &post)
+
+	return &post, nil
 }
 
 func check_ok(conn net.Conn) bool {

@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	TitleMax = 144
-	TagsMax  = 256
+	TitleMax    = 144
+	TagsMax     = 256
+	MaxPostSize = TitleMax + TagsMax + 1024
 )
 
 type Post struct {
@@ -22,6 +23,19 @@ type Post struct {
 	UploadDate int
 	Source     []byte
 	Tags       string
+}
+
+func NewPost(ih, title string, seeders, leechers, uploaddate int, source []byte) Post {
+	var p Post
+
+	p.InfoHash = ih
+	p.Title = title
+	p.Seeders = seeders
+	p.Leechers = leechers
+	p.UploadDate = uploaddate
+	copy(p.Source[:], source)
+
+	return p
 }
 
 func (p Post) Json() ([]byte, error) {

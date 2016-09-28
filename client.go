@@ -146,3 +146,41 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 
 	return nil
 }
+
+func (c *Client) RemoteQuery(search string) ([]*Post, error) {
+	log.Info("Querying for ", search)
+	c.conn.Write(proto_post_query)
+	err := net_sendlength(c.conn, uint64(len(search)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	ok := make([]byte, 2)
+
+	if !bytes.Equal(proto_ok, ok) {
+		return nil, errors.New("Peer did not accept query")
+	}
+
+	net_recvall(ok, c.conn)
+
+	c.conn.Write([]byte(search))
+
+	length, err := net_recvlength(c.conn)
+
+	log.Info("Query returned ", length, " results")
+
+	posts := make([]*Post, 0, length)
+
+	for i := uint64(0); i < length; i++ {
+		post, err := net_recvpost(c.conn)
+
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, post)
+	}
+
+	return posts, nil
+}

@@ -1,12 +1,15 @@
-package zif
+package zif_test
 
 import (
 	"strconv"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/wjh/zif"
 )
 
-func CreateLocalPeer(name string, port int) LocalPeer {
-	var lp LocalPeer
+func CreateLocalPeer(name string, port int) zif.LocalPeer {
+	var lp zif.LocalPeer
 
 	lp.GenerateKey()
 	lp.Setup()
@@ -16,12 +19,10 @@ func CreateLocalPeer(name string, port int) LocalPeer {
 	lp.Entry.Port = port
 	lp.Entry.PublicAddress = "127.0.0.1"
 	lp.Entry.Desc = "Decentralize all the things!"
-	lp.Entry.PublicKey = lp.publicKey
+	lp.Entry.PublicKey = lp.PublicKey
 	lp.Entry.ZifAddress = lp.ZifAddress
 
-	lp.Database = &Database{}
-	lp.Database.path = ":memory:"
-
+	lp.Database = zif.NewDatabase("file::memory:?cache=shared")
 	lp.Database.Connect()
 
 	lp.SignEntry()
@@ -31,7 +32,7 @@ func CreateLocalPeer(name string, port int) LocalPeer {
 	return lp
 }
 
-func BootstrapLocalPeer(lp *LocalPeer, peer *LocalPeer, t *testing.T) {
+func BootstrapLocalPeer(lp *zif.LocalPeer, peer *zif.LocalPeer, t *testing.T) {
 	p, err := lp.ConnectPeerDirect(peer.Entry.PublicAddress + ":" +
 		strconv.Itoa(peer.Entry.Port))
 
@@ -96,10 +97,44 @@ func TestLocalPeerAnnounce(t *testing.T) {
 	}
 
 	// block until the test peer recieved a msg (should be an announce forward)
-	<-lp_test.msg_chan
+	<-lp_test.MsgChan
 
 	if !lp_test.RoutingTable.FindClosest(lp_initial.ZifAddress, 1)[0].
 		ZifAddress.Equals(&lp_initial.ZifAddress) {
 		t.Fatal("Announce forwarding failed")
+	}
+}
+
+func TestLocalPeerPosts(t *testing.T) {
+	source, _ := zif.CryptoRandBytes(20)
+	// the remote we are requesting posts from
+	lp_remote := CreateLocalPeer("remote", 5053)
+	lp_requester := CreateLocalPeer("requester", 5054)
+
+	BootstrapLocalPeer(&lp_requester, &lp_remote, t)
+
+	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2016-09-03", 100, 10, 1472860800, source)
+	ubuntu := zif.NewPost(UbuntuInfoHash, "Ubuntu Linux 16.04.1", 101, 9, 1472860800, source)
+
+	lp_remote.AddPost(arch)
+	lp_remote.AddPost(ubuntu)
+	lp_remote.Database.GenerateFts(0)
+
+	peer, err := lp_requester.ConnectPeer(lp_remote.ZifAddress.Encode())
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	posts, stream, err := peer.RemoteQuery("linux")
+	defer stream.Close()
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	log.Info(len(posts))
+	if posts[0].InfoHash != UbuntuInfoHash || posts[1].InfoHash != ArchInfoHash {
+		t.Error("Remote post search failed")
 	}
 }

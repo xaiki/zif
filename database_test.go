@@ -9,19 +9,6 @@ import (
 const ArchInfoHash = "657c483dc66c1f248fc2eda5f5682ea557233e7a"
 const UbuntuInfoHash = "9f9165d9a281a9b8e782cd5176bbcc8256fd1871"
 
-func NewPost(ih, title string, seeders, leechers, uploaddate int, source []byte) zif.Post {
-	var p zif.Post
-
-	p.InfoHash = ih
-	p.Title = title
-	p.Seeders = seeders
-	p.Leechers = leechers
-	p.UploadDate = uploaddate
-	copy(p.Source[:], source)
-
-	return p
-}
-
 func ConnectDb(t *testing.T) *zif.Database {
 	db := zif.NewDatabase("file::memory:?cache=shared")
 
@@ -39,7 +26,7 @@ func TestDatabaseInsert(t *testing.T) {
 	defer db.Close()
 
 	source, _ := zif.CryptoRandBytes(20)
-	post := NewPost(ArchInfoHash, "Arch 2016-09-03", 100, 10, 1472860800, source)
+	post := zif.NewPost(ArchInfoHash, "Arch 2016-09-03", 100, 10, 1472860800, source)
 
 	err := db.InsertPost(post)
 	test_error(err, t)
@@ -70,9 +57,8 @@ func TestDatabaseSearch(t *testing.T) {
 	db := ConnectDb(t)
 	source, _ := zif.CryptoRandBytes(20)
 
-	arch := NewPost(ArchInfoHash, "Arch Linux 2016-09-03", 100, 10, 1472860800, source)
-
-	ubuntu := NewPost(UbuntuInfoHash, "Ubuntu Linux 16.04.1", 101, 9, 1472860800, source)
+	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2016-09-03", 100, 10, 1472860800, source)
+	ubuntu := zif.NewPost(UbuntuInfoHash, "Ubuntu Linux 16.04.1", 101, 9, 1472860800, source)
 
 	err := db.InsertPost(arch)
 	test_error(err, t)

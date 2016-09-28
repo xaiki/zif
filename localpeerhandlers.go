@@ -9,6 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const MaxSearchLength = 256
+
 // TODO: Move this into some sort of handler object, can handle general requests.
 
 // TODO: While I think about it, move all these TODOs to issues or a separate
@@ -131,6 +133,41 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 		peer_stream.SendEntry(&entry)
 	}
 
+}
+
+func (lp *LocalPeer) HandlePostQuery(conn net.Conn, from *Peer) {
+	length, err := net_recvlength(conn)
+
+	if err != nil {
+		log.Debug(err.Error())
+		return
+	}
+
+	if length > MaxSearchLength {
+		log.Debug("Query too long")
+		return
+	}
+
+	conn.Write(proto_ok)
+
+	buf := make([]byte, length)
+	net_recvall(buf, conn)
+
+	query := string(buf)
+	log.Info("Post query for ", query)
+
+	posts, err := lp.Database.Search(query, 0)
+
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	net_sendlength(conn, uint64(len(posts)))
+
+	for _, p := range posts {
+		net_sendpost(conn, p)
+	}
 }
 
 func (lp *LocalPeer) ListenStream(peer *Peer) {

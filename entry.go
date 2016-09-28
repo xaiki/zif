@@ -21,7 +21,7 @@ type Entry struct {
 
 func (e *Entry) SetLocalPeer(lp *LocalPeer) {
 	e.ZifAddress = lp.ZifAddress
-	e.PublicKey = lp.publicKey
+	e.PublicKey = lp.PublicKey
 }
 
 type Entries []*Entry

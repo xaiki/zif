@@ -18,7 +18,7 @@ import (
 type Peer struct {
 	ZifAddress    Address
 	PublicAddress string
-	publicKey     ed25519.PublicKey
+	PublicKey     ed25519.PublicKey
 	streams       StreamManager
 
 	limiter *PeerLimiter
@@ -35,7 +35,6 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 		log.Debug("External IP is ", ip)
 		lp.Entry.PublicAddress = ip
 	}
-
 	lp.SignEntry()
 
 	stream, err := p.OpenStream()
@@ -59,7 +58,7 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 		return err
 	}
 
-	p.publicKey = pair.header.PublicKey[:]
+	p.PublicKey = pair.header.PublicKey[:]
 	p.ZifAddress = pair.header.zifAddress
 
 	p.limiter = &PeerLimiter{}
@@ -71,7 +70,7 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 func (p *Peer) SetTCP(pair ConnHeader) {
 	p.streams.connection = pair
 
-	p.publicKey = pair.header.PublicKey[:]
+	p.PublicKey = pair.header.PublicKey[:]
 	p.ZifAddress = pair.header.zifAddress
 
 	p.limiter = &PeerLimiter{}
@@ -186,4 +185,17 @@ func (p *Peer) Query(address string) (*Client, []Entry, error) {
 	stream, _ := p.OpenStream()
 	entry, err := stream.Query(address)
 	return &stream, entry, err
+}
+
+// asks a peer to query its database and return the results
+func (p *Peer) RemoteQuery(search string) ([]*Post, *Client, error) {
+	stream, _ := p.OpenStream()
+
+	posts, err := stream.RemoteQuery(search)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return posts, &stream, nil
 }

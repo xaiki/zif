@@ -31,18 +31,18 @@ type LocalPeer struct {
 	// maps public addresses to zif address
 	public_to_zif cmap.ConcurrentMap
 
-	msg_chan chan []byte
+	MsgChan chan []byte
 }
 
 func (lp *LocalPeer) Setup() {
 	lp.Entry.Signature = make([]byte, ed25519.SignatureSize)
 	lp.peers = cmap.New()
 	lp.public_to_zif = cmap.New()
-	lp.ZifAddress.Generate(lp.publicKey)
+	lp.ZifAddress.Generate(lp.PublicKey)
 
 	lp.Server.localPeer = lp
 
-	lp.msg_chan = make(chan []byte)
+	lp.MsgChan = make(chan []byte)
 
 	lp.RoutingTable.Setup(lp.ZifAddress)
 	lp.Collection.Setup()
@@ -130,7 +130,7 @@ func (lp *LocalPeer) ProtocolHeader() ProtocolHeader {
 
 	copy(ph.Zif[:], proto_zif)
 	copy(ph.Version[:], proto_version)
-	copy(ph.PublicKey[:], lp.publicKey[:])
+	copy(ph.PublicKey[:], lp.PublicKey[:])
 
 	return ph
 }
@@ -143,7 +143,7 @@ func (lp *LocalPeer) Listen(addr string) {
 func (lp *LocalPeer) GenerateKey() {
 	var err error
 
-	lp.publicKey, lp.privateKey, err = ed25519.GenerateKey(nil)
+	lp.PublicKey, lp.privateKey, err = ed25519.GenerateKey(nil)
 
 	if err != nil {
 		panic(err)
@@ -171,7 +171,7 @@ func (lp *LocalPeer) ReadKey() error {
 	}
 
 	lp.privateKey = pk
-	lp.publicKey = lp.privateKey.Public().(ed25519.PublicKey)
+	lp.PublicKey = lp.privateKey.Public().(ed25519.PublicKey)
 
 	return nil
 }
@@ -290,8 +290,12 @@ func (lp *LocalPeer) Close() {
 }
 
 func (lp *LocalPeer) AddPost(p Post) {
-	log.Info("Adding post")
+	log.Info("Adding post with title ", p.Title)
 
 	lp.Collection.AddPost(p)
-	lp.Database.InsertPost(p)
+	err := lp.Database.InsertPost(p)
+
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
