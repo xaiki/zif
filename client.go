@@ -11,7 +11,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const EntryLengthMax = 1024
+const (
+	EntryLengthMax = 1024
+	MaxPageSize    = 25
+)
 
 type Client struct {
 	conn net.Conn
@@ -184,4 +187,41 @@ func (c *Client) Search(search string) ([]*Post, error) {
 	}
 
 	return posts, nil
+}
+
+func (c *Client) Recent(page uint64) ([]*Post, error) {
+	log.Info("Fetching recent posts from peer")
+
+	c.conn.Write(proto_recent)
+	err := net_sendlength(c.conn, page)
+
+	if err != nil {
+		return nil, err
+	}
+
+	length, err := net_recvlength(c.conn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if length > MaxPageSize {
+		return nil, errors.New("Peer returned a page that was too large")
+	}
+
+	posts := make([]*Post, 0, length)
+
+	for i := uint64(0); i < length; i++ {
+		post, err := net_recvpost(c.conn)
+
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, post)
+	}
+
+	log.Info("Recieved ", len(posts), " recent posts")
+
+	return posts, err
 }

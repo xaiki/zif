@@ -172,6 +172,23 @@ func (lp *LocalPeer) HandleSearch(conn net.Conn, from *Peer) {
 	}
 }
 
+func (lp *LocalPeer) HandleRecent(conn net.Conn, from *Peer) {
+	log.Info("Recieved query for recent posts")
+	page, err := net_recvlength(conn)
+
+	if err != nil {
+		log.Debug(err.Error())
+		return
+	}
+
+	posts, err := lp.Database.QueryRecent(int(page))
+	net_sendlength(conn, uint64(len(posts)))
+
+	for _, p := range posts {
+		net_sendpost(conn, p)
+	}
+}
+
 func (lp *LocalPeer) ListenStream(peer *Peer) {
 	lp.Server.ListenStream(peer)
 }

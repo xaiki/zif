@@ -199,3 +199,16 @@ func (p *Peer) Search(search string) ([]*Post, *Client, error) {
 
 	return posts, &stream, nil
 }
+
+func (p *Peer) Recent(page uint64) ([]*Post, *Client, error) {
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	posts, err := stream.Recent(page)
+
+	return posts, &stream, err
+
+}

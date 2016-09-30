@@ -42,6 +42,36 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	}
 }
 
+func http_error_check(w http.ResponseWriter, errCode int, err error) bool {
+	if err != nil {
+		w.WriteHeader(errCode)
+		w.Write([]byte("{ \"status\": \"err\", \"err\": \"" + err.Error() + "\"}"))
+
+		return true
+	}
+
+	return false
+}
+
+func http_write_ok(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("{\"status\": \"ok\" }"))
+}
+
+func http_write_posts(w http.ResponseWriter, posts []*Post) {
+	json, err := json.Marshal(posts)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	post_length := strconv.Itoa(len(posts))
+
+	// TODO: Use/write some sort of json building, based on a map.
+	// This is kinda gross.
+	w.Write([]byte("{ \"status\": \"ok\", \"count\": " + post_length + ", \"posts\": " + string(json) + "}"))
+}
+
 func (hs *HTTPServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Zif"))
@@ -57,26 +87,20 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 
 	peer, err := hs.LocalPeer.ConnectPeerDirect(vars["address"])
 
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
+
 	peer.ConnectClient(hs.LocalPeer)
 
 	stream, err := peer.Bootstrap(&hs.LocalPeer.RoutingTable)
 	defer stream.Close()
 
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	http_write_ok(w)
 }
 
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
@@ -84,19 +108,23 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 
 	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
 
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
-	peer.ConnectClient(hs.LocalPeer)
+	_, err = peer.ConnectClient(hs.LocalPeer)
 
-	peer.Announce(hs.LocalPeer)
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	err = peer.Announce(hs.LocalPeer)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_ok(w)
 }
 
 func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
@@ -107,19 +135,13 @@ func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
 
 	entry, err := hs.LocalPeer.Resolve(addr)
 
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusNotFound, err) {
 		return
 	}
 
 	entry_json, err := EntryToJson(entry)
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
@@ -136,33 +158,18 @@ func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
 
 	peer, err := hs.LocalPeer.ConnectPeer(addr)
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
 	posts, stream, err := peer.Search(query)
 	defer stream.Close()
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
-	json, err := json.Marshal(posts)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-
-		return
-	}
-
-	w.Write(json)
+	http_write_posts(w, posts)
 }
 
 func (hs *HTTPServer) AddPost(w http.ResponseWriter, r *http.Request) {
@@ -174,14 +181,13 @@ func (hs *HTTPServer) AddPost(w http.ResponseWriter, r *http.Request) {
 
 	err := json.Unmarshal([]byte(post_json), &post)
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
 	hs.LocalPeer.AddPost(post)
+
+	http_write_ok(w)
 }
 
 func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
@@ -190,33 +196,24 @@ func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
 
 	page_i, err := strconv.Atoi(page)
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-
-		return
-
-	}
-
-	posts, err := hs.LocalPeer.Database.QueryRecent(page_i)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
-	json, err := json.Marshal(posts)
+	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
-	w.Write(json)
+	posts, stream, err := peer.Recent(uint64(page_i))
+	defer stream.Close()
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_posts(w, posts)
 }
 
 func (hs *HTTPServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
@@ -226,14 +223,15 @@ func (hs *HTTPServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Generating FTS index since ", since_i)
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-
+	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
-	hs.LocalPeer.Database.GenerateFts(uint64(since_i))
+	err = hs.LocalPeer.Database.GenerateFts(uint64(since_i))
 
-	w.Write([]byte("{ \"status\": \"ok\"}"))
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_ok(w)
 }

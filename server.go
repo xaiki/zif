@@ -128,6 +128,8 @@ func (s *Server) RouteMessage(msg_type []byte, from *Peer, stream net.Conn) {
 		s.localPeer.HandleQuery(stream, from)
 	} else if bytes.Equal(msg_type, proto_search) {
 		s.localPeer.HandleSearch(stream, from)
+	} else if bytes.Equal(msg_type, proto_recent) {
+		s.localPeer.HandleRecent(stream, from)
 	}
 }
 
