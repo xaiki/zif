@@ -135,7 +135,7 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 
 }
 
-func (lp *LocalPeer) HandlePostQuery(conn net.Conn, from *Peer) {
+func (lp *LocalPeer) HandleSearch(conn net.Conn, from *Peer) {
 	length, err := net_recvlength(conn)
 
 	if err != nil {
@@ -162,6 +162,8 @@ func (lp *LocalPeer) HandlePostQuery(conn net.Conn, from *Peer) {
 		log.Error(err.Error())
 		return
 	}
+
+	log.Info(len(posts), " results")
 
 	net_sendlength(conn, uint64(len(posts)))
 

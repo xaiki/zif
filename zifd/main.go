@@ -1,4 +1,4 @@
-package zif
+package main
 
 import (
 	"flag"
@@ -9,7 +9,7 @@ import (
 
 	"strings"
 
-	"wjh/zif"
+	"github.com/wjh/zif"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -41,6 +41,7 @@ func main() {
 	log.SetFormatter(formatter)
 
 	var addr = flag.String("address", "0.0.0.0:5050", "Bind address")
+	var db_path = flag.String("database", "./posts.db", "Posts database path")
 	var newAddr = flag.Bool("new", false, "Ignore identity file and create a new address")
 
 	var http = flag.String("http", "127.0.0.1:8080", "HTTP address and port")
@@ -58,6 +59,14 @@ func main() {
 	lp.Entry.SetLocalPeer(lp)
 	lp.SignEntry()
 
+	lp.Database = zif.NewDatabase(*db_path)
+
+	err := lp.Database.Connect()
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	lp.Listen(*addr)
 
 	log.Info("My address: ", lp.ZifAddress.Encode())
@@ -72,6 +81,7 @@ func main() {
 
 	for _ = range sigchan {
 		lp.RoutingTable.Save()
+		lp.Database.Close()
 
 		os.Exit(0)
 	}

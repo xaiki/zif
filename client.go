@@ -147,9 +147,10 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 	return nil
 }
 
-func (c *Client) RemoteQuery(search string) ([]*Post, error) {
+func (c *Client) Search(search string) ([]*Post, error) {
 	log.Info("Querying for ", search)
-	c.conn.Write(proto_post_query)
+
+	c.conn.Write(proto_search)
 	err := net_sendlength(c.conn, uint64(len(search)))
 
 	if err != nil {
@@ -159,7 +160,7 @@ func (c *Client) RemoteQuery(search string) ([]*Post, error) {
 	ok := make([]byte, 2)
 
 	if !bytes.Equal(proto_ok, ok) {
-		return nil, errors.New("Peer did not accept query")
+		return nil, errors.New("Peer did not accept search")
 	}
 
 	net_recvall(ok, c.conn)

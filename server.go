@@ -126,8 +126,8 @@ func (s *Server) RouteMessage(msg_type []byte, from *Peer, stream net.Conn) {
 		s.localPeer.HandleAnnounce(stream, from)
 	} else if bytes.Equal(msg_type, proto_dht_query) {
 		s.localPeer.HandleQuery(stream, from)
-	} else if bytes.Equal(msg_type, proto_post_query) {
-		s.localPeer.HandlePostQuery(stream, from)
+	} else if bytes.Equal(msg_type, proto_search) {
+		s.localPeer.HandleSearch(stream, from)
 	}
 }
 

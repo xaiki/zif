@@ -44,7 +44,7 @@ const sql_generate_fts string = `INSERT OR IGNORE INTO fts_post(
 								seeders,
 								leechers)
 							SELECT id, title, seeders, leechers FROM post 
-							WHERE upload_date > ?`
+							WHERE upload_date >= ?`
 
 const sql_query_recent_post string = `SELECT 	 * FROM post
 												 ORDER BY upload_date DESC

@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/wjh/zif"
 )
 
@@ -126,14 +125,13 @@ func TestLocalPeerPosts(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	posts, stream, err := peer.RemoteQuery("linux")
+	posts, stream, err := peer.Search("linux")
 	defer stream.Close()
 
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	log.Info(len(posts))
 	if posts[0].InfoHash != UbuntuInfoHash || posts[1].InfoHash != ArchInfoHash {
 		t.Error("Remote post search failed")
 	}

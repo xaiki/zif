@@ -188,10 +188,10 @@ func (p *Peer) Query(address string) (*Client, []Entry, error) {
 }
 
 // asks a peer to query its database and return the results
-func (p *Peer) RemoteQuery(search string) ([]*Post, *Client, error) {
+func (p *Peer) Search(search string) ([]*Post, *Client, error) {
 	stream, _ := p.OpenStream()
 
-	posts, err := stream.RemoteQuery(search)
+	posts, err := stream.Search(search)
 
 	if err != nil {
 		return nil, nil, err
