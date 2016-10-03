@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Zif</title>
+
+		<link rel="../bower_components/semantic/dist/semantic.min.css">
+	</head>
+	<body>
+		<div class="ui sidebar inverted vertical menu">
+			<a class="item">
+				Home
+			</a>
+		</div>
+
+		<script>
+			window.jQuery = window.$ = require("../bower_components/jquery/dist/jquery.min.js")
+			require("../bower_components/semantic/dist/semantic.min.js")
+
+			$(".ui.sidebar").sidebar("toggle");
+		</script>
+	</body>
+</html>
