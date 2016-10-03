@@ -24,7 +24,6 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	// This should be the ONLY route where the address is a non-Zif address
 	router.HandleFunc("/bootstrap/{address}/", hs.Bootstrap)
 
-	router.HandleFunc("/peer/{address}/resolve/", hs.Resolve)
 	router.HandleFunc("/peer/{address}/ping/", hs.Ping)
 	router.HandleFunc("/peer/{address}/announce/", hs.Announce)
 	router.HandleFunc("/peer/{address}/search/{query}/", hs.PeerSearch)
@@ -32,6 +31,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 
 	router.HandleFunc("/self/addpost/", hs.AddPost).Methods("POST")
 	router.HandleFunc("/self/index/", hs.FtsIndex).Methods("POST")
+	router.HandleFunc("/self/resolve/{address}", hs.Resolve)
 
 	log.Info("Starting HTTP server on ", addr)
 
