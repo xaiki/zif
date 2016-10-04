@@ -2,4 +2,5 @@
 *.db
 node_modules
 bower_components
-ui/
+ui/dist
+ui/lib

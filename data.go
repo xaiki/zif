@@ -37,6 +37,7 @@ func EntryToBytes(e *Entry) []byte {
 	str += string(e.Port)
 	str += string(e.PublicAddress)
 	str += string(e.ZifAddress.Encode())
+	str += string(e.PostCount)
 
 	return []byte(str)
 }

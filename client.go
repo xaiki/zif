@@ -150,6 +150,7 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 	return nil
 }
 
+// TODO: Paginate searches
 func (c *Client) Search(search string) ([]*Post, error) {
 	log.Info("Querying for ", search)
 
