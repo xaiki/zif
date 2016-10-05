@@ -9,9 +9,9 @@
 				<p>Bootstrap your routing table from that of another peer, enter the
 				peer's domain name or IP address below.</p>
 
-				<div v-bind:class="{ loading: isLoading }" class="ui fluid action input">
-					<input type="text" placeholder="example.com">
-					<button class="ui button">Bootstrap</button>
+				<div class="ui fluid action input">
+					<input v-model="address" id="bootstrap_addr" type="text" placeholder="example.com">
+					<button v-on:click="bootstrap()" class="ui button">Bootstrap</button>
 				</div>
 			</div>
 		</div>
@@ -19,17 +19,18 @@
 </template>
 
 <script>
-	import zif from "../zif.js"
+import zif from "../zif.js"
 
-	export default {
-		data() {
-			return {
-				isLoading: true
-			}
-		}
+export default {
+	data () {
+		return { address: "foo" }
+	},
+	methods: {
+		bootstrap: () => { console.log(this.default.data().address) }
 	}
+}
+
 </script>
 
 <style>
-
 </style>

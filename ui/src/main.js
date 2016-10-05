@@ -22,10 +22,3 @@ new Vue({
 
 // Is this needed?
 router.push("/");
-
-const local_zifd = "http://localhost:8080/";
-
-// setup API routes
-$.fn.api.settings.api = {
-	"bootstrap": local_zifd + "self/bootstrap/{address}/"
-};
