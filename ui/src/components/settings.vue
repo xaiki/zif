@@ -1,11 +1,10 @@
 <template>
-	<div class="settings">
-		<h1>Settings</h1>
-		<hr>
+	<div class="settings ui divided items">
+		<h1 class="header">Settings</h1>
+		<div class="item bootstrap">
 
-		<div class="bootstrap">
-			<h3>Bootstrap</h3>
-			<div class="ui raised segment">
+			<div class="content">
+				<div class="header">Bootstrap</div>
 				<p>Bootstrap your routing table from that of another peer, enter the
 				peer's domain name or IP address below.</p>
 
@@ -14,6 +13,7 @@
 					<button v-on:click="bootstrap()" class="ui button">Bootstrap</button>
 				</div>
 			</div>
+
 		</div>
 	</div>
 </template>
@@ -21,12 +21,19 @@
 <script>
 import zif from "../zif.js"
 
+let zifd = zif("127.0.0.1", "8080");
+
 export default {
 	data () {
 		return { address: "foo" }
 	},
 	methods: {
-		bootstrap: () => { console.log(this.default.data().address) }
+		bootstrap: function() {
+			$(".bootstrap button").addClass("loading");
+			zifd.bootstrap(this.address, (data) => {
+				$(".bootstrap button").removeClass("loading");
+			});
+		}
 	}
 }
 

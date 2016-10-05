@@ -51,4 +51,4 @@ function setup(url, port)
 	return zif;
 }
 
-module.exports = setup
+module.exports = setup;

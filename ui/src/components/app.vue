@@ -17,10 +17,3 @@
 	}
 
 </script>
-
-<style>
-.view {
-	margin-left: 5%;
-	width: 80%;
-}
-</style>
