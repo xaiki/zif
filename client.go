@@ -1,6 +1,7 @@
 package zif
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"net"
 	"time"
@@ -27,41 +28,42 @@ type Client struct {
 }
 
 func NewClient(stream net.Conn) Client {
-	var ret Client
-	ret.conn = stream
-	return ret
+	return Client{conn}
 }
 
 func (c *Client) Terminate() {
 	//c.conn.Write(proto_terminate)
 }
 
-func (c *Client) Close() {
+func (c *Client) Close() (err error) {
 	if c.conn != nil {
-		c.conn.Close()
+		err = c.conn.Close()
 	}
+	return
 }
 
-func (c *Client) WriteMessage(msg Message) error {
-	json, err := msg.Json()
-
-	if err != nil {
+func (c *Client) WriteMessage(v interface{}) error {
+	w := gzip.NewWriter(c.conn)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
 		return err
 	}
-
-	c.conn.Write(json)
-
-	return nil
+	return w.Close()
 }
 
-func (c *Client) ReadMessage() (Message, error) {
-	msg := Message{}
-
-	decoder := json.NewDecoder(c.conn)
-
-	err := decoder.Decode(&msg)
-
-	return msg, err
+func (c *Client) ReadMessage() (*Message, error) {
+	r, err := gzip.NewReader(c.conn)
+	if err != nil {
+		return nil, err
+	}
+	r.Multistream(false)
+	var msg Message
+	if err := json.NewDecoder(r).Decode(&msg); err != nil {
+		return nil, err
+	}
+	if err := r.Close(); err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 func (c *Client) Ping(timeout time.Duration) bool {

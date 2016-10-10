@@ -4,6 +4,7 @@ package zif
 
 import (
 	"encoding/json"
+	"io"
 	"net"
 	"time"
 
@@ -61,7 +62,7 @@ func (s *Server) ListenStream(peer *Peer) {
 		limiter.Wait()
 
 		if err != nil {
-			if err.Error() == "EOF" {
+			if err == io.EOF {
 				log.Info("Peer closed connection")
 			} else {
 				log.Error(err.Error())
