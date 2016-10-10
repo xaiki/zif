@@ -3,9 +3,7 @@
 package zif
 
 import (
-	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"net"
 )
@@ -64,7 +62,7 @@ func net_recvlength(conn net.Conn) (uint64, error) {
 }
 
 func net_sendpost(conn net.Conn, post Post) error {
-	json, err := post.Json()
+	/*json, err := post.Json()
 
 	if err != nil {
 		return err
@@ -75,17 +73,17 @@ func net_sendpost(conn net.Conn, post Post) error {
 	ok := make([]byte, 2)
 	net_recvall(ok, conn)
 
-	if !bytes.Equal(proto_ok, ok) {
+	if !bytes.Equal(ProtoOk, ok) {
 		return errors.New("Peer refused entry")
 	}
 
-	conn.Write(json)
+	conn.Write(json)*/
 
 	return nil
 }
 
 func net_recvpost(conn net.Conn) (*Post, error) {
-	length, err := net_recvlength(conn)
+	/*length, err := net_recvlength(conn)
 
 	if err != nil {
 		return nil, err
@@ -101,21 +99,21 @@ func net_recvpost(conn net.Conn) (*Post, error) {
 	net_recvall(buf, conn)
 
 	var post Post
-	json.Unmarshal(buf, &post)
+	json.Unmarshal(buf, &post)*/
 
-	return &post, nil
+	return nil, nil
 }
 
 func check_ok(conn net.Conn) bool {
-	buf := make([]byte, 2)
+	/*buf := make([]byte, 2)
 
-	net_recvall(buf, conn)
+	net_recvall(buf, conn)*/
 
-	return bytes.Equal(buf, proto_ok)
+	return false
 }
 
 func recieve_entry(conn net.Conn) (Entry, error) {
-	length_b := make([]byte, 8)
+	/*length_b := make([]byte, 8)
 	net_recvall(length_b, conn)
 	length, _ := binary.Varint(length_b)
 
@@ -128,7 +126,7 @@ func recieve_entry(conn net.Conn) (Entry, error) {
 
 	entry, err := JsonToEntry(entry_json)
 
-	err = ValidateEntry(&entry)
+	err = ValidateEntry(&entry)*/
 
-	return entry, err
+	return Entry{}, nil
 }

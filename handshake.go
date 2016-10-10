@@ -2,13 +2,11 @@ package zif
 
 import (
 	"errors"
-	"net"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ed25519"
 )
 
-func handshake(conn net.Conn, lp *LocalPeer) (ProtocolHeader, error) {
+/*func handshake(conn net.Conn, lp *LocalPeer) (ProtocolHeader, error) {
 	header, err := handshake_recieve(conn)
 
 	if err != nil {
@@ -84,31 +82,59 @@ func handshake_recieve(conn net.Conn) (ProtocolHeader, error) {
 
 	return pHeader, nil
 }
+*/
+func handshake_send(cl Client, lp *LocalPeer) error {
+	log.Debug("Handshaking with ", cl.conn.RemoteAddr().String())
 
-func handshake_send(conn net.Conn, lp *LocalPeer) error {
-	log.Debug("Handshaking with ", conn.RemoteAddr().String())
-	//ph := c.localPeer.ProtocolHeader()
+	header := Message{
+		Header:  ProtoHeader,
+		Content: lp.PublicKey,
+	}
 
-	header := lp.ProtocolHeader()
-	header.zifAddress.Generate(header.PublicKey[:])
-	conn.Write(header.Bytes())
+	cl.WriteMessage(header)
 
-	if !check_ok(conn) {
+	msg, err := cl.ReadMessage()
+
+	if err != nil {
+		return err
+	}
+
+	if !msg.Ok() {
 		return errors.New("Peer refused header")
 	}
 
-	// The server will want us to sign this. Proof of identity and all that.
-	cookie := make([]byte, 20)
-	net_recvall(cookie, conn)
+	msg, err = cl.ReadMessage()
+
+	if err != nil {
+		return err
+	}
+
+	if !msg.Ok() {
+		return errors.New("Peer refused header")
+	}
 
 	log.Debug("Cookie recieved, signing")
 
-	sig := lp.Sign(cookie)
-	conn.Write(sig)
+	sig := lp.Sign(msg.Content)
 
-	if !check_ok(conn) {
+	msg = Message{
+		Header:  ProtoSig,
+		Content: sig,
+	}
+
+	cl.WriteMessage(msg)
+
+	msg, err = cl.ReadMessage()
+
+	if err != nil {
+		return err
+	}
+
+	if !msg.Ok() {
 		return errors.New("Peer refused signature")
 	}
+
+	finish
 
 	return nil
 }

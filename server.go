@@ -3,7 +3,7 @@ package zif
 // tcp server
 
 import (
-	"bytes"
+	"encoding/json"
 	"net"
 	"time"
 
@@ -82,42 +82,68 @@ func (s *Server) ListenStream(peer *Peer) {
 
 func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 	log.Debug("Handling stream")
-	msg := make([]byte, 2)
-	for {
-		err := net_recvall(msg, stream)
 
-		if err != nil {
-			if err.Error() == "EOF" {
-				log.WithField("peer", peer.ZifAddress.Encode()).Info("Closed stream")
-			} else {
-				log.Error(err.Error())
+	reader := json.NewDecoder(stream)
+
+	msg := Message{From: peer, Stream: stream}
+
+	for {
+		// TODO: Length limit this, so the JSON decoder doesn't end up allocating
+		// fuck loads of memory!
+		// TODO: Also gzip :D
+		reader.Decode(&msg)
+
+		s.localPeer.MsgChan <- msg
+
+		s.RouteMessage(msg)
+	}
+
+	/*	msg := make([]byte, 2)
+		for {
+			err := net_recvall(msg, stream)
+
+			if err != nil {
+				if err.Error() == "EOF" {
+					log.WithField("peer", peer.ZifAddress.Encode()).Info("Closed stream")
+				} else {
+					log.Error(err.Error())
+				}
+
+				peer.RemoveStream(stream)
+
+				return
 			}
 
-			peer.RemoveStream(stream)
+			select {
+			case s.localPeer.MsgChan <- msg:
 
-			return
-		}
+			default:
 
-		select {
-		case s.localPeer.MsgChan <- msg:
+			}
+			if bytes.Equal(msg, proto_terminate) {
+				peer.Terminate()
+				log.Debug("Terminated connection with ", peer.ZifAddress.Encode())
+				return
+			}
 
-		default:
-
-		}
-		if bytes.Equal(msg, proto_terminate) {
-			peer.Terminate()
-			log.Debug("Terminated connection with ", peer.ZifAddress.Encode())
-			return
-		}
-
-		s.RouteMessage(msg, peer, stream)
-	}
+			s.RouteMessage(msg, peer, stream)
+		}*/
 }
 
-func (s *Server) RouteMessage(msg_type []byte, from *Peer, stream net.Conn) {
+func (s *Server) RouteMessage(msg Message) {
 	//log.Debug("Routing message ", msg_type)
 
-	if bytes.Equal(msg_type, proto_ping) {
+	switch msg.Header {
+
+	case ProtoDhtAnnounce:
+		s.localPeer.HandleAnnounce(msg)
+
+	default:
+		log.Error("Unknown message type")
+
+	}
+
+	/*if bytes.Equal(msg_type, proto_ping) {
 		rep := Client{stream}
 		rep.Pong()
 	} else if bytes.Equal(msg_type, proto_pong) {
@@ -130,7 +156,7 @@ func (s *Server) RouteMessage(msg_type []byte, from *Peer, stream net.Conn) {
 		s.localPeer.HandleSearch(stream, from)
 	} else if bytes.Equal(msg_type, proto_recent) {
 		s.localPeer.HandleRecent(stream, from)
-	}
+	}*/
 }
 
 func (s *Server) Handshake(conn net.Conn) {

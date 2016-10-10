@@ -31,7 +31,7 @@ type LocalPeer struct {
 	// maps public addresses to zif address
 	public_to_zif cmap.ConcurrentMap
 
-	MsgChan chan []byte
+	MsgChan chan Message
 }
 
 func (lp *LocalPeer) Setup() {
@@ -42,7 +42,7 @@ func (lp *LocalPeer) Setup() {
 
 	lp.Server.localPeer = lp
 
-	lp.MsgChan = make(chan []byte)
+	lp.MsgChan = make(chan Message)
 
 	lp.RoutingTable.Setup(lp.ZifAddress)
 	lp.Collection.Setup()
@@ -123,16 +123,6 @@ func (lp *LocalPeer) SignEntry() {
 
 func (lp *LocalPeer) Sign(msg []byte) []byte {
 	return ed25519.Sign(lp.privateKey, msg)
-}
-
-func (lp *LocalPeer) ProtocolHeader() ProtocolHeader {
-	var ph ProtocolHeader
-
-	copy(ph.Zif[:], proto_zif)
-	copy(ph.Version[:], proto_version)
-	copy(ph.PublicKey[:], lp.PublicKey[:])
-
-	return ph
 }
 
 // address, router (TCP) port, dht (udp) port

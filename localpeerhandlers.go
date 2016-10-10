@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
-	"strconv"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -65,7 +64,7 @@ func (lp *LocalPeer) HandleQuery(stream net.Conn, from *Peer) error {
 }
 
 func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
-	from.limiter.announceLimiter.Wait()
+	/*from.limiter.announceLimiter.Wait()
 	log.Debug("Recieved announce")
 	lp.CheckSessions()
 
@@ -131,7 +130,7 @@ func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
 
 		peer_stream.conn.Write(proto_dht_announce)
 		peer_stream.SendEntry(&entry)
-	}
+	}*/
 
 }
 
@@ -148,7 +147,7 @@ func (lp *LocalPeer) HandleSearch(conn net.Conn, from *Peer) {
 		return
 	}
 
-	conn.Write(proto_ok)
+	//conn.Write(proto_ok)
 
 	buf := make([]byte, length)
 	net_recvall(buf, conn)

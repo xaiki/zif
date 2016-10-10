@@ -1,6 +1,12 @@
 package zif
 
 import (
+	"encoding/json"
+	"net"
+	"time"
+)
+
+/*import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
@@ -14,7 +20,7 @@ import (
 const (
 	EntryLengthMax = 1024
 	MaxPageSize    = 25
-)
+)*/
 
 type Client struct {
 	conn net.Conn
@@ -27,7 +33,7 @@ func NewClient(stream net.Conn) Client {
 }
 
 func (c *Client) Terminate() {
-	c.conn.Write(proto_terminate)
+	//c.conn.Write(proto_terminate)
 }
 
 func (c *Client) Close() {
@@ -36,8 +42,30 @@ func (c *Client) Close() {
 	}
 }
 
+func (c *Client) WriteMessage(msg Message) error {
+	json, err := msg.Json()
+
+	if err != nil {
+		return err
+	}
+
+	c.conn.Write(json)
+
+	return nil
+}
+
+func (c *Client) ReadMessage() (Message, error) {
+	msg := Message{}
+
+	decoder := json.NewDecoder(c.conn)
+
+	err := decoder.Decode(&msg)
+
+	return msg, err
+}
+
 func (c *Client) Ping(timeout time.Duration) bool {
-	c.conn.Write(proto_ping)
+	/*c.conn.Write(proto_ping)
 
 	tchan := make(chan bool)
 
@@ -53,15 +81,16 @@ func (c *Client) Ping(timeout time.Duration) bool {
 		return true
 	case <-time.After(timeout):
 		return false
-	}
+	}*/
+	return true
 }
 
 func (c *Client) Pong() {
-	c.conn.Write(proto_pong)
+	//c.conn.Write(proto_pong)
 }
 
 func (c *Client) SendEntry(e *Entry) error {
-	json, err := EntryToJson(e)
+	/*json, err := EntryToJson(e)
 
 	if err != nil {
 		c.conn.Close()
@@ -73,13 +102,13 @@ func (c *Client) SendEntry(e *Entry) error {
 	binary.PutVarint(length_b, int64(length))
 
 	c.conn.Write(length_b)
-	c.conn.Write(json)
+	c.conn.Write(json)*/
 
 	return nil
 }
 
 func (c *Client) Announce(e *Entry) error {
-	c.conn.Write(proto_dht_announce)
+	/*c.conn.Write(proto_dht_announce)
 	err := c.SendEntry(e)
 
 	if err != nil {
@@ -95,13 +124,13 @@ func (c *Client) Announce(e *Entry) error {
 
 	if !bytes.Equal(buf, proto_ok) {
 		return errors.New("Peer did not ok announce")
-	}
+	}*/
 
 	return nil
 }
 
 func (c *Client) Query(address string) ([]Entry, error) {
-	c.conn.Write(proto_dht_query)
+	/*c.conn.Write(proto_dht_query)
 
 	net_sendlength(c.conn, uint64(len(address)))
 	c.conn.Write([]byte(address))
@@ -121,13 +150,13 @@ func (c *Client) Query(address string) ([]Entry, error) {
 
 	if err != nil {
 		return nil, err
-	}
+	}*/
 
-	return closest, nil
+	return nil, nil
 }
 
 func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
-	peers, err := c.Query(address.Encode())
+	/*peers, err := c.Query(address.Encode())
 
 	if err != nil {
 		return err
@@ -145,14 +174,14 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 		log.Info("Bootstrapped with ", len(peers), " new peers")
 	} else if len(peers) == 1 {
 		log.Info("Bootstrapped with 1 new peer")
-	}
+	}*/
 
 	return nil
 }
 
 // TODO: Paginate searches
 func (c *Client) Search(search string) ([]*Post, error) {
-	log.Info("Querying for ", search)
+	/*log.Info("Querying for ", search)
 
 	c.conn.Write(proto_search)
 	err := net_sendlength(c.conn, uint64(len(search)))
@@ -185,13 +214,13 @@ func (c *Client) Search(search string) ([]*Post, error) {
 		}
 
 		posts = append(posts, post)
-	}
+	}*/
 
-	return posts, nil
+	return nil, nil
 }
 
 func (c *Client) Recent(page uint64) ([]*Post, error) {
-	log.Info("Fetching recent posts from peer")
+	/*log.Info("Fetching recent posts from peer")
 
 	c.conn.Write(proto_recent)
 	err := net_sendlength(c.conn, page)
@@ -222,7 +251,7 @@ func (c *Client) Recent(page uint64) ([]*Post, error) {
 		posts = append(posts, post)
 	}
 
-	log.Info("Recieved ", len(posts), " recent posts")
+	log.Info("Recieved ", len(posts), " recent posts")*/
 
-	return posts, err
+	return nil, nil
 }
