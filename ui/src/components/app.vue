@@ -17,3 +17,11 @@
 	}
 
 </script>
+
+<style lang="sass">
+	@import "../colours";
+
+	#app {
+		background-color: $lightBackground;
+	}
+</style>
