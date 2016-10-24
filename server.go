@@ -3,7 +3,6 @@ package zif
 // tcp server
 
 import (
-	"encoding/json"
 	"io"
 	"net"
 	"time"
@@ -84,84 +83,53 @@ func (s *Server) ListenStream(peer *Peer) {
 func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 	log.Debug("Handling stream")
 
-	reader := json.NewDecoder(stream)
+	cl := Client{stream}
 
-	msg := Message{From: peer, Stream: stream}
+	msg, err := cl.ReadMessage()
 
-	for {
-		// TODO: Length limit this, so the JSON decoder doesn't end up allocating
-		// fuck loads of memory!
-		// TODO: Also gzip :D
-		reader.Decode(&msg)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	msg.From = peer
 
-		s.localPeer.MsgChan <- msg
-
-		s.RouteMessage(msg)
+	select {
+	case s.localPeer.MsgChan <- *msg:
+	default:
 	}
 
-	/*	msg := make([]byte, 2)
-		for {
-			err := net_recvall(msg, stream)
-
-			if err != nil {
-				if err.Error() == "EOF" {
-					log.WithField("peer", peer.ZifAddress.Encode()).Info("Closed stream")
-				} else {
-					log.Error(err.Error())
-				}
-
-				peer.RemoveStream(stream)
-
-				return
-			}
-
-			select {
-			case s.localPeer.MsgChan <- msg:
-
-			default:
-
-			}
-			if bytes.Equal(msg, proto_terminate) {
-				peer.Terminate()
-				log.Debug("Terminated connection with ", peer.ZifAddress.Encode())
-				return
-			}
-
-			s.RouteMessage(msg, peer, stream)
-		}*/
+	s.RouteMessage(msg)
 }
 
-func (s *Server) RouteMessage(msg Message) {
-	//log.Debug("Routing message ", msg_type)
+func (s *Server) RouteMessage(msg *Message) {
+	var err error
+
+	log.Debug("Routing message ", msg.Header)
 
 	switch msg.Header {
 
 	case ProtoDhtAnnounce:
-		s.localPeer.HandleAnnounce(msg)
+		err = s.localPeer.HandleAnnounce(msg)
+	case ProtoDhtQuery:
+		err = s.localPeer.HandleQuery(msg)
+	case ProtoSearch:
+		err = s.localPeer.HandleSearch(msg)
 
 	default:
 		log.Error("Unknown message type")
 
 	}
 
-	/*if bytes.Equal(msg_type, proto_ping) {
-		rep := Client{stream}
-		rep.Pong()
-	} else if bytes.Equal(msg_type, proto_pong) {
-		log.Debug("Pong from ", from.ZifAddress.Encode())
-	} else if bytes.Equal(msg_type, proto_dht_announce) {
-		s.localPeer.HandleAnnounce(stream, from)
-	} else if bytes.Equal(msg_type, proto_dht_query) {
-		s.localPeer.HandleQuery(stream, from)
-	} else if bytes.Equal(msg_type, proto_search) {
-		s.localPeer.HandleSearch(stream, from)
-	} else if bytes.Equal(msg_type, proto_recent) {
-		s.localPeer.HandleRecent(stream, from)
-	}*/
+	if err != nil {
+		log.Error(err.Error())
+	}
+
 }
 
 func (s *Server) Handshake(conn net.Conn) {
-	header, err := handshake(conn, s.localPeer)
+	cl := Client{conn}
+
+	header, err := handshake(cl, s.localPeer)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -169,7 +137,7 @@ func (s *Server) Handshake(conn net.Conn) {
 	}
 
 	var peer Peer
-	peer.SetTCP(ConnHeader{conn, header})
+	peer.SetTCP(ConnHeader{cl, header})
 
 	s.localPeer.AddPeer(&peer)
 

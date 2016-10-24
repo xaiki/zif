@@ -101,10 +101,10 @@ func (db *Database) QueryRecent(page int) ([]Post, error) {
 	return posts, nil
 }
 
-func (db *Database) Search(query string, page int) ([]Post, error) {
+func (db *Database) Search(query string, page int) ([]*Post, error) {
 	page_size := 25 // TODO: Configure this elsewhere
 
-	posts := make([]Post, 0, page_size)
+	posts := make([]*Post, 0, page_size)
 	rows, err := db.conn.Query(sql_search_post, query, page*page_size,
 		page_size)
 
@@ -128,7 +128,7 @@ func (db *Database) Search(query string, page int) ([]Post, error) {
 			return nil, err
 		}
 
-		posts = append(posts, post)
+		posts = append(posts, &post)
 	}
 
 	return posts, nil

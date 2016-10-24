@@ -18,26 +18,21 @@ const MaxSearchLength = 256
 // Querying peer sends a Zif address
 // This peer will respond with a list of the k closest peers, ordered by distance.
 // The top peer may well be the one that is being queried for :)
-func (lp *LocalPeer) HandleQuery(stream net.Conn, from *Peer) error {
-	from.limiter.queryLimiter.Wait()
+func (lp *LocalPeer) HandleQuery(msg *Message) error {
+	log.Info("Handling query")
+	cl := Client{msg.Stream}
 
-	log.Debug(lp.Entry.Desc)
+	msg.From.limiter.queryLimiter.Wait()
 
-	address_length, err := net_recvlength(stream)
-
-	if err != nil {
-		return err
-	}
-
-	address_bin := make([]byte, address_length)
-	err = net_recvall(address_bin, stream)
-
-	if err != nil {
-		return err
-	}
-
-	address := DecodeAddress(string(address_bin))
+	address := DecodeAddress(string(msg.Content))
 	log.WithField("target", address.Encode()).Info("Recieved query")
+
+	ok := &Message{Header: ProtoOk}
+	err := cl.WriteMessage(ok)
+
+	if err != nil {
+		return err
+	}
 
 	var closest []*Entry
 
@@ -57,118 +52,121 @@ func (lp *LocalPeer) HandleQuery(stream net.Conn, from *Peer) error {
 		return errors.New("Failed to encode closest peers to json")
 	}
 
-	net_sendlength(stream, uint64(len(closest_json)))
-	stream.Write(closest_json)
+	results := &Message{
+		Header:  ProtoEntry,
+		Content: closest_json,
+	}
 
-	return nil
+	err = cl.WriteMessage(results)
+
+	return err
 }
 
-func (lp *LocalPeer) HandleAnnounce(stream net.Conn, from *Peer) {
-	/*from.limiter.announceLimiter.Wait()
-	log.Debug("Recieved announce")
+func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
+	msg.From.limiter.announceLimiter.Wait()
 	lp.CheckSessions()
 
-	defer stream.Close()
+	defer msg.Stream.Close()
 
-	entry, err := recieve_entry(stream)
+	entry := Entry{}
+	err := msg.Decode(&entry)
+
+	log.WithField("address", entry.ZifAddress.Encode()).Info("Announce")
 
 	if err != nil {
 		log.Error(err.Error())
-		return
+		return nil
 	}
 
-	var addr Address
-	addr.Generate(entry.PublicKey[:])
+	/*
 
-	log.Debug("Announce from ", from.ZifAddress.Encode())
 
-	saved := lp.RoutingTable.Update(entry)
+		var addr Address
+		addr.Generate(entry.PublicKey[:])
 
-	if saved {
-		stream.Write(proto_ok)
-		log.WithField("peer", entry.ZifAddress.Encode()).Info("Saved new peer")
+		log.Debug("Announce from ", from.ZifAddress.Encode())
 
-	} else {
-		stream.Write(proto_no)
-		stream.Close()
-	}
+		saved := lp.RoutingTable.Update(entry)
 
-	// next up, tell other people!
-	closest := lp.RoutingTable.FindClosest(addr, BucketSize)
+		if saved {
+			stream.Write(proto_ok)
+			log.WithField("peer", entry.ZifAddress.Encode()).Info("Saved new peer")
 
-	// TODO: Parallize this
-	for _, i := range closest {
-		if i.ZifAddress.Equals(&entry.ZifAddress) || i.ZifAddress.Equals(&from.ZifAddress) {
-			continue
+		} else {
+			stream.Write(proto_no)
+			stream.Close()
 		}
 
-		peer := lp.GetPeer(i.ZifAddress.Encode())
+		// next up, tell other people!
+		closest := lp.RoutingTable.FindClosest(addr, BucketSize)
 
-		if peer == nil {
-			log.Debug("Connecting to new peer")
-
-			var p Peer
-			err = p.Connect(i.PublicAddress+":"+strconv.Itoa(i.Port), lp)
-
-			if err != nil {
-				log.Warn("Failed to connect to peer: ", err.Error())
+		// TODO: Parallize this
+		for _, i := range closest {
+			if i.ZifAddress.Equals(&entry.ZifAddress) || i.ZifAddress.Equals(&from.ZifAddress) {
 				continue
 			}
 
-			p.ConnectClient(lp)
+			peer := lp.GetPeer(i.ZifAddress.Encode())
 
-			peer = &p
-		}
+			if peer == nil {
+				log.Debug("Connecting to new peer")
 
-		peer_stream, err := peer.OpenStream()
-		defer peer_stream.Close()
+				var p Peer
+				err = p.Connect(i.PublicAddress+":"+strconv.Itoa(i.Port), lp)
 
-		if err != nil {
-			log.Error(err.Error())
-			continue
-		}
+				if err != nil {
+					log.Warn("Failed to connect to peer: ", err.Error())
+					continue
+				}
 
-		peer_stream.conn.Write(proto_dht_announce)
-		peer_stream.SendEntry(&entry)
-	}*/
+				p.ConnectClient(lp)
+
+				peer = &p
+			}
+
+			peer_stream, err := peer.OpenStream()
+			defer peer_stream.Close()
+
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			peer_stream.conn.Write(proto_dht_announce)
+			peer_stream.SendEntry(&entry)
+		}*/
+	return nil
 
 }
 
-func (lp *LocalPeer) HandleSearch(conn net.Conn, from *Peer) {
-	length, err := net_recvlength(conn)
-
-	if err != nil {
-		log.Debug(err.Error())
-		return
+func (lp *LocalPeer) HandleSearch(msg *Message) error {
+	if len(msg.Content) > MaxSearchLength {
+		return errors.New("Search query too long")
 	}
 
-	if length > MaxSearchLength {
-		log.Debug("Query too long")
-		return
-	}
-
-	//conn.Write(proto_ok)
-
-	buf := make([]byte, length)
-	net_recvall(buf, conn)
-
-	query := string(buf)
-	log.Info("Post query for ", query)
+	query := string(msg.Content)
+	log.WithField("query", query).Info("Search recieved")
 
 	posts, err := lp.Database.Search(query, 0)
 
 	if err != nil {
-		log.Error(err.Error())
-		return
+		return err
 	}
 
-	log.Info(len(posts), " results")
+	json, err := PostsToJson(posts)
 
-	net_sendlength(conn, uint64(len(posts)))
-
-	for _, p := range posts {
-		net_sendpost(conn, p)
+	if err != nil {
+		return err
 	}
+
+	post_msg := &Message{
+		Header:  ProtoPosts,
+		Content: json,
+	}
+
+	NewClient(msg.Stream).WriteMessage(post_msg)
+
+	return nil
 }
 
 func (lp *LocalPeer) HandleRecent(conn net.Conn, from *Peer) {

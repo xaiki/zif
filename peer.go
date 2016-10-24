@@ -58,8 +58,8 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 		return err
 	}
 
-	p.PublicKey = pair.header.PublicKey[:]
-	p.ZifAddress = pair.header.zifAddress
+	p.PublicKey = pair.pk
+	p.ZifAddress = NewAddress(pair.pk)
 
 	p.limiter = &PeerLimiter{}
 	p.limiter.Setup()
@@ -70,8 +70,8 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 func (p *Peer) SetTCP(pair ConnHeader) {
 	p.streams.connection = pair
 
-	p.PublicKey = pair.header.PublicKey[:]
-	p.ZifAddress = pair.header.zifAddress
+	p.PublicKey = pair.pk
+	p.ZifAddress = NewAddress(pair.pk)
 
 	p.limiter = &PeerLimiter{}
 	p.limiter.Setup()
@@ -165,7 +165,7 @@ func (p *Peer) Ping() bool {
 }
 
 func (p *Peer) Bootstrap(rt *RoutingTable) (*Client, error) {
-	log.Info("Bootstrapping from ", p.streams.connection.conn.RemoteAddr())
+	log.Info("Bootstrapping from ", p.streams.connection.cl.conn.RemoteAddr())
 
 	initial, err := p.Entry()
 
@@ -188,7 +188,7 @@ func (p *Peer) Query(address string) (*Client, []Entry, error) {
 }
 
 // asks a peer to query its database and return the results
-func (p *Peer) Search(search string) ([]*Post, *Client, error) {
+func (p *Peer) Search(search string) ([]Post, *Client, error) {
 	stream, _ := p.OpenStream()
 
 	posts, err := stream.Search(search)
@@ -200,7 +200,7 @@ func (p *Peer) Search(search string) ([]*Post, *Client, error) {
 	return posts, &stream, nil
 }
 
-func (p *Peer) Recent(page uint64) ([]*Post, *Client, error) {
+func (p *Peer) Recent(page uint64) ([]Post, *Client, error) {
 	stream, err := p.OpenStream()
 
 	if err != nil {

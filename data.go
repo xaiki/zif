@@ -20,6 +20,12 @@ func EntryToJson(e *Entry) ([]byte, error) {
 	return data, err
 }
 
+func PostsToJson(posts []*Post) ([]byte, error) {
+	data, err := json.Marshal(posts)
+
+	return data, err
+}
+
 func JsonToEntry(data []byte) (Entry, error) {
 	var e Entry
 	err := json.Unmarshal(data, &e)

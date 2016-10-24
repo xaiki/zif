@@ -276,6 +276,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 }
 
 func (lp *LocalPeer) Close() {
+	lp.CloseStreams()
 	lp.Server.Close()
 }
 

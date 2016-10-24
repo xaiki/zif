@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/wjh/zif"
 )
 
@@ -55,6 +56,7 @@ func BootstrapLocalPeer(lp *zif.LocalPeer, peer *zif.LocalPeer, t *testing.T) {
 // Further testig with a much larger number of networked peers (over the internet)
 // is definitely needed.
 func TestLocalPeerAnnounce(t *testing.T) {
+	log.SetLevel(log.DebugLevel)
 	// both peers know this one
 	lp_initial := CreateLocalPeer("initial", 5050)
 
@@ -63,6 +65,10 @@ func TestLocalPeerAnnounce(t *testing.T) {
 
 	// This peer should be able to resolve the announcers address after it announces
 	lp_test := CreateLocalPeer("test", 5052)
+
+	defer lp_initial.Close()
+	defer lp_announcer.Close()
+	defer lp_test.Close()
 
 	BootstrapLocalPeer(&lp_announcer, &lp_initial, t)
 	BootstrapLocalPeer(&lp_test, &lp_initial, t)
@@ -110,6 +116,9 @@ func TestLocalPeerPosts(t *testing.T) {
 	lp_remote := CreateLocalPeer("remote", 5053)
 	lp_requester := CreateLocalPeer("requester", 5054)
 
+	defer lp_remote.Close()
+	defer lp_requester.Close()
+
 	BootstrapLocalPeer(&lp_requester, &lp_remote, t)
 
 	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2016-09-03", 100, 10, 1472860800, source)
@@ -130,6 +139,10 @@ func TestLocalPeerPosts(t *testing.T) {
 
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+
+	if len(posts) != 2 {
+		t.Fatal("Incorrect post count returned")
 	}
 
 	if posts[0].InfoHash != UbuntuInfoHash || posts[1].InfoHash != ArchInfoHash {

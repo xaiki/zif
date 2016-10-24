@@ -58,7 +58,7 @@ func http_write_ok(w http.ResponseWriter) {
 	w.Write([]byte("{\"status\": \"ok\" }"))
 }
 
-func http_write_posts(w http.ResponseWriter, posts []*Post) {
+func http_write_posts(w http.ResponseWriter, posts []Post) {
 	json, err := json.Marshal(posts)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {

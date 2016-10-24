@@ -6,11 +6,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 type ConnHeader struct {
-	conn   net.Conn
-	header ProtocolHeader
+	cl Client
+	pk ed25519.PublicKey
 }
 
 func net_recvall(buf []byte, conn net.Conn) error {
