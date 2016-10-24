@@ -73,9 +73,9 @@ func (db *Database) GenerateFts(since uint64) error {
 	return nil
 }
 
-func (db *Database) QueryRecent(page int) ([]Post, error) {
+func (db *Database) QueryRecent(page int) ([]*Post, error) {
 	page_size := 25
-	posts := make([]Post, 0, page_size)
+	posts := make([]*Post, 0, page_size)
 
 	rows, err := db.conn.Query(sql_query_recent_post, page_size*page,
 		page_size)
@@ -95,7 +95,7 @@ func (db *Database) QueryRecent(page int) ([]Post, error) {
 			return nil, err
 		}
 
-		posts = append(posts, post)
+		posts = append(posts, &post)
 	}
 
 	return posts, nil

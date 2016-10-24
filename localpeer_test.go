@@ -149,3 +149,42 @@ func TestLocalPeerPosts(t *testing.T) {
 		t.Error("Remote post search failed")
 	}
 }
+
+func TestLocalPeerRecent(t *testing.T) {
+	source, _ := zif.CryptoRandBytes(20)
+	lp_remote := CreateLocalPeer("remote", 5055)
+	lp_requester := CreateLocalPeer("requester", 5056)
+
+	defer lp_remote.Close()
+	defer lp_requester.Close()
+
+	BootstrapLocalPeer(&lp_requester, &lp_remote, t)
+
+	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2016-09-03", 100, 10, 1472860800, source)
+	ubuntu := zif.NewPost(UbuntuInfoHash, "Ubuntu Linux 16.04.1", 101, 9, 1472860800, source)
+
+	lp_remote.AddPost(arch)
+	lp_remote.AddPost(ubuntu)
+	lp_remote.Database.GenerateFts(0)
+
+	peer, err := lp_requester.ConnectPeer(lp_remote.ZifAddress.Encode())
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	posts, stream, err := peer.Recent(0)
+	defer stream.Close()
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if len(posts) != 2 {
+		t.Fatal("Incorrect post count returned")
+	}
+
+	if posts[0].InfoHash != UbuntuInfoHash || posts[1].InfoHash != ArchInfoHash {
+		t.Error("Remote post search failed")
+	}
+}

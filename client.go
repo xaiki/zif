@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -186,7 +187,7 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 }
 
 // TODO: Paginate searches
-func (c *Client) Search(search string) ([]Post, error) {
+func (c *Client) Search(search string) ([]*Post, error) {
 	log.Info("Querying for ", search)
 
 	msg := &Message{
@@ -196,7 +197,7 @@ func (c *Client) Search(search string) ([]Post, error) {
 
 	c.WriteMessage(msg)
 
-	var posts []Post
+	var posts []*Post
 
 	recv, err := c.ReadMessage()
 
@@ -213,39 +214,32 @@ func (c *Client) Search(search string) ([]Post, error) {
 	return posts, nil
 }
 
-func (c *Client) Recent(page uint64) ([]Post, error) {
-	/*log.Info("Fetching recent posts from peer")
+func (c *Client) Recent(page int) ([]*Post, error) {
+	log.Info("Fetching recent posts from peer")
 
-	c.conn.Write(proto_recent)
-	err := net_sendlength(c.conn, page)
+	page_s := strconv.Itoa(page)
+
+	msg := &Message{
+		Header:  ProtoRecent,
+		Content: []byte(page_s),
+	}
+
+	err := c.WriteMessage(msg)
 
 	if err != nil {
 		return nil, err
 	}
 
-	length, err := net_recvlength(c.conn)
+	posts_msg, err := c.ReadMessage()
 
 	if err != nil {
 		return nil, err
 	}
 
-	if length > MaxPageSize {
-		return nil, errors.New("Peer returned a page that was too large")
-	}
+	var posts []*Post
+	posts_msg.Decode(&posts)
 
-	posts := make([]*Post, 0, length)
+	log.Info("Recieved ", len(posts), " recent posts")
 
-	for i := uint64(0); i < length; i++ {
-		post, err := net_recvpost(c.conn)
-
-		if err != nil {
-			return nil, err
-		}
-
-		posts = append(posts, post)
-	}
-
-	log.Info("Recieved ", len(posts), " recent posts")*/
-
-	return nil, nil
+	return posts, nil
 }

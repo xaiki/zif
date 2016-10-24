@@ -3,7 +3,7 @@ package zif
 import (
 	"encoding/json"
 	"errors"
-	"net"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -63,6 +63,7 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 }
 
 func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
+	cl := Client{msg.Stream}
 	msg.From.limiter.announceLimiter.Wait()
 	lp.CheckSessions()
 
@@ -74,67 +75,61 @@ func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 	log.WithField("address", entry.ZifAddress.Encode()).Info("Announce")
 
 	if err != nil {
-		log.Error(err.Error())
-		return nil
+		return err
 	}
 
-	/*
+	saved := lp.RoutingTable.Update(entry)
 
+	if saved {
+		cl.WriteMessage(&Message{Header: ProtoOk})
+		log.WithField("peer", entry.ZifAddress.Encode()).Info("Saved new peer")
 
-		var addr Address
-		addr.Generate(entry.PublicKey[:])
+	} else {
+		cl.WriteMessage(&Message{Header: ProtoNo})
+		return errors.New("Failed to save entry")
+	}
 
-		log.Debug("Announce from ", from.ZifAddress.Encode())
+	// next up, tell other people!
+	closest := lp.RoutingTable.FindClosest(entry.ZifAddress, BucketSize)
 
-		saved := lp.RoutingTable.Update(entry)
-
-		if saved {
-			stream.Write(proto_ok)
-			log.WithField("peer", entry.ZifAddress.Encode()).Info("Saved new peer")
-
-		} else {
-			stream.Write(proto_no)
-			stream.Close()
+	// TODO: Parallize this
+	for _, i := range closest {
+		if i.ZifAddress.Equals(&entry.ZifAddress) || i.ZifAddress.Equals(&msg.From.ZifAddress) {
+			continue
 		}
 
-		// next up, tell other people!
-		closest := lp.RoutingTable.FindClosest(addr, BucketSize)
+		peer := lp.GetPeer(i.ZifAddress.Encode())
 
-		// TODO: Parallize this
-		for _, i := range closest {
-			if i.ZifAddress.Equals(&entry.ZifAddress) || i.ZifAddress.Equals(&from.ZifAddress) {
-				continue
-			}
+		if peer == nil {
+			log.Debug("Connecting to new peer")
 
-			peer := lp.GetPeer(i.ZifAddress.Encode())
-
-			if peer == nil {
-				log.Debug("Connecting to new peer")
-
-				var p Peer
-				err = p.Connect(i.PublicAddress+":"+strconv.Itoa(i.Port), lp)
-
-				if err != nil {
-					log.Warn("Failed to connect to peer: ", err.Error())
-					continue
-				}
-
-				p.ConnectClient(lp)
-
-				peer = &p
-			}
-
-			peer_stream, err := peer.OpenStream()
-			defer peer_stream.Close()
+			var p Peer
+			err = p.Connect(i.PublicAddress+":"+strconv.Itoa(i.Port), lp)
 
 			if err != nil {
-				log.Error(err.Error())
+				log.Warn("Failed to connect to peer: ", err.Error())
 				continue
 			}
 
-			peer_stream.conn.Write(proto_dht_announce)
-			peer_stream.SendEntry(&entry)
-		}*/
+			p.ConnectClient(lp)
+
+			peer = &p
+		}
+
+		peer_stream, err := peer.OpenStream()
+		defer peer_stream.Close()
+
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		peer_announce := &Message{
+			Header:  ProtoDhtAnnounce,
+			Content: msg.Content,
+		}
+		peer_stream.WriteMessage(peer_announce)
+	}
 	return nil
 
 }
@@ -169,21 +164,35 @@ func (lp *LocalPeer) HandleSearch(msg *Message) error {
 	return nil
 }
 
-func (lp *LocalPeer) HandleRecent(conn net.Conn, from *Peer) {
+func (lp *LocalPeer) HandleRecent(msg *Message) error {
 	log.Info("Recieved query for recent posts")
-	page, err := net_recvlength(conn)
+
+	page, err := strconv.Atoi(string(msg.Content))
 
 	if err != nil {
-		log.Debug(err.Error())
-		return
+		return err
 	}
 
-	posts, err := lp.Database.QueryRecent(int(page))
-	net_sendlength(conn, uint64(len(posts)))
+	recent, err := lp.Database.QueryRecent(page)
 
-	for _, p := range posts {
-		net_sendpost(conn, p)
+	if err != nil {
+		return err
 	}
+
+	recent_json, err := PostsToJson(recent)
+
+	if err != nil {
+		return err
+	}
+
+	resp := &Message{
+		Header:  ProtoPosts,
+		Content: recent_json,
+	}
+
+	NewClient(msg.Stream).WriteMessage(resp)
+
+	return nil
 }
 
 func (lp *LocalPeer) ListenStream(peer *Peer) {

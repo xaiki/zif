@@ -58,7 +58,7 @@ func http_write_ok(w http.ResponseWriter) {
 	w.Write([]byte("{\"status\": \"ok\" }"))
 }
 
-func http_write_posts(w http.ResponseWriter, posts []Post) {
+func http_write_posts(w http.ResponseWriter, posts []*Post) {
 	json, err := json.Marshal(posts)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
@@ -206,7 +206,7 @@ func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, stream, err := peer.Recent(uint64(page_i))
+	posts, stream, err := peer.Recent(page_i)
 	defer stream.Close()
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
