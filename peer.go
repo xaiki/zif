@@ -18,7 +18,7 @@ import (
 type Peer struct {
 	ZifAddress    Address
 	PublicAddress string
-	publicKey     ed25519.PublicKey
+	PublicKey     ed25519.PublicKey
 	streams       StreamManager
 
 	limiter *PeerLimiter
@@ -35,7 +35,6 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 		log.Debug("External IP is ", ip)
 		lp.Entry.PublicAddress = ip
 	}
-
 	lp.SignEntry()
 
 	stream, err := p.OpenStream()
@@ -59,8 +58,8 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 		return err
 	}
 
-	p.publicKey = pair.header.PublicKey[:]
-	p.ZifAddress = pair.header.zifAddress
+	p.PublicKey = pair.pk
+	p.ZifAddress = NewAddress(pair.pk)
 
 	p.limiter = &PeerLimiter{}
 	p.limiter.Setup()
@@ -71,8 +70,8 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 func (p *Peer) SetTCP(pair ConnHeader) {
 	p.streams.connection = pair
 
-	p.publicKey = pair.header.PublicKey[:]
-	p.ZifAddress = pair.header.zifAddress
+	p.PublicKey = pair.pk
+	p.ZifAddress = NewAddress(pair.pk)
 
 	p.limiter = &PeerLimiter{}
 	p.limiter.Setup()
@@ -166,7 +165,7 @@ func (p *Peer) Ping() bool {
 }
 
 func (p *Peer) Bootstrap(rt *RoutingTable) (*Client, error) {
-	log.Info("Bootstrapping from ", p.streams.connection.conn.RemoteAddr())
+	log.Info("Bootstrapping from ", p.streams.connection.cl.conn.RemoteAddr())
 
 	initial, err := p.Entry()
 
@@ -186,4 +185,30 @@ func (p *Peer) Query(address string) (*Client, []Entry, error) {
 	stream, _ := p.OpenStream()
 	entry, err := stream.Query(address)
 	return &stream, entry, err
+}
+
+// asks a peer to query its database and return the results
+func (p *Peer) Search(search string) ([]*Post, *Client, error) {
+	stream, _ := p.OpenStream()
+
+	posts, err := stream.Search(search)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return posts, &stream, nil
+}
+
+func (p *Peer) Recent(page int) ([]*Post, *Client, error) {
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	posts, err := stream.Recent(page)
+
+	return posts, &stream, err
+
 }

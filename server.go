@@ -3,7 +3,7 @@ package zif
 // tcp server
 
 import (
-	"bytes"
+	"io"
 	"net"
 	"time"
 
@@ -61,7 +61,7 @@ func (s *Server) ListenStream(peer *Peer) {
 		limiter.Wait()
 
 		if err != nil {
-			if err.Error() == "EOF" {
+			if err == io.EOF {
 				log.Info("Peer closed connection")
 			} else {
 				log.Error(err.Error())
@@ -82,55 +82,56 @@ func (s *Server) ListenStream(peer *Peer) {
 
 func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 	log.Debug("Handling stream")
-	msg := make([]byte, 2)
-	for {
-		err := net_recvall(msg, stream)
 
-		if err != nil {
-			if err.Error() == "EOF" {
-				log.WithField("peer", peer.ZifAddress.Encode()).Info("Closed stream")
-			} else {
-				log.Error(err.Error())
-			}
+	cl := Client{stream}
 
-			peer.RemoveStream(stream)
+	msg, err := cl.ReadMessage()
 
-			return
-		}
-
-		select {
-		case s.localPeer.msg_chan <- msg:
-
-		default:
-
-		}
-		if bytes.Equal(msg, proto_terminate) {
-			peer.Terminate()
-			log.Debug("Terminated connection with ", peer.ZifAddress.Encode())
-			return
-		}
-
-		s.RouteMessage(msg, peer, stream)
+	if err != nil {
+		log.Error(err.Error())
+		return
 	}
+	msg.From = peer
+
+	select {
+	case s.localPeer.MsgChan <- *msg:
+	default:
+	}
+
+	s.RouteMessage(msg)
 }
 
-func (s *Server) RouteMessage(msg_type []byte, from *Peer, stream net.Conn) {
-	//log.Debug("Routing message ", msg_type)
+func (s *Server) RouteMessage(msg *Message) {
+	var err error
 
-	if bytes.Equal(msg_type, proto_ping) {
-		rep := Client{stream}
-		rep.Pong()
-	} else if bytes.Equal(msg_type, proto_pong) {
-		log.Debug("Pong from ", from.ZifAddress.Encode())
-	} else if bytes.Equal(msg_type, proto_dht_announce) {
-		s.localPeer.HandleAnnounce(stream, from)
-	} else if bytes.Equal(msg_type, proto_dht_query) {
-		s.localPeer.HandleQuery(stream, from)
+	log.Debug("Routing message ", msg.Header)
+
+	switch msg.Header {
+
+	case ProtoDhtAnnounce:
+		err = s.localPeer.HandleAnnounce(msg)
+	case ProtoDhtQuery:
+		err = s.localPeer.HandleQuery(msg)
+	case ProtoSearch:
+		err = s.localPeer.HandleSearch(msg)
+	case ProtoRecent:
+		err = s.localPeer.HandleRecent(msg)
+
+	default:
+		log.Error("Unknown message type")
+
 	}
+
+	if err != nil {
+		log.Error(err.Error())
+	}
+
 }
 
 func (s *Server) Handshake(conn net.Conn) {
-	header, err := handshake(conn, s.localPeer)
+	cl := Client{conn}
+
+	header, err := handshake(cl, s.localPeer)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -138,7 +139,7 @@ func (s *Server) Handshake(conn net.Conn) {
 	}
 
 	var peer Peer
-	peer.SetTCP(ConnHeader{conn, header})
+	peer.SetTCP(ConnHeader{cl, header})
 
 	s.localPeer.AddPeer(&peer)
 

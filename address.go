@@ -19,6 +19,13 @@ type Address struct {
 	Bytes []byte
 }
 
+func NewAddress(key []byte) (addr Address) {
+	addr = Address{}
+	addr.Generate(key)
+
+	return
+}
+
 func (a *Address) Encode() string {
 	return base58check.Encode("51", a.Bytes)
 }

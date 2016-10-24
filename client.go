@@ -1,40 +1,59 @@
 package zif
 
 import (
-	"bytes"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"net"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-const EntryLengthMax = 1024
+const (
+	EntryLengthMax = 1024
+	MaxPageSize    = 25
+)
 
 type Client struct {
 	conn net.Conn
 }
 
-func NewClient(stream net.Conn) Client {
-	var ret Client
-	ret.conn = stream
-	return ret
+func NewClient(conn net.Conn) *Client {
+	return &Client{conn}
 }
 
 func (c *Client) Terminate() {
-	c.conn.Write(proto_terminate)
+	//c.conn.Write(proto_terminate)
 }
 
-func (c *Client) Close() {
+func (c *Client) Close() (err error) {
 	if c.conn != nil {
-		c.conn.Close()
+		err = c.conn.Close()
 	}
+	return
+}
+
+func (c *Client) WriteMessage(v interface{}) error {
+	err := json.NewEncoder(c.conn).Encode(v)
+
+	return err
+}
+
+func (c *Client) ReadMessage() (*Message, error) {
+	var msg Message
+
+	if err := json.NewDecoder(c.conn).Decode(&msg); err != nil {
+		return nil, err
+	}
+
+	msg.Stream = c.conn
+
+	return &msg, nil
 }
 
 func (c *Client) Ping(timeout time.Duration) bool {
-	c.conn.Write(proto_ping)
+	/*c.conn.Write(proto_ping)
 
 	tchan := make(chan bool)
 
@@ -50,14 +69,29 @@ func (c *Client) Ping(timeout time.Duration) bool {
 		return true
 	case <-time.After(timeout):
 		return false
-	}
+	}*/
+	return true
 }
 
 func (c *Client) Pong() {
-	c.conn.Write(proto_pong)
+	//c.conn.Write(proto_pong)
 }
 
 func (c *Client) SendEntry(e *Entry) error {
+	json, err := EntryToJson(e)
+	msg := Message{Header: ProtoEntry, Content: json}
+
+	if err != nil {
+		c.conn.Close()
+		return err
+	}
+
+	c.WriteMessage(msg)
+
+	return nil
+}
+
+func (c *Client) Announce(e *Entry) error {
 	json, err := EntryToJson(e)
 
 	if err != nil {
@@ -65,62 +99,67 @@ func (c *Client) SendEntry(e *Entry) error {
 		return err
 	}
 
-	length := len(json)
-	length_b := make([]byte, 8)
-	binary.PutVarint(length_b, int64(length))
+	msg := &Message{
+		Header:  ProtoDhtAnnounce,
+		Content: json,
+	}
 
-	c.conn.Write(length_b)
-	c.conn.Write(json)
-
-	return nil
-}
-
-func (c *Client) Announce(e *Entry) error {
-	c.conn.Write(proto_dht_announce)
-	err := c.SendEntry(e)
+	err = c.WriteMessage(msg)
 
 	if err != nil {
 		return err
 	}
 
-	buf := make([]byte, 2)
-	err = net_recvall(buf, c.conn)
+	ok, err := c.ReadMessage()
 
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(buf, proto_ok) {
-		return errors.New("Peer did not ok announce")
+	if !ok.Ok() {
+		return errors.New("Peer did not respond with ok")
 	}
 
 	return nil
 }
 
 func (c *Client) Query(address string) ([]Entry, error) {
-	c.conn.Write(proto_dht_query)
+	// TODO: LimitReader
 
-	net_sendlength(c.conn, uint64(len(address)))
-	c.conn.Write([]byte(address))
-
-	length, err := net_recvlength(c.conn)
-
-	if length > EntryLengthMax*BucketSize {
-		c.Close()
-		return nil, errors.New("Peer sent too much data")
+	msg := &Message{
+		Header:  ProtoDhtQuery,
+		Content: []byte(address),
 	}
 
-	closest_json := make([]byte, length)
-	net_recvall(closest_json, c.conn)
-
-	var closest []Entry
-	err = json.Unmarshal(closest_json, &closest)
+	// Tell the peer the address we are looking for
+	err := c.WriteMessage(msg)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return closest, nil
+	// Make sure the peer accepts the address
+	recv, err := c.ReadMessage()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !recv.Ok() {
+		return nil, errors.New("Peer refused query address")
+	}
+
+	closest, err := c.ReadMessage()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var entries []Entry
+	err = closest.Decode(&entries)
+
+	log.WithField("entries", len(entries)).Info("Query complete")
+	return entries, err
 }
 
 func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
@@ -145,4 +184,62 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 	}
 
 	return nil
+}
+
+// TODO: Paginate searches
+func (c *Client) Search(search string) ([]*Post, error) {
+	log.Info("Querying for ", search)
+
+	msg := &Message{
+		Header:  ProtoSearch,
+		Content: []byte(search),
+	}
+
+	c.WriteMessage(msg)
+
+	var posts []*Post
+
+	recv, err := c.ReadMessage()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = recv.Decode(&posts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
+}
+
+func (c *Client) Recent(page int) ([]*Post, error) {
+	log.Info("Fetching recent posts from peer")
+
+	page_s := strconv.Itoa(page)
+
+	msg := &Message{
+		Header:  ProtoRecent,
+		Content: []byte(page_s),
+	}
+
+	err := c.WriteMessage(msg)
+
+	if err != nil {
+		return nil, err
+	}
+
+	posts_msg, err := c.ReadMessage()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var posts []*Post
+	posts_msg.Decode(&posts)
+
+	log.Info("Recieved ", len(posts), " recent posts")
+
+	return posts, nil
 }

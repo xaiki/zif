@@ -8,7 +8,7 @@ import (
 func CreateEntry() Entry {
 	var lp LocalPeer
 	lp.GenerateKey()
-	lp.ZifAddress.Generate(lp.publicKey)
+	lp.ZifAddress.Generate(lp.PublicKey)
 
 	var e Entry
 	e.ZifAddress = lp.ZifAddress
@@ -20,7 +20,7 @@ func TestRoutingTableUpdate(t *testing.T) {
 	var lp LocalPeer
 
 	lp.GenerateKey()
-	lp.ZifAddress.Generate(lp.publicKey)
+	lp.ZifAddress.Generate(lp.PublicKey)
 	lp.RoutingTable.Setup(lp.ZifAddress)
 
 	e1 := CreateEntry()
@@ -63,7 +63,7 @@ func TestRoutingTableFindClosest(t *testing.T) {
 	var lp LocalPeer
 
 	lp.GenerateKey()
-	lp.ZifAddress.Generate(lp.publicKey)
+	lp.ZifAddress.Generate(lp.PublicKey)
 	lp.RoutingTable.Setup(lp.ZifAddress)
 
 	e1 := CreateEntry()

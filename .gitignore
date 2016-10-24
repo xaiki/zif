@@ -1,1 +1,6 @@
 *.dat
+*.db
+node_modules
+bower_components
+ui/dist
+ui/lib

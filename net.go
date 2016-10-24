@@ -3,15 +3,16 @@
 package zif
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"net"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 type ConnHeader struct {
-	conn   net.Conn
-	header ProtocolHeader
+	cl Client
+	pk ed25519.PublicKey
 }
 
 func net_recvall(buf []byte, conn net.Conn) error {
@@ -62,16 +63,59 @@ func net_recvlength(conn net.Conn) (uint64, error) {
 	return length, nil
 }
 
-func check_ok(conn net.Conn) bool {
-	buf := make([]byte, 2)
+func net_sendpost(conn net.Conn, post Post) error {
+	/*json, err := post.Json()
 
+	if err != nil {
+		return err
+	}
+
+	net_sendlength(conn, uint64(len(json)))
+
+	ok := make([]byte, 2)
+	net_recvall(ok, conn)
+
+	if !bytes.Equal(ProtoOk, ok) {
+		return errors.New("Peer refused entry")
+	}
+
+	conn.Write(json)*/
+
+	return nil
+}
+
+func net_recvpost(conn net.Conn) (*Post, error) {
+	/*length, err := net_recvlength(conn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if length > MaxPostSize {
+		return nil, errors.New("Post too large")
+	}
+
+	conn.Write(proto_ok)
+
+	buf := make([]byte, length)
 	net_recvall(buf, conn)
 
-	return bytes.Equal(buf, proto_ok)
+	var post Post
+	json.Unmarshal(buf, &post)*/
+
+	return nil, nil
+}
+
+func check_ok(conn net.Conn) bool {
+	/*buf := make([]byte, 2)
+
+	net_recvall(buf, conn)*/
+
+	return false
 }
 
 func recieve_entry(conn net.Conn) (Entry, error) {
-	length_b := make([]byte, 8)
+	/*length_b := make([]byte, 8)
 	net_recvall(length_b, conn)
 	length, _ := binary.Varint(length_b)
 
@@ -84,7 +128,7 @@ func recieve_entry(conn net.Conn) (Entry, error) {
 
 	entry, err := JsonToEntry(entry_json)
 
-	err = ValidateEntry(&entry)
+	err = ValidateEntry(&entry)*/
 
-	return entry, err
+	return Entry{}, nil
 }

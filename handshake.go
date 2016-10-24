@@ -2,14 +2,14 @@ package zif
 
 import (
 	"errors"
-	"net"
+
+	"golang.org/x/crypto/ed25519"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ed25519"
 )
 
-func handshake(conn net.Conn, lp *LocalPeer) (ProtocolHeader, error) {
-	header, err := handshake_recieve(conn)
+func handshake(cl Client, lp *LocalPeer) (ed25519.PublicKey, error) {
+	header, err := handshake_recieve(cl)
 
 	if err != nil {
 		return header, err
@@ -19,7 +19,7 @@ func handshake(conn net.Conn, lp *LocalPeer) (ProtocolHeader, error) {
 		return header, errors.New("Handshake passed nil LocalPeer")
 	}
 
-	err = handshake_send(conn, lp)
+	err = handshake_send(cl, lp)
 
 	if err != nil {
 		return header, err
@@ -28,85 +28,108 @@ func handshake(conn net.Conn, lp *LocalPeer) (ProtocolHeader, error) {
 	return header, nil
 }
 
-func handshake_recieve(conn net.Conn) (ProtocolHeader, error) {
+func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	check := func(e error) bool {
 		if e != nil {
 			log.Error(e.Error())
-			conn.Close()
+			cl.Close()
 			return true
 		}
 
 		return false
 	}
 
-	header := make([]byte, ProtocolHeaderSize)
-	err := net_recvall(header, conn)
+	header, err := cl.ReadMessage()
+
 	if check(err) {
-		conn.Write(proto_no)
-		return ProtocolHeader{}, err
+		cl.WriteMessage(Message{Header: ProtoNo})
+		return nil, err
 	}
 
-	pHeader, err := ProtocolHeaderFromBytes(header)
-	if check(err) {
-		conn.Write(proto_no)
-		return pHeader, err
-	}
+	cl.WriteMessage(Message{Header: ProtoOk})
 
-	conn.Write(proto_ok)
+	address := Address{}
+	address.Generate(header.Content)
 
-	log.WithFields(log.Fields{"peer": pHeader.zifAddress.Encode()}).Info("Incoming connection")
+	log.WithFields(log.Fields{"peer": address.Encode()}).Info("Incoming connection")
 
 	// Send the client a cookie for them to sign, this proves they have the
 	// private key, and it is highly unlikely an attacker has a signed cookie
 	// cached.
 	cookie, err := CryptoRandBytes(20)
 	if check(err) {
-		return pHeader, err
+		return nil, err
 	}
 
-	conn.Write(cookie)
+	cl.WriteMessage(Message{Header: ProtoCookie, Content: cookie})
 
-	sig := make([]byte, ed25519.SignatureSize)
-	net_recvall(sig, conn)
+	sig, err := cl.ReadMessage()
 
-	verified := ed25519.Verify(pHeader.PublicKey[:], cookie, sig)
+	if check(err) {
+		return nil, err
+	}
+
+	verified := ed25519.Verify(header.Content, cookie, sig.Content)
 
 	if !verified {
-		log.Error("Failed to verify peer ", pHeader.zifAddress.Encode())
-		conn.Write(proto_no)
-		conn.Close()
-		return pHeader, errors.New("Signature not verified")
+		log.Error("Failed to verify peer ", address.Encode())
+		cl.WriteMessage(Message{Header: ProtoNo})
+		cl.Close()
+		return nil, errors.New("Signature not verified")
 	}
 
-	conn.Write(proto_ok)
+	cl.WriteMessage(Message{Header: ProtoOk})
 
-	log.WithFields(log.Fields{"peer": pHeader.zifAddress.Encode()}).Info("Verified")
+	log.WithFields(log.Fields{"peer": address.Encode()}).Info("Verified")
 
-	return pHeader, nil
+	return header.Content, nil
 }
 
-func handshake_send(conn net.Conn, lp *LocalPeer) error {
-	log.Debug("Handshaking with ", conn.RemoteAddr().String())
-	//ph := c.localPeer.ProtocolHeader()
+func handshake_send(cl Client, lp *LocalPeer) error {
+	log.Debug("Handshaking with ", cl.conn.RemoteAddr().String())
 
-	header := lp.ProtocolHeader()
-	header.zifAddress.Generate(header.PublicKey[:])
-	conn.Write(header.Bytes())
+	header := Message{
+		Header:  ProtoHeader,
+		Content: lp.PublicKey,
+	}
 
-	if !check_ok(conn) {
+	cl.WriteMessage(header)
+
+	msg, err := cl.ReadMessage()
+
+	if err != nil {
+		return err
+	}
+
+	if !msg.Ok() {
 		return errors.New("Peer refused header")
 	}
 
-	// The server will want us to sign this. Proof of identity and all that.
-	cookie := make([]byte, 20)
-	net_recvall(cookie, conn)
+	msg, err = cl.ReadMessage()
 
-	log.Debug("Cookie recieved, signing")
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
 
-	sig := lp.Sign(cookie)
-	conn.Write(sig)
+	log.Info("Cookie recieved, signing")
 
-	if !check_ok(conn) {
+	sig := lp.Sign(msg.Content)
+
+	msg = &Message{
+		Header:  ProtoSig,
+		Content: sig,
+	}
+
+	cl.WriteMessage(msg)
+
+	msg, err = cl.ReadMessage()
+
+	if err != nil {
+		return err
+	}
+
+	if !msg.Ok() {
 		return errors.New("Peer refused signature")
 	}
 

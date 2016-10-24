@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net"
 
+	"golang.org/x/crypto/ed25519"
+
 	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,44 +31,42 @@ func (sm *StreamManager) Setup(lp *LocalPeer) {
 	sm.clients = make([]Client, 0, 10)
 }
 
-func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (ConnHeader, error) {
-	if sm.connection.conn != nil {
-		return sm.connection, nil
+func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (*ConnHeader, error) {
+	if sm.connection.cl.conn != nil {
+		return &sm.connection, nil
 	}
 
 	conn, err := net.Dial("tcp", addr)
 
 	if err != nil {
-		return ConnHeader{conn, ProtocolHeader{}}, err
+		return nil, err
 	}
 
 	header, err := sm.Handshake(conn, lp)
 
 	if err != nil {
-		return ConnHeader{conn, ProtocolHeader{}}, err
+		return nil, err
 	}
 
-	pair := ConnHeader{conn, header}
+	pair := ConnHeader{Client{conn}, header}
 	sm.connection = pair
 
-	return pair, nil
+	return &pair, nil
 }
 
-func (sm *StreamManager) Handshake(conn net.Conn, lp *LocalPeer) (ProtocolHeader, error) {
+func (sm *StreamManager) Handshake(conn net.Conn, lp *LocalPeer) (ed25519.PublicKey, error) {
 	// I use the term "server" somewhat loosely. It's the "server" part of a peer.
-	err := handshake_send(conn, lp)
+	err := handshake_send(Client{conn}, lp)
 
 	// server now knows that we are definitely who we say we are.
 	// but...
 	// is the server who we think it is?
 	// better check!
-	server_header, err := handshake_recieve(conn)
+	server_header, err := handshake_recieve(Client{conn})
 
 	if err != nil {
 		return server_header, err
 	}
-
-	server_header.zifAddress.Generate(server_header.PublicKey[:])
 
 	return server_header, nil
 }
@@ -81,7 +81,7 @@ func (sm *StreamManager) ConnectClient() (*yamux.Session, error) {
 		return nil, errors.New("There is already a server connected to that socket")
 	}
 
-	client, err := yamux.Client(sm.connection.conn, nil)
+	client, err := yamux.Client(sm.connection.cl.conn, nil)
 
 	if err != nil {
 		return client, err
@@ -102,7 +102,7 @@ func (sm *StreamManager) ConnectServer() (*yamux.Session, error) {
 		return nil, errors.New("There is already a client connected to that socket")
 	}
 
-	server, err := yamux.Server(sm.connection.conn, nil)
+	server, err := yamux.Server(sm.connection.cl.conn, nil)
 
 	if err != nil {
 		return server, err
@@ -120,8 +120,8 @@ func (sm *StreamManager) Close() {
 		session.Close()
 	}
 
-	if sm.connection.conn != nil {
-		sm.connection.conn.Close()
+	if sm.connection.cl.conn != nil {
+		sm.connection.cl.Close()
 	}
 }
 
