@@ -19,8 +19,9 @@
 			</div>
 
 			<div class="row">
-				<div class="col s12 m6 l4">
-					<post title="Big Buck Bunny" description="A large and lovable rabbit deals with three tiny bullies, led by a flying squirrel, who are determined to squelch his happiness." img="https://upload.wikimedia.org/wikipedia/commons/c/c5/Big_buck_bunny_poster_big.jpg"></post>
+				<div v-for="post in posts" class="col s12 m6 l4">
+						<post   :title="post.Title">
+						</post>
 				</div>
 			</div>
 		</div>
@@ -30,24 +31,30 @@
 import Post from "./post.vue"
 import zif from "../zif.js"
 
-let zifd = zif("127.0.0.1", "8080");
-console.log(zifd.search("Ze9fSR7QkZVWGddt2yPppJvx2ffxk2PUjW", "foo", (d)=>{console.log(d)}))
-
 export default{
 	data() {
 		return {
-		
+			posts: []
+		}
+	},
+
+	methods: {
+		refreshPosts: function() {
+			zifd.recent(0, (data) => {
+				this.posts = data.posts;
+				console.log(data.posts)
+			});
 		}
 	},
 
 	created: function() {
+		window.zifd = zif("127.0.0.1", "8080");
+		this.refreshPosts();
 	},
-
-	props: ["title"],
 
 	components: {
 		"post": Post
-	}
+	},
 }
 </script>
 

@@ -40,13 +40,16 @@ function setup(url, port)
 		});
 	};
 
-	zif.bootstrap = (addr, cb) => make_request(["bootstrap", addr], cb);
+	zif.bootstrap = (addr, cb) => make_request(["self", "bootstrap", addr], cb);
 	zif.resolve = (addr, cb) => make_request(["self", "resolve", addr], cb);
 
-	zif.recent = (addr, page, cb) => make_request(["peer", addr, "recent", 
+	zif.recent_remote = (addr, page, cb) => make_request(["peer", addr, "recent", 
 			page], cb);
-	zif.search = (addr, query, cb) => make_request(["peer", addr, "search",
+	zif.search_remote = (addr, query, page, cb) => make_request(["peer", addr, "search",
 			query], cb);
+
+	zif.search = (query, page, cb) => make_request(["self", "search", query, page], cb);
+	zif.recent = (page, cb) => make_request(["self", "recent", page], cb);
 
 	return zif;
 }

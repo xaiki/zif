@@ -10,7 +10,9 @@
 		<div class="card-action">
 			<div class="row">
 				<div class="col s6">
-					<div class="waves-effect waves-light btn">Download</div>
+					<a :href="infohash">
+						<div class="waves-effect waves-light btn">Download</div>
+					</a>
 				</div>
 				<div class="col s6">
 					<div class="waves-effect waves-light btn">Stream</div>
@@ -24,8 +26,9 @@
 export default{
 	props: {
 		title: String,
+		infohash: String,
 		description: String,
-		img: String
+		image: String
 	}
 }
 </script>
