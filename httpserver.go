@@ -34,6 +34,8 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/self/bootstrap/{address}/", hs.Bootstrap)
 	router.HandleFunc("/self/search/{query}/{page}/", hs.SelfSearch)
 	router.HandleFunc("/self/recent/{page}/", hs.SelfRecent)
+	router.HandleFunc("/self/addmeta/{pid}/{key}/{value}/", hs.AddMeta)
+	router.HandleFunc("/self/getmeta/{pid}/{key}/", hs.GetMeta)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -58,6 +60,12 @@ func http_error_check(w http.ResponseWriter, errCode int, err error) bool {
 func http_write_ok(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{\"status\": \"ok\" }"))
+}
+
+// writes a single string value (eg, for metadata gets)
+func http_write_value(w http.ResponseWriter, val string) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("{\"status\": \"ok\", \"value\":\"" + val + "\" }"))
 }
 
 func http_write_posts(w http.ResponseWriter, posts []*Post) {
@@ -288,4 +296,52 @@ func (hs *HTTPServer) SelfRecent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http_write_posts(w, posts)
+}
+
+func (hs *HTTPServer) AddMeta(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	pid := vars["pid"]
+	key := vars["key"]
+	value := vars["value"]
+
+	log.WithFields(log.Fields{
+		"pid":   pid,
+		"key":   key,
+		"value": value,
+	}).Info("Adding meta")
+
+	pid_i, err := strconv.Atoi(pid)
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	err = hs.LocalPeer.Database.AddMeta(pid_i, key, value)
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_ok(w)
+}
+
+func (hs *HTTPServer) GetMeta(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	pid := vars["pid"]
+	key := vars["key"]
+
+	log.WithFields(log.Fields{
+		"pid": pid,
+		"key": key,
+	}).Info("Getting meta")
+
+	pid_i, err := strconv.Atoi(pid)
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	value, err := hs.LocalPeer.Database.GetMeta(pid_i, key)
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_value(w, value)
 }

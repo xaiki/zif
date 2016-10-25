@@ -31,6 +31,11 @@ func (db *Database) Connect() error {
 		return err
 	}
 
+	_, err = db.conn.Exec(sql_create_meta_table)
+	if err != nil {
+		return err
+	}
+
 	_, err = db.conn.Exec(sql_create_fts_post)
 	if err != nil {
 		return err
@@ -73,11 +78,11 @@ func (db *Database) GenerateFts(since uint64) error {
 	return nil
 }
 
-func (db *Database) QueryRecent(page int) ([]*Post, error) {
+func (db *Database) PaginatedQuery(query string, page int) ([]*Post, error) {
 	page_size := 25
 	posts := make([]*Post, 0, page_size)
 
-	rows, err := db.conn.Query(sql_query_recent_post, page_size*page,
+	rows, err := db.conn.Query(query, page_size*page,
 		page_size)
 
 	if err != nil {
@@ -99,6 +104,14 @@ func (db *Database) QueryRecent(page int) ([]*Post, error) {
 	}
 
 	return posts, nil
+}
+
+func (db *Database) QueryRecent(page int) ([]*Post, error) {
+	return db.PaginatedQuery(sql_query_recent_post, page)
+}
+
+func (db *Database) QueryPopular(page int) ([]*Post, error) {
+	return db.PaginatedQuery(sql_query_popular_post, page)
 }
 
 func (db *Database) Search(query string, page int) ([]*Post, error) {
@@ -191,6 +204,41 @@ func (db *Database) PostCount() uint {
 	db.conn.QueryRow(sql_count_post).Scan(&res)
 
 	return res
+}
+
+func (db *Database) AddMeta(pid int, key, value string) error {
+
+	stmt, err := db.conn.Prepare(sql_insert_meta)
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(pid, key, value)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Database) GetMeta(pid int, key string) (string, error) {
+	var value string
+
+	rows, err := db.conn.Query(sql_query_meta, pid, key)
+
+	if err != nil {
+		return "", err
+	}
+
+	rows.Next()
+	err = rows.Scan(&value)
+
+	if err != nil {
+		return "", err
+	}
+
+	return value, nil
 }
 
 func (db *Database) Close() {
