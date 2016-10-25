@@ -19,6 +19,7 @@ type Address struct {
 	Bytes []byte
 }
 
+// Generates an Address from a PublicKey.
 func NewAddress(key []byte) (addr Address) {
 	addr = Address{}
 	addr.Generate(key)

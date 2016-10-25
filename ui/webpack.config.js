@@ -4,6 +4,7 @@ var nodeExternals = require('webpack-node-externals');
 
 module.exports = {
   entry: './src/main.js',
+  target: "electron",
   output: {
     path: path.resolve(__dirname, './dist'),
     publicPath: '/dist/',
@@ -25,10 +26,10 @@ module.exports = {
         exclude: /node_modules/
       },
       {
-        test: /\.(png|jpg|gif|svg)$/,
+        test: /\.(png|jpg|gif|svg|woff|woff2|ttf)$/,
         loader: 'file',
         query: {
-          name: '[name].[ext]?[hash]'
+          name: '[name].[ext]'
         }
       }
     ]

@@ -214,6 +214,11 @@ func (lp *LocalPeer) CheckSessions() {
 // May well change, I'm unsure really.
 func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	log.Debug("Resolving ", addr)
+
+	if addr == lp.ZifAddress.Encode() {
+		return &lp.Entry, nil
+	}
+
 	address := DecodeAddress(addr)
 
 	// First, find the closest peers in our routing table.

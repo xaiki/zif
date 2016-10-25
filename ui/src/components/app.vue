@@ -1,7 +1,12 @@
 <template>
 	<div class="pushable" id="app">
-		<sidebar></sidebar>
 		<router-view class="pusher view"></router-view>
+
+		<div class="fixed-action-btn" style="right: 24px;">
+			<a class="btn-floating btn-large yellow darken-1">
+		  		<i class="large grey-text text-darken-2">Z</i>
+			</a>
+		</div>
 	</div>
 </template>
 
@@ -19,9 +24,4 @@
 </script>
 
 <style lang="sass">
-	@import "../colours";
-
-	#app {
-		background-color: $lightBackground;
-	}
 </style>
