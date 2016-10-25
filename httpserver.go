@@ -32,6 +32,8 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/self/index/", hs.FtsIndex).Methods("POST")
 	router.HandleFunc("/self/resolve/{address}", hs.Resolve)
 	router.HandleFunc("/self/bootstrap/{address}/", hs.Bootstrap)
+	router.HandleFunc("/self/search/{query}/{page}/", hs.SelfSearch)
+	router.HandleFunc("/self/recent/{page}/", hs.SelfRecent)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -200,6 +202,17 @@ func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var posts []*Post
+	if vars["address"] == hs.LocalPeer.Entry.ZifAddress.Encode() {
+		posts, err = hs.LocalPeer.Database.QueryRecent(page_i)
+
+		if http_error_check(w, http.StatusInternalServerError, err) {
+			return
+		}
+
+		http_write_posts(w, posts)
+	}
+
 	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
@@ -234,4 +247,45 @@ func (hs *HTTPServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http_write_ok(w)
+}
+
+func (hs *HTTPServer) SelfSearch(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	query := vars["query"]
+	page := vars["page"]
+
+	page_i, err := strconv.Atoi(page)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	log.Info("Searching for ", query)
+
+	posts, err := hs.LocalPeer.Database.Search(query, page_i)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_posts(w, posts)
+}
+
+func (hs *HTTPServer) SelfRecent(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	page := vars["page"]
+
+	page_i, err := strconv.Atoi(page)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	posts, err := hs.LocalPeer.Database.QueryRecent(page_i)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_posts(w, posts)
 }
