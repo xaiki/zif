@@ -19,13 +19,18 @@ var (
 	ProtoPing      = 0x0006
 	ProtoPong      = 0x0007
 
-	ProtoBootstrap = 0x0102 // Request a bootstrap
-	ProtoSearch    = 0x0103 // Request a search
-	ProtoRecent    = 0x0104 // Request recent posts
+	ProtoBootstrap = 0x0100 // Request a bootstrap
+	ProtoSearch    = 0x0101 // Request a search
+	ProtoRecent    = 0x0102 // Request recent posts
 
-	ProtoHashList = 0x0205
-	ProtoEntry    = 0x0206 // An individual DHT entry in Content
-	ProtoPosts    = 0x0207 // A list of posts in Content
+	// Request a signed hash list
+	// The content field should contain the bytes for a Zif address.
+	// This is the peer we are requesting a hash list for.
+	ProtoRequestHashList = 0x0103
+
+	ProtoEntry    = 0x0200 // An individual DHT entry in Content
+	ProtoPosts    = 0x0201 // A list of posts in Content
+	ProtoHashList = 0x0202
 
 	ProtoDhtQuery    = 0x0300
 	ProtoDhtAnnounce = 0x0301

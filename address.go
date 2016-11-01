@@ -27,10 +27,13 @@ func NewAddress(key []byte) (addr Address) {
 	return
 }
 
+// Returns Address.Bytes Base58 encoded and prepended with a Z.
+// Base58 removes ambiguous characters, reducing the chances of address confusion.
 func (a *Address) Encode() string {
 	return base58check.Encode("51", a.Bytes)
 }
 
+// Decodes a string address into address bytes.
 func DecodeAddress(value string) Address {
 	var addr Address
 	addr.Bytes = base58check.Decode(value)
@@ -38,6 +41,9 @@ func DecodeAddress(value string) Address {
 	return addr
 }
 
+// Generate a Zif address from a public key.
+// This process involves one SHA3-256 iteration, followed by RIPEMD160. This is
+// similar to bitcoin, and the RIPEMD160 makes the resulting address a bit shorted.
 func (a *Address) Generate(key []byte) string {
 	ripemd := ripemd160.New()
 

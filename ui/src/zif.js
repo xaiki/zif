@@ -48,7 +48,26 @@ function setup(url, port)
 	zif.search_remote = (addr, query, page, cb) => make_request(["peer", addr, "search",
 			query], cb);
 
-	zif.search = (query, page, cb) => make_request(["self", "search", query, page], cb);
+	zif.search = (query, page, cb) => {
+		var route = make_route(["self", "search"])
+
+		request.post(route, { formData: {query: query, page: page} }, (err, resp, body) => {
+			if (!err && resp.statusCode == 200)
+			{
+				var data = JSON.parse(body);
+				cb(data);
+			}
+			else if (err)
+			{
+				console.log(err);
+			}
+			else if (resp.statusCode != 200) 
+			{
+				console.log("Error, status code " + resp.statusCode);
+			}
+		})
+	}
+
 	zif.recent = (page, cb) => make_request(["self", "recent", page], cb);
 
 	return zif;

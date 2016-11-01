@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/crypto/ed25519"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -242,4 +244,39 @@ func (c *Client) Recent(page int) ([]*Post, error) {
 	log.Info("Recieved ", len(posts), " recent posts")
 
 	return posts, nil
+}
+
+// Download a hash list for a peer. Expects said hash list to be valid and
+// signed.
+func (c *Client) HashList(address Address, pk ed25519.PublicKey) ([]byte, error) {
+	log.WithField("for", address.Encode()).Info("Sending request for a collection")
+
+	msg := &Message{
+		Header:  ProtoRequestHashList,
+		Content: address.Bytes,
+	}
+
+	c.WriteMessage(msg)
+
+	hl, err := c.ReadMessage()
+
+	if err != nil {
+		return nil, err
+	}
+
+	mhl, err := MessageHashListDecode(hl.Content)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = mhl.Verify(pk)
+
+	if err != nil {
+		return nil, err
+	}
+
+	//finish here
+
+	return nil, nil
 }

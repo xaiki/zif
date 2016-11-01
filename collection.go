@@ -43,11 +43,11 @@ func (c *Collection) Hash() []byte {
 	return ret
 }
 
-func (c *Collection) HashList() [][]byte {
-	hash_list := make([][]byte, len(c.Pieces))
+func (c *Collection) HashList() []byte {
+	hash_list := make([]byte, len(c.Pieces))
 
 	for _, h := range c.Pieces {
-		hash_list = append(hash_list, h.Hash())
+		hash_list = append(hash_list, h.Hash()...)
 	}
 
 	return hash_list

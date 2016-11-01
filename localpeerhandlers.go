@@ -195,6 +195,31 @@ func (lp *LocalPeer) HandleRecent(msg *Message) error {
 	return nil
 }
 
+func (lp *LocalPeer) HandleCollection(msg *Message) error {
+	cl := Client{msg.Stream}
+	address := Address{msg.Content}
+
+	log.WithField("address", address.Encode()).Info("Collection request recieved")
+
+	hashlist := lp.Collection.HashList()
+	sig := lp.Sign(lp.Collection.HashList())
+	mhl := MessageHashList{hashlist, sig}
+	data, err := mhl.Encode()
+
+	if err != nil {
+		return err
+	}
+
+	resp := &Message{
+		Header:  ProtoHashList,
+		Content: data,
+	}
+
+	cl.WriteMessage(resp)
+
+	return nil
+}
+
 func (lp *LocalPeer) ListenStream(peer *Peer) {
 	lp.Server.ListenStream(peer)
 }

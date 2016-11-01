@@ -32,7 +32,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/self/index/", hs.FtsIndex).Methods("POST")
 	router.HandleFunc("/self/resolve/{address}", hs.Resolve)
 	router.HandleFunc("/self/bootstrap/{address}/", hs.Bootstrap)
-	router.HandleFunc("/self/search/{query}/{page}/", hs.SelfSearch)
+	router.HandleFunc("/self/search/", hs.SelfSearch).Methods("POST")
 	router.HandleFunc("/self/recent/{page}/", hs.SelfRecent)
 	router.HandleFunc("/self/addmeta/{pid}/{key}/{value}/", hs.AddMeta)
 	router.HandleFunc("/self/getmeta/{pid}/{key}/", hs.GetMeta)
@@ -93,6 +93,7 @@ func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Bootstrap request")
 	vars := mux.Vars(r)
 
 	peer, err := hs.LocalPeer.ConnectPeerDirect(vars["address"])
@@ -114,6 +115,7 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Announce request")
 	vars := mux.Vars(r)
 
 	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
@@ -138,6 +140,8 @@ func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Resolve request")
+
 	vars := mux.Vars(r)
 	addr := vars["address"]
 
@@ -160,6 +164,7 @@ func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Peer Search request")
 	vars := mux.Vars(r)
 	addr := vars["address"]
 	query := vars["query"]
@@ -183,6 +188,8 @@ func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) AddPost(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Add Post request")
+
 	post_json := r.FormValue("data")
 
 	log.Debug("Adding post, json: ", post_json)
@@ -201,6 +208,8 @@ func (hs *HTTPServer) AddPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Recent request")
+
 	vars := mux.Vars(r)
 	page := vars["page"]
 
@@ -238,6 +247,8 @@ func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: FTS Index request")
+
 	since := r.FormValue("since")
 
 	since_i, err := strconv.Atoi(since)
@@ -258,9 +269,10 @@ func (hs *HTTPServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) SelfSearch(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	query := vars["query"]
-	page := vars["page"]
+	log.Info("HTTP: Self Search request")
+
+	query := r.FormValue("query")
+	page := r.FormValue("page")
 
 	page_i, err := strconv.Atoi(page)
 
@@ -280,6 +292,8 @@ func (hs *HTTPServer) SelfSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) SelfRecent(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Self Recent request")
+
 	vars := mux.Vars(r)
 	page := vars["page"]
 
@@ -299,6 +313,8 @@ func (hs *HTTPServer) SelfRecent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) AddMeta(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Add Meta request")
+
 	vars := mux.Vars(r)
 	pid := vars["pid"]
 	key := vars["key"]
@@ -324,6 +340,8 @@ func (hs *HTTPServer) AddMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) GetMeta(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Get Meta request")
+
 	vars := mux.Vars(r)
 	pid := vars["pid"]
 	key := vars["key"]

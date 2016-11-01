@@ -3,7 +3,7 @@
 		<router-view class="pusher view"></router-view>
 
 		<div class="fixed-action-btn" style="right: 24px;">
-			<a class="btn-floating btn-large yellow darken-1">
+			<a class="btn-floating btn-large amber lighten-1">
 		  		<i class="large grey-text text-darken-2">Z</i>
 			</a>
 		</div>
@@ -24,4 +24,7 @@
 </script>
 
 <style lang="sass">
+body{
+	background-color: #616161;
+}
 </style>

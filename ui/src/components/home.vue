@@ -7,8 +7,8 @@
 				<div class="col s10">
 				<nav>
 					<div class="nav-wrapper">
-						<div class="input-field yellow darken-1 grey-text text-darken-2">
-							<input id="search" type="search" required>
+						<div class="input-field yellow darken-2 grey-text text-darken-2">
+							<input id="search" type="search" v-on:keydown.enter="search" required>
 							 <label for="search"><i class="material-icons grey-text text-darken-2" >search</i></label>
 							 <i class="material-icons">close</i>
 						</div>
@@ -20,7 +20,10 @@
 
 			<div class="row">
 				<div v-for="post in posts" class="col s12 m6 l4">
-						<post   :title="post.Title">
+						<post   :title="post.Title"
+							   	:infohash="post.InfoHash"
+								:seeders="post.Seeders"
+								:leechers="post.Leechers">
 						</post>
 				</div>
 			</div>
@@ -44,6 +47,15 @@ export default{
 				this.posts = data.posts;
 				console.log(data.posts)
 			});
+		},
+		search: function() {
+			var query = $("#search").val()
+			console.log("Query for: " + query)
+
+			zifd.search(query, 0, (data) => {
+				this.posts = data.posts;
+				console.log(data.posts)
+			});
 		}
 	},
 
@@ -59,7 +71,4 @@ export default{
 </script>
 
 <style>
-body{
-	background-color: #616161;
-}
 </style>
