@@ -3,4 +3,4 @@
 node_modules
 bower_components
 ui/dist
-ui/lib
+ui/lib/materialize
