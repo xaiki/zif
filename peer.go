@@ -216,3 +216,20 @@ func (p *Peer) Recent(page int) ([]*Post, *Client, error) {
 	return posts, &stream, err
 
 }
+
+func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	posts, err := stream.Popular(page)
+
+	return posts, &stream, err
+
+}
+
+func (p *Peer) Mirror() (*Database, error) {
+
+}

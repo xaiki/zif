@@ -22,6 +22,7 @@ type LocalPeer struct {
 	Server       Server
 	Collection   Collection
 	Database     *Database
+	Databases    map[string]*Database
 
 	privateKey ed25519.PrivateKey
 

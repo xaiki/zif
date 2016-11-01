@@ -18,32 +18,37 @@
 
 			</div>
 
-			<div class="row">
-				<div v-for="post in posts" class="col s12 m6 l4">
-						<post   :title="post.Title"
-							   	:infohash="post.InfoHash"
-								:seeders="post.Seeders"
-								:leechers="post.Leechers">
-						</post>
+			<div v-for="chunk in util.chunk(posts, 4)" class="row">
+				<div v-for="post in chunk" class="col s12 m6 l3" style="height: 100%;">
+
+					<post   :title="post.Title"
+							:infohash="post.InfoHash"
+							:seeders="post.Seeders"
+							:leechers="post.Leechers">
+					</post>
+
 				</div>
 			</div>
+
 		</div>
 </template>
 
 <script>
 import Post from "./post.vue"
 import zif from "../zif.js"
+import util from "../util.js"
 
 export default{
 	data() {
 		return {
-			posts: []
+			posts: [],
+			util: util
 		}
 	},
 
 	methods: {
 		refreshPosts: function() {
-			zifd.recent(0, (data) => {
+			zifd.popular(0, (data) => {
 				this.posts = data.posts;
 				console.log(data.posts)
 			});

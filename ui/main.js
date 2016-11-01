@@ -1,6 +1,14 @@
 const {app, BrowserWindow} = require("electron")
 const spawn = require("child_process").spawn;
 
+require('electron-context-menu')({
+    prepend: params => [{
+        label: 'Zif',
+        // only show it when right-clicking images
+        visible: params.mediaType === 'image'
+    }]
+});
+
 let win
 let zifd
 

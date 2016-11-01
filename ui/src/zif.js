@@ -45,6 +45,8 @@ function setup(url, port)
 
 	zif.recent_remote = (addr, page, cb) => make_request(["peer", addr, "recent", 
 			page], cb);
+	zif.popular_remote= (addr, page, cb) => make_request(["peer", addr, "popular", 
+			page], cb);
 	zif.search_remote = (addr, query, page, cb) => make_request(["peer", addr, "search",
 			query], cb);
 
@@ -69,6 +71,7 @@ function setup(url, port)
 	}
 
 	zif.recent = (page, cb) => make_request(["self", "recent", page], cb);
+	zif.popular = (page, cb) => make_request(["self", "popular", page], cb);
 
 	return zif;
 }

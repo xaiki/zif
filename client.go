@@ -246,6 +246,36 @@ func (c *Client) Recent(page int) ([]*Post, error) {
 	return posts, nil
 }
 
+func (c *Client) Popular(page int) ([]*Post, error) {
+	log.Info("Fetching popular posts from peer")
+
+	page_s := strconv.Itoa(page)
+
+	msg := &Message{
+		Header:  ProtoPopular,
+		Content: []byte(page_s),
+	}
+
+	err := c.WriteMessage(msg)
+
+	if err != nil {
+		return nil, err
+	}
+
+	posts_msg, err := c.ReadMessage()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var posts []*Post
+	posts_msg.Decode(&posts)
+
+	log.Info("Recieved ", len(posts), " popular posts")
+
+	return posts, nil
+}
+
 // Download a hash list for a peer. Expects said hash list to be valid and
 // signed.
 func (c *Client) HashList(address Address, pk ed25519.PublicKey) ([]byte, error) {
@@ -276,7 +306,5 @@ func (c *Client) HashList(address Address, pk ed25519.PublicKey) ([]byte, error)
 		return nil, err
 	}
 
-	//finish here
-
-	return nil, nil
+	return mhl.HashList, nil
 }

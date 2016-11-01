@@ -4,20 +4,22 @@
 			<img :src="image">
 		</div>
 		<div class="card-content">
-			<h5>{{title}}</h5>
+			<h5>{{util.trim(title, 72, true).trimmed}}</h5>
+
+			<p class="grey-text lighten-2">
+				{{util.trim(title, 72, true).left}}
+			</p>	
+
 			<span class="chip green-text"> {{seeders}}</span>
 			<span class="chip red-text"> {{leechers}}</span>
-			<a :href="util.make_magnet(infohash)"><i class="chip material-icons">link</i></a>
-					
+			<a :href="util.make_magnet(infohash)">
+				Magnet
+			</a>
+
 			<p>{{description}}</p>
 		</div>
 		<div class="card-action">
-			<div class="row">
-				<div class="col s4">
-				</div>
-			</div>
-			<div class="row">
-			</div>
+			<router-link :to="{ name: 'stream', params: { ih: infohash }}">Stream</router-link>
 		</div>
 	</div>
 </template>	
@@ -28,7 +30,8 @@ import util from "../util.js"
 export default{
 	data() {
 		return {
-			util: util
+			util: util,
+			description: "No description"
 		}
 	},
 	props: {
@@ -36,8 +39,8 @@ export default{
 		infohash: String,
 		description: String,
 		image: String,
-		seeders: String,
-		leechers: String
+		seeders: Number,
+		leechers: Number 
 	}
 }
 </script>
@@ -46,6 +49,7 @@ export default{
 .post {
 	padding-left: 10px;
 	padding-right: 10px;
+	height: 100%;
 }
 
 .card-image img {

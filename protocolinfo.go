@@ -22,11 +22,12 @@ var (
 	ProtoBootstrap = 0x0100 // Request a bootstrap
 	ProtoSearch    = 0x0101 // Request a search
 	ProtoRecent    = 0x0102 // Request recent posts
+	ProtoPopular   = 0x0103 // Request popular posts
 
 	// Request a signed hash list
 	// The content field should contain the bytes for a Zif address.
 	// This is the peer we are requesting a hash list for.
-	ProtoRequestHashList = 0x0103
+	ProtoRequestHashList = 0x0104
 
 	ProtoEntry    = 0x0200 // An individual DHT entry in Content
 	ProtoPosts    = 0x0201 // A list of posts in Content

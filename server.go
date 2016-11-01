@@ -116,6 +116,8 @@ func (s *Server) RouteMessage(msg *Message) {
 		err = s.localPeer.HandleSearch(msg)
 	case ProtoRecent:
 		err = s.localPeer.HandleRecent(msg)
+	case ProtoPopular:
+		err = s.localPeer.HandlePopular(msg)
 
 	default:
 		log.Error("Unknown message type")

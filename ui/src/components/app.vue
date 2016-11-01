@@ -11,14 +11,9 @@
 </template>
 
 <script>
-	import Sidebar from "./sidebar.vue"
-
 	window.zifd_address = "http://127.0.0.1:8080/";
 
 	export default {
-		components: {
-			"sidebar": Sidebar
-		}
 	}
 
 </script>

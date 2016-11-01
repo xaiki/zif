@@ -27,6 +27,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/peer/{address}/announce/", hs.Announce)
 	router.HandleFunc("/peer/{address}/search/{query}/", hs.PeerSearch)
 	router.HandleFunc("/peer/{address}/recent/{page}/", hs.Recent)
+	router.HandleFunc("/peer/{address}/popular/{page}/", hs.Popular)
 
 	router.HandleFunc("/self/addpost/", hs.AddPost).Methods("POST")
 	router.HandleFunc("/self/index/", hs.FtsIndex).Methods("POST")
@@ -34,6 +35,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/self/bootstrap/{address}/", hs.Bootstrap)
 	router.HandleFunc("/self/search/", hs.SelfSearch).Methods("POST")
 	router.HandleFunc("/self/recent/{page}/", hs.SelfRecent)
+	router.HandleFunc("/self/popular/{page}/", hs.SelfPopular)
 	router.HandleFunc("/self/addmeta/{pid}/{key}/{value}/", hs.AddMeta)
 	router.HandleFunc("/self/getmeta/{pid}/{key}/", hs.GetMeta)
 
@@ -246,6 +248,45 @@ func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
 	http_write_posts(w, posts)
 }
 
+func (hs *HTTPServer) Popular(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Popular request")
+
+	vars := mux.Vars(r)
+	page := vars["page"]
+
+	page_i, err := strconv.Atoi(page)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	var posts []*Post
+	if vars["address"] == hs.LocalPeer.Entry.ZifAddress.Encode() {
+		posts, err = hs.LocalPeer.Database.QueryPopular(page_i)
+
+		if http_error_check(w, http.StatusInternalServerError, err) {
+			return
+		}
+
+		http_write_posts(w, posts)
+	}
+
+	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	posts, stream, err := peer.Popular(page_i)
+	defer stream.Close()
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_posts(w, posts)
+}
+
 func (hs *HTTPServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
 	log.Info("HTTP: FTS Index request")
 
@@ -304,6 +345,27 @@ func (hs *HTTPServer) SelfRecent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	posts, err := hs.LocalPeer.Database.QueryRecent(page_i)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_posts(w, posts)
+}
+
+func (hs *HTTPServer) SelfPopular(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Self Popular request")
+
+	vars := mux.Vars(r)
+	page := vars["page"]
+
+	page_i, err := strconv.Atoi(page)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	posts, err := hs.LocalPeer.Database.QueryPopular(page_i)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return

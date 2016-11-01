@@ -195,7 +195,38 @@ func (lp *LocalPeer) HandleRecent(msg *Message) error {
 	return nil
 }
 
-func (lp *LocalPeer) HandleCollection(msg *Message) error {
+func (lp *LocalPeer) HandlePopular(msg *Message) error {
+	log.Info("Recieved query for popular posts")
+
+	page, err := strconv.Atoi(string(msg.Content))
+
+	if err != nil {
+		return err
+	}
+
+	recent, err := lp.Database.QueryPopular(page)
+
+	if err != nil {
+		return err
+	}
+
+	recent_json, err := PostsToJson(recent)
+
+	if err != nil {
+		return err
+	}
+
+	resp := &Message{
+		Header:  ProtoPosts,
+		Content: recent_json,
+	}
+
+	NewClient(msg.Stream).WriteMessage(resp)
+
+	return nil
+}
+
+func (lp *LocalPeer) HandleHashList(msg *Message) error {
 	cl := Client{msg.Stream}
 	address := Address{msg.Content}
 
