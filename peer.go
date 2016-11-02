@@ -188,14 +188,14 @@ func (p *Peer) Query(address string) (*Client, []Entry, error) {
 }
 
 // asks a peer to query its database and return the results
-func (p *Peer) Search(search string) ([]*Post, *Client, error) {
+func (p *Peer) Search(search string, page int) ([]*Post, *Client, error) {
 	stream, err := p.OpenStream()
 
 	if err != nil {
 		return nil, nil, err
 	}
 
-	posts, err := stream.Search(search)
+	posts, err := stream.Search(search, page)
 
 	if err != nil {
 		return nil, nil, err

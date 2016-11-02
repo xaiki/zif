@@ -25,7 +25,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 
 	router.HandleFunc("/peer/{address}/ping/", hs.Ping)
 	router.HandleFunc("/peer/{address}/announce/", hs.Announce)
-	router.HandleFunc("/peer/{address}/search/{query}/", hs.PeerSearch)
+	router.HandleFunc("/peer/{address}/search/", hs.PeerSearch).Methods("POST")
 	router.HandleFunc("/peer/{address}/recent/{page}/", hs.Recent)
 	router.HandleFunc("/peer/{address}/popular/{page}/", hs.Popular)
 
@@ -168,7 +168,15 @@ func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
 	log.Info("HTTP: Peer Search request")
 	vars := mux.Vars(r)
 	addr := vars["address"]
-	query := vars["query"]
+
+	query := r.FormValue("query")
+	page := r.FormValue("page")
+
+	page_i, err := strconv.Atoi(page)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
 
 	log.Info("Searching ", addr, " for ", query)
 
@@ -178,7 +186,7 @@ func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, stream, err := peer.Search(query)
+	posts, stream, err := peer.Search(query, page_i)
 	defer stream.Close()
 
 	if http_error_check(w, http.StatusInternalServerError, err) {

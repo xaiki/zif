@@ -139,10 +139,16 @@ func (lp *LocalPeer) HandleSearch(msg *Message) error {
 		return errors.New("Search query too long")
 	}
 
-	query := string(msg.Content)
-	log.WithField("query", query).Info("Search recieved")
+	sq := MessageSearchQuery{}
+	err := msg.Decode(&sq)
 
-	posts, err := lp.Database.Search(query, 0)
+	if err != nil {
+		return err
+	}
+	
+	log.WithField("query", sq.Query).Info("Search recieved")
+
+	posts, err := lp.Database.Search(sq.Query, sq.Page)
 
 	if err != nil {
 		return err

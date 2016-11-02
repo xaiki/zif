@@ -193,13 +193,19 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 	return nil
 }
 
-// TODO: Paginate searches
-func (c *Client) Search(search string) ([]*Post, error) {
+func (c *Client) Search(search string, page int) ([]*Post, error) {
 	log.Info("Querying for ", search)
+
+	sq := MessageSearchQuery{Query: search, Page: page}
+	data, err := sq.Encode()
+
+	if err != nil {
+		return nil, err
+	}
 
 	msg := &Message{
 		Header:  ProtoSearch,
-		Content: []byte(search),
+		Content: data,
 	}
 
 	c.WriteMessage(msg)
@@ -299,7 +305,8 @@ func (c *Client) HashList(address Address, pk ed25519.PublicKey) ([]byte, error)
 		return nil, err
 	}
 
-	mhl, err := MessageHashListDecode(hl.Content)
+	mhl := &MessageHashList{}
+	err = json.Unmarshal(hl.Content, mhl)
 
 	if err != nil {
 		return nil, err

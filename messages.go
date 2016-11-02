@@ -32,14 +32,12 @@ func (mhl *MessageHashList) Encode() ([]byte, error) {
 	return data, err
 }
 
-func MessageHashListDecode(data []byte) (*MessageHashList, error) {
-	ret := MessageHashList{}
+type MessageSearchQuery struct {
+	Query string
+	Page int
+}
 
-	err := json.Unmarshal(data, &ret)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &ret, nil
+func (sq *MessageSearchQuery) Encode() ([]byte, error) {
+	data, err := json.Marshal(sq)
+	return data, err
 }
