@@ -18,12 +18,14 @@ const (
 )
 
 type Client struct {
-	conn    net.Conn
+	conn net.Conn
+
 	decoder *json.Decoder
+	encoder *json.Encoder
 }
 
 func NewClient(conn net.Conn) *Client {
-	return &Client{conn, json.NewDecoder(conn)}
+	return &Client{conn, nil, nil}
 }
 
 func (c *Client) Terminate() {
@@ -38,6 +40,10 @@ func (c *Client) Close() (err error) {
 }
 
 func (c *Client) WriteMessage(v interface{}) error {
+	if c.encoder == nil {
+		c.encoder = json.NewEncoder(c.conn)
+	}
+
 	err := json.NewEncoder(c.conn).Encode(v)
 
 	return err
@@ -193,10 +199,11 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 	return nil
 }
 
+// TODO: Paginate searches
 func (c *Client) Search(search string, page int) ([]*Post, error) {
 	log.Info("Querying for ", search)
 
-	sq := MessageSearchQuery{Query: search, Page: page}
+	sq := MessageSearchQuery{search, page}
 	data, err := sq.Encode()
 
 	if err != nil {
@@ -305,8 +312,8 @@ func (c *Client) HashList(address Address, pk ed25519.PublicKey) ([]byte, error)
 		return nil, err
 	}
 
-	mhl := &MessageHashList{}
-	err = json.Unmarshal(hl.Content, mhl)
+	mhl := MessageHashList{}
+	err = hl.Decode(&mhl)
 
 	if err != nil {
 		return nil, err
