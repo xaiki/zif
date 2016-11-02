@@ -67,7 +67,11 @@ const sql_query_recent_post string = `SELECT 	 * FROM post
 												 ORDER BY upload_date DESC
 												 LIMIT ?,?`
 
-const sql_query_popular_post string = `SELECT 	 * FROM post
+const sql_query_popular_post string = ` SELECT * FROM(
+													SELECT * FROM post 
+													ORDER BY upload_date DESC
+													LIMIT 10000
+												)
 												 ORDER BY seeders + leechers DESC
 												 LIMIT ?,?`
 

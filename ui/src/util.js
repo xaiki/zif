@@ -37,8 +37,64 @@ function trim(string, size, ellipsis)
 	return {trimmed: trimmed, left: left}
 }
 
+// From: http://web.archive.org/web/20130826203933/http://my.opera.com/GreyWyvern/blog/show.dml/1671288
+function alphanum(a, b) 
+{
+	function chunkify(t) 
+	{
+		var tz = [], x = 0, y = -1, n = 0, i, j;
+
+		while (i = (j = t.charAt(x++)).charCodeAt(0)) 
+		{
+			var m = (i == 46 || (i >=48 && i <= 57));
+			if (m !== n) 
+			{
+				tz[++y] = "";
+				n = m;
+			}
+			tz[y] += j;
+		}
+		return tz;
+	}
+
+	var aa = chunkify(a);
+	var bb = chunkify(b);
+
+	for (x = 0; aa[x] && bb[x]; x++) 
+	{
+		if (aa[x] !== bb[x]) 
+		{
+			var c = Number(aa[x]), d = Number(bb[x]);
+
+			if (c == aa[x] && d == bb[x]) 
+			{
+				return c - d;
+
+			} else return (aa[x] > bb[x]) ? 1 : -1;
+		}
+	}
+
+	return aa.length - bb.length;
+}
+
+function bytes_to_size(bytes) 
+{
+   var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+
+   if (bytes == 0) 
+   	   return '0 Bytes';
+
+   var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+
+   return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+}
+
 module.exports = {
 	make_magnet: make_magnet,
 	chunk: chunk,
-	trim: trim
+	trim: trim,
+	bytes_to_size: bytes_to_size,
+	sort: {
+		alphanum: alphanum
+	}
 }

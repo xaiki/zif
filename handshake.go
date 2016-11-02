@@ -46,7 +46,13 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 		return nil, err
 	}
 
-	cl.WriteMessage(Message{Header: ProtoOk})
+	log.Debug("Header recieved")
+
+	err = cl.WriteMessage(Message{Header: ProtoOk})
+
+	if check(err) {
+		return nil, err
+	}
 
 	address := Address{}
 	address.Generate(header.Content)
@@ -57,11 +63,16 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	// private key, and it is highly unlikely an attacker has a signed cookie
 	// cached.
 	cookie, err := CryptoRandBytes(20)
+
 	if check(err) {
 		return nil, err
 	}
 
-	cl.WriteMessage(Message{Header: ProtoCookie, Content: cookie})
+	err = cl.WriteMessage(Message{Header: ProtoCookie, Content: cookie})
+
+	if check(err) {
+		return nil, err
+	}
 
 	sig, err := cl.ReadMessage()
 
@@ -93,7 +104,11 @@ func handshake_send(cl Client, lp *LocalPeer) error {
 		Content: lp.PublicKey,
 	}
 
-	cl.WriteMessage(header)
+	err := cl.WriteMessage(header)
+
+	if err != nil {
+		return err
+	}
 
 	msg, err := cl.ReadMessage()
 
@@ -105,7 +120,10 @@ func handshake_send(cl Client, lp *LocalPeer) error {
 		return errors.New("Peer refused header")
 	}
 
+	log.Debug("Header sent")
+
 	msg, err = cl.ReadMessage()
+	log.Debug("Cookie")
 
 	if err != nil {
 		log.Error(err.Error())

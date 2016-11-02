@@ -13,7 +13,7 @@ const router = new VueRouter({
 	routes: [
 		{ path: "/", component: Home },
 		{ path: "/settings", component: Settings},
-		{ path: "/stream/:ih", name: "stream", component: Stream }
+		{ path: "/stream/:ih/:title/:size/:filecount", name: "stream", component: Stream }
 	]
 });
 

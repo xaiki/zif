@@ -12,6 +12,8 @@
 
 			<span class="chip green-text"> {{seeders}}</span>
 			<span class="chip red-text"> {{leechers}}</span>
+			<span class="chip"> {{util.bytes_to_size(size)}}</span>
+			<span class="chip"> {{filecount}} file/s</span>
 			<a :href="util.make_magnet(infohash)">
 				Magnet
 			</a>
@@ -19,7 +21,12 @@
 			<p>{{description}}</p>
 		</div>
 		<div class="card-action">
-			<router-link :to="{ name: 'stream', params: { ih: infohash }}">Stream</router-link>
+			<router-link :to="{ name: 'stream', params: { 
+					ih: infohash, 
+					title: title ,
+					size: size,
+					filecount: filecount
+				}}">Stream</router-link>
 		</div>
 	</div>
 </template>	
@@ -40,7 +47,9 @@ export default{
 		description: String,
 		image: String,
 		seeders: Number,
-		leechers: Number 
+		leechers: Number,
+		size: Number,
+		filecount: Number
 	}
 }
 </script>

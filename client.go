@@ -18,11 +18,12 @@ const (
 )
 
 type Client struct {
-	conn net.Conn
+	conn    net.Conn
+	decoder *json.Decoder
 }
 
 func NewClient(conn net.Conn) *Client {
-	return &Client{conn}
+	return &Client{conn, json.NewDecoder(conn)}
 }
 
 func (c *Client) Terminate() {
@@ -45,7 +46,11 @@ func (c *Client) WriteMessage(v interface{}) error {
 func (c *Client) ReadMessage() (*Message, error) {
 	var msg Message
 
-	if err := json.NewDecoder(c.conn).Decode(&msg); err != nil {
+	if c.decoder == nil {
+		c.decoder = json.NewDecoder(c.conn)
+	}
+
+	if err := c.decoder.Decode(&msg); err != nil {
 		return nil, err
 	}
 

@@ -1,5 +1,5 @@
 <template>
-		<div class="contain">
+		<div class="container">
 			<div class="row">
 
 				<div class="col s1"></div>
@@ -18,16 +18,17 @@
 
 			</div>
 
-			<div v-for="chunk in util.chunk(posts, 4)" class="row">
-				<div v-for="post in chunk" class="col s12 m6 l3" style="height: 100%;">
+			<div v-for="post in posts" class="collection">
 
-					<post   :title="post.Title"
+					<post   class="collection-item"
+							:title="post.Title"
 							:infohash="post.InfoHash"
 							:seeders="post.Seeders"
-							:leechers="post.Leechers">
+							:leechers="post.Leechers"
+							:size="post.Size"
+							:filecount="post.FileCount">
 					</post>
 
-				</div>
 			</div>
 
 		</div>

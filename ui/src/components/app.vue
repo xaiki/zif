@@ -1,11 +1,25 @@
 <template>
 	<div class="pushable" id="app">
-		<router-view class="pusher view"></router-view>
+		<div class="row">
+			<div class="col s3">
+				<ul class="side-nav fixed ">
+					<li>
+						<router-link to="/">
+							<i class="material-icons">home</i> Home
+						</router-link>
+					</li>
+				</ul>
+			</div>
+
+			<div class="col s9">
+				<router-view class="pusher view"></router-view>
+			</div>
+		</div>
 
 		<div class="fixed-action-btn" style="right: 24px;">
-			<a class="btn-floating btn-large amber lighten-1">
+			<router-link :to="'/'" class="btn-floating btn-large amber lighten-1">
 		  		<i class="large grey-text text-darken-2">Z</i>
-			</a>
+			</router-link>
 		</div>
 	</div>
 </template>
@@ -19,6 +33,9 @@
 </script>
 
 <style lang="sass">
+.row .side-nav {
+	width: 250px;
+}
 body{
 	background-color: #616161;
 }

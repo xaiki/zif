@@ -1,36 +1,61 @@
 <template>
-	<div class="contain">
-		<h1>Stream</h1>
-		<h1>{{$route.params.ih}}</h1>
+	<div class="container">
+		<ul class="collection with-header">
+			<li class="collection-header">
+				<h5>{{$route.params.title}}</h5>
+				{{util.bytes_to_size($route.params.size)}}, {{$route.params.filecount}} file/s
+			</li>
+
+			<li v-for="e in entries" class="collection-item">
+				<entry :filename="e.name"></entry>
+			</li>
+
+		</ul>
 	</div>
 </template>
 
 <script>
+import entry from "./stream-entry.vue"
 import util from "../util.js"
-
-var WebTorrent = require('webtorrent')
-var client = new WebTorrent()
+import stream from "../stream.js"
 
 export default{
+	data() {
+		return {
+			streamer: stream(this),
+			util: util,
+			entries: []
+		}
+	},
 	methods: {
 		addMagnet: function(link) {
 			console.log(link)
+			this.streamer.add(link)
 
-			client.add(link, function (torrent) {
-			  // Got torrent metadata!
-			  console.log('Client is downloading:', torrent.infoHash)
+			  /*console.log('Client is downloading:', torrent.infoHash)
 
 			  torrent.files.forEach(function (file) {
-				// Display the file by appending it to the DOM. Supports video, audio, images, and
-				// more. Specify a container element (CSS selector or reference to DOM node).
-				file.appendTo('body')
+			  	  var elem = document.createElement("li");
+				  elem.className += "collection-item";
+				  elem.innerHTML = file.name;
+
+				  file.appendTo(elem, { autoplay: false }, (err, e) =>{
+					$("#contents").append(elem);
+					e.className += "secondary-content";
+				  })
 			  })
-			})
+			})*/
 		}
 	},
 	
 	created: function() {
 		this.addMagnet(util.make_magnet(this.$route.params.ih))
+	},
+	components: {
+		"entry": entry
 	}
 }
 </script>
+
+<style>
+</style>

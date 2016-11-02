@@ -83,7 +83,7 @@ func (s *Server) ListenStream(peer *Peer) {
 func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 	log.Debug("Handling stream")
 
-	cl := Client{stream}
+	cl := Client{stream, nil}
 
 	msg, err := cl.ReadMessage()
 
@@ -131,7 +131,7 @@ func (s *Server) RouteMessage(msg *Message) {
 }
 
 func (s *Server) Handshake(conn net.Conn) {
-	cl := Client{conn}
+	cl := Client{conn, nil}
 
 	header, err := handshake(cl, s.localPeer)
 

@@ -20,7 +20,7 @@ const MaxSearchLength = 256
 // The top peer may well be the one that is being queried for :)
 func (lp *LocalPeer) HandleQuery(msg *Message) error {
 	log.Info("Handling query")
-	cl := Client{msg.Stream}
+	cl := Client{msg.Stream, json.NewDecoder(msg.Stream)}
 
 	msg.From.limiter.queryLimiter.Wait()
 
@@ -63,7 +63,7 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 }
 
 func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
-	cl := Client{msg.Stream}
+	cl := Client{msg.Stream, nil}
 	msg.From.limiter.announceLimiter.Wait()
 	lp.CheckSessions()
 
@@ -227,7 +227,7 @@ func (lp *LocalPeer) HandlePopular(msg *Message) error {
 }
 
 func (lp *LocalPeer) HandleHashList(msg *Message) error {
-	cl := Client{msg.Stream}
+	cl := Client{msg.Stream, nil}
 	address := Address{msg.Content}
 
 	log.WithField("address", address.Encode()).Info("Collection request recieved")

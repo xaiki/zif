@@ -231,5 +231,5 @@ func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
 }
 
 func (p *Peer) Mirror() (*Database, error) {
-
+	return nil, nil
 }
