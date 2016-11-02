@@ -25,7 +25,7 @@ type Client struct {
 }
 
 func NewClient(conn net.Conn) *Client {
-	return &Client{conn, nil, nil}
+	return &Client{conn, json.NewDecoder(conn), json.NewEncoder(conn)}
 }
 
 func (c *Client) Terminate() {

@@ -55,16 +55,27 @@ func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (*ConnHeader, error
 }
 
 func (sm *StreamManager) Handshake(conn net.Conn, lp *LocalPeer) (ed25519.PublicKey, error) {
+	cl := NewClient(conn)
 	// I use the term "server" somewhat loosely. It's the "server" part of a peer.
 	log.Debug("Sending handshake")
-	err := handshake_send(Client{conn, nil, nil}, lp)
+	err := handshake_send(*cl, lp)
+
+	msg, err := cl.ReadMessage()
+
+	if err != nil {
+		return nil, nil
+	}
+
+	if msg.Ok() {
+		return nil, errors.New("Peer errored")
+	}
 
 	// server now knows that we are definitely who we say we are.
 	// but...
 	// is the server who we think it is?
 	// better check!
 	log.Debug("Receiving handshake")
-	server_header, err := handshake_recieve(Client{conn, nil, nil})
+	server_header, err := handshake_recieve(*cl)
 
 	if err != nil {
 		return server_header, err

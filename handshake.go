@@ -12,13 +12,16 @@ func handshake(cl Client, lp *LocalPeer) (ed25519.PublicKey, error) {
 	header, err := handshake_recieve(cl)
 
 	if err != nil {
+		cl.WriteMessage(Message{Header: ProtoNo})
 		return header, err
 	}
 
 	if lp == nil {
+		cl.WriteMessage(Message{Header: ProtoNo})
 		return header, errors.New("Handshake passed nil LocalPeer")
 	}
 
+	cl.WriteMessage(Message{Header: ProtoOk})
 	err = handshake_send(cl, lp)
 
 	if err != nil {
@@ -142,6 +145,7 @@ func handshake_send(cl Client, lp *LocalPeer) error {
 	cl.WriteMessage(msg)
 
 	msg, err = cl.ReadMessage()
+	log.Debug("Written cookie")
 
 	if err != nil {
 		return err
@@ -150,6 +154,8 @@ func handshake_send(cl Client, lp *LocalPeer) error {
 	if !msg.Ok() {
 		return errors.New("Peer refused signature")
 	}
+
+	log.Info("Handshake sent ok")
 
 	return nil
 }

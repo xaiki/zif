@@ -134,7 +134,7 @@ func TestLocalPeerPosts(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	posts, stream, err := peer.Search("linux")
+	posts, stream, err := peer.Search("linux", 0)
 	defer stream.Close()
 
 	if err != nil {
