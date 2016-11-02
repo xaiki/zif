@@ -18,7 +18,7 @@
 				Magnet
 			</a>
 
-			<p>{{description}}</p>
+			<p style="font-style: italic;" class="grey-text">{{description}}</p>
 		</div>
 		<div class="card-action">
 			<router-link :to="{ name: 'stream', params: { 
@@ -37,15 +37,15 @@ import util from "../util.js"
 export default{
 	data() {
 		return {
-			util: util,
-			description: "No description"
+			util: util
 		}
 	},
 	props: {
 		title: String,
 		infohash: String,
-		description: String,
+		description: { type: String, default: "No description" },
 		image: String,
+		source: String,
 		seeders: Number,
 		leechers: Number,
 		size: Number,
