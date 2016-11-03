@@ -44,8 +44,7 @@ func (mhl *MessageCollection) Verify(pk ed25519.PublicKey) error {
 		hash.Write(mhl.HashList[32*i : (32*i)+32])
 	}
 
-	log.Info(mhl.Hash)
-	log.Info(hash.Sum(nil))
+	log.Info(mhl.HashList)
 
 	if !bytes.Equal(hash.Sum(nil), mhl.Hash) {
 		return errors.New("Invalid hash list")
