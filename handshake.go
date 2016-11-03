@@ -12,12 +12,12 @@ func handshake(cl Client, lp *LocalPeer) (ed25519.PublicKey, error) {
 	header, err := handshake_recieve(cl)
 
 	if err != nil {
-		cl.WriteMessage(Message{Header: ProtoNo})
+		cl.WriteMessage(Message{Header: ProtoNo, Content: []byte(err.Error())})
 		return header, err
 	}
 
 	if lp == nil {
-		cl.WriteMessage(Message{Header: ProtoNo})
+		cl.WriteMessage(Message{Header: ProtoNo, Content: []byte("nil LocalPeer")})
 		return header, errors.New("Handshake passed nil LocalPeer")
 	}
 
