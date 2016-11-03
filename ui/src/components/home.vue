@@ -27,6 +27,7 @@
 							:leechers="post.Leechers"
 							:size="post.Size"
 							:filecount="post.FileCount"
+							:source="post.Source">
 					</post>
 
 			</div>

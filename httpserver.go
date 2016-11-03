@@ -106,7 +106,8 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 
 	peer.ConnectClient(hs.LocalPeer)
 
-	_, err = peer.Bootstrap(&hs.LocalPeer.RoutingTable)
+	client, err := peer.Bootstrap(&hs.LocalPeer.RoutingTable)
+	defer client.Close()
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return

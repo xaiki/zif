@@ -41,7 +41,7 @@ func main() {
 	log.SetFormatter(formatter)
 
 	var addr = flag.String("address", "0.0.0.0:5050", "Bind address")
-	var db_path = flag.String("database", "./posts.db", "Posts database path")
+	var db_path = flag.String("database", "./data/posts.db", "Posts database path")
 	var newAddr = flag.Bool("new", false, "Ignore identity file and create a new address")
 
 	var http = flag.String("http", "127.0.0.1:8080", "HTTP address and port")
