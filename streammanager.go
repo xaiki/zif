@@ -66,8 +66,8 @@ func (sm *StreamManager) Handshake(conn net.Conn, lp *LocalPeer) (ed25519.Public
 		return nil, nil
 	}
 
-	if msg.Ok() {
-		return nil, errors.New("Peer errored")
+	if !msg.Ok() {
+		return nil, errors.New(string(msg.Content))
 	}
 
 	// server now knows that we are definitely who we say we are.

@@ -26,7 +26,7 @@
 							:seeders="post.Seeders"
 							:leechers="post.Leechers"
 							:size="post.Size"
-							:filecount="post.FileCount">
+							:filecount="post.FileCount"
 					</post>
 
 			</div>

@@ -43,6 +43,7 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	}
 
 	header, err := cl.ReadMessage()
+	log.Debug("Read header")
 
 	if check(err) {
 		cl.WriteMessage(Message{Header: ProtoNo})
