@@ -286,10 +286,10 @@ func (lp *LocalPeer) Close() {
 	lp.Server.Close()
 }
 
-func (lp *LocalPeer) AddPost(p Post) {
+func (lp *LocalPeer) AddPost(p Post, store bool) {
 	log.Info("Adding post with title ", p.Title)
 
-	lp.Collection.AddPost(p)
+	lp.Collection.AddPost(p, store)
 	err := lp.Database.InsertPost(p)
 
 	if err != nil {

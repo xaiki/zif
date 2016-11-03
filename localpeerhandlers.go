@@ -233,14 +233,15 @@ func (lp *LocalPeer) HandlePopular(msg *Message) error {
 }
 
 func (lp *LocalPeer) HandleHashList(msg *Message) error {
-	cl := Client{msg.Stream, nil, nil}
+	cl := NewClient(msg.Stream)
 	address := Address{msg.Content}
 
 	log.WithField("address", address.Encode()).Info("Collection request recieved")
 
-	hashlist := lp.Collection.HashList()
-	sig := lp.Sign(lp.Collection.HashList())
-	mhl := MessageHashList{hashlist, sig}
+	col, err := CreateCollection(lp.Database, 0, 1000)
+
+	sig := lp.Sign(col.HashList())
+	mhl := MessageCollection{col.Hash(), col.HashList(), len(col.HashList()) / 32, sig}
 	data, err := mhl.Encode()
 
 	if err != nil {
@@ -253,6 +254,24 @@ func (lp *LocalPeer) HandleHashList(msg *Message) error {
 	}
 
 	cl.WriteMessage(resp)
+
+	return nil
+}
+
+func (lp *LocalPeer) HandlePiece(msg *Message) error {
+	cl := NewClient(msg.Stream)
+
+	mrp := MessageRequestPiece{}
+	err := msg.Decode(&mrp)
+
+	if err != nil {
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"address": mrp.Address,
+		"id":      mrp.Id,
+	}).Info("New piece request")
 
 	return nil
 }

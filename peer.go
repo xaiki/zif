@@ -230,6 +230,29 @@ func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
 
 }
 
-func (p *Peer) Mirror() (*Database, error) {
-	return nil, nil
+func (p *Peer) Mirror() (*Database, *Client, error) {
+	col := Collection{}
+	col.Setup()
+
+	log.WithField("peer", p.ZifAddress.Encode()).Info("Mirroring")
+
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	entry, err := p.Entry()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	_, err = stream.Collection(entry.ZifAddress, entry.PublicKey)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return nil, &stream, err
 }

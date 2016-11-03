@@ -10,29 +10,29 @@ import (
 // peer has.
 
 type Collection struct {
-	Pieces []Piece
+	Pieces []*Piece
 	hash   hash.Hash
 }
 
 func (c *Collection) Setup() {
 	c.hash = sha3.New256()
-	c.Pieces = make([]Piece, 0, 2)
+	c.Pieces = make([]*Piece, 0, 2)
 }
 
-func (c *Collection) Add(piece Piece) {
+func (c *Collection) Add(piece *Piece) {
 	c.Pieces = append(c.Pieces, piece)
 
 	c.hash.Write(piece.Hash())
 }
 
-func (c *Collection) AddPost(post Post) {
+func (c *Collection) AddPost(post Post, store bool) {
 	if len(c.Pieces) == 0 || len(c.Pieces[len(c.Pieces)-1].Posts) == PieceSize {
-		piece := Piece{}
+		piece := &Piece{}
 		piece.Setup()
 		c.Add(piece)
 	}
 
-	c.Pieces[len(c.Pieces)-1].Add(post)
+	c.Pieces[len(c.Pieces)-1].Add(post, store)
 }
 
 func (c *Collection) Hash() []byte {

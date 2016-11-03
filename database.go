@@ -169,9 +169,10 @@ func (db *Database) QueryPostId(id uint) (Post, error) {
 	return post, nil
 }
 
-func (db *Database) QueryPiece(id int) (*Piece, error) {
+func (db *Database) QueryPiece(id int, store bool) (*Piece, error) {
 	page_size := PieceSize // TODO: Configure this elsewhere
 	var piece Piece
+	piece.Setup()
 
 	rows, err := db.conn.Query(sql_query_paged_post, id*page_size,
 		page_size)
@@ -192,7 +193,7 @@ func (db *Database) QueryPiece(id int) (*Piece, error) {
 			return nil, err
 		}
 
-		piece.Add(post)
+		piece.Add(post, store)
 	}
 
 	return &piece, nil

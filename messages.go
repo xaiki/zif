@@ -10,12 +10,24 @@ import (
 // This contains the more "complex" structures that will be sent in message
 // data fields.
 
-type MessageHashList struct {
+type MessageCollection struct {
+	Hash      []byte
 	HashList  []byte
+	Size      int
 	Signature []byte
 }
 
-func (mhl *MessageHashList) Verify(pk ed25519.PublicKey) error {
+type MessageSearchQuery struct {
+	Query string
+	Page  int
+}
+
+type MessageRequestPiece struct {
+	Address string
+	Id      int
+}
+
+func (mhl *MessageCollection) Verify(pk ed25519.PublicKey) error {
 	// TODO: Check length of pk/hashlist/etc
 
 	verified := ed25519.Verify(pk, mhl.HashList, mhl.Signature)
@@ -27,17 +39,17 @@ func (mhl *MessageHashList) Verify(pk ed25519.PublicKey) error {
 	return nil
 }
 
-func (mhl *MessageHashList) Encode() ([]byte, error) {
+func (mhl *MessageCollection) Encode() ([]byte, error) {
 	data, err := json.Marshal(mhl)
 	return data, err
 }
 
-type MessageSearchQuery struct {
-	Query string
-	Page int
-}
-
 func (sq *MessageSearchQuery) Encode() ([]byte, error) {
 	data, err := json.Marshal(sq)
+	return data, err
+}
+
+func (mrp *MessageRequestPiece) Encode() ([]byte, error) {
+	data, err := json.Marshal(mrp)
 	return data, err
 }

@@ -18,12 +18,14 @@ func (p *Piece) Setup() {
 	p.hash = sha3.New256()
 }
 
-func (p *Piece) Add(post Post) error {
+func (p *Piece) Add(post Post, store bool) error {
 	if len(p.Posts) > PieceSize {
 		return errors.New("Piece full")
 	}
 
-	p.Posts = append(p.Posts, post)
+	if store {
+		p.Posts = append(p.Posts, post)
+	}
 
 	json, err := post.Json()
 

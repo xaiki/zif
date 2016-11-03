@@ -28,10 +28,12 @@ var (
 	// The content field should contain the bytes for a Zif address.
 	// This is the peer we are requesting a hash list for.
 	ProtoRequestHashList = 0x0104
+	ProtoRequestPiece    = 0x0105
 
 	ProtoEntry    = 0x0200 // An individual DHT entry in Content
 	ProtoPosts    = 0x0201 // A list of posts in Content
 	ProtoHashList = 0x0202
+	ProtoPiece    = 0x203
 
 	ProtoDhtQuery    = 0x0300
 	ProtoDhtAnnounce = 0x0301

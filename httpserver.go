@@ -212,7 +212,7 @@ func (hs *HTTPServer) AddPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hs.LocalPeer.AddPost(post)
+	hs.LocalPeer.AddPost(post, false)
 
 	http_write_ok(w)
 }
