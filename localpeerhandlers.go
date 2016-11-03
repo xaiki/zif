@@ -241,6 +241,7 @@ func (lp *LocalPeer) HandleHashList(msg *Message) error {
 	col, err := CreateCollection(lp.Database, 0, 1000)
 
 	sig := lp.Sign(col.HashList())
+	log.Info(col.Hash())
 	mhl := MessageCollection{col.Hash(), col.HashList(), len(col.HashList()) / 32, sig}
 	data, err := mhl.Encode()
 
@@ -272,6 +273,39 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 		"address": mrp.Address,
 		"id":      mrp.Id,
 	}).Info("New piece request")
+
+	var piece *Piece
+	piece = nil
+
+	if mrp.Address == lp.Entry.ZifAddress.Encode() {
+		piece, err = lp.Database.QueryPiece(mrp.Id, true)
+
+		if err != nil {
+			return err
+		}
+	} else if _, ok := lp.Databases[mrp.Address]; ok {
+		piece, err = lp.Databases[mrp.Address].QueryPiece(mrp.Id, true)
+
+		if err != nil {
+			return err
+		}
+
+	} else {
+		return errors.New("Piece not found")
+	}
+
+	data, err := json.Marshal(piece)
+
+	if err != nil {
+		return err
+	}
+
+	rep := &Message{
+		Header:  ProtoPiece,
+		Content: data,
+	}
+
+	cl.WriteMessage(rep)
 
 	return nil
 }

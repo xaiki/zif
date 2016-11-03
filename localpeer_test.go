@@ -190,6 +190,7 @@ func TestLocalPeerRecent(t *testing.T) {
 }
 
 func TestLocalPeerMirror(t *testing.T) {
+	source, _ := zif.CryptoRandBytes(20)
 	lp_remote := CreateLocalPeer("remote", 5057)
 	lp_requester := CreateLocalPeer("requester", 5058)
 
@@ -197,6 +198,13 @@ func TestLocalPeerMirror(t *testing.T) {
 	defer lp_requester.Close()
 
 	BootstrapLocalPeer(&lp_requester, &lp_remote, t)
+
+	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2016-09-03", 100, 10, 1472860800, source)
+	ubuntu := zif.NewPost(UbuntuInfoHash, "Ubuntu Linux 16.04.1", 101, 9, 1472860800, source)
+
+	lp_remote.AddPost(arch, false)
+	lp_remote.AddPost(ubuntu, false)
+	lp_remote.Database.GenerateFts(0)
 
 	peer, err := lp_requester.ConnectPeer(lp_remote.ZifAddress.Encode())
 

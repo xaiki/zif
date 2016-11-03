@@ -45,3 +45,19 @@ func (p *Piece) Hash() []byte {
 
 	return ret
 }
+
+func (p *Piece) Rehash() ([]byte, error) {
+	p.hash = sha3.New256()
+
+	for _, i := range p.Posts {
+		data, err := i.Json()
+
+		if err != nil {
+			return nil, err
+		}
+
+		p.hash.Write(data)
+	}
+
+	return p.hash.Sum(nil), nil
+}

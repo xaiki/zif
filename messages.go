@@ -1,10 +1,14 @@
 package zif
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 
 	"golang.org/x/crypto/ed25519"
+	"golang.org/x/crypto/sha3"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // This contains the more "complex" structures that will be sent in message
@@ -28,12 +32,23 @@ type MessageRequestPiece struct {
 }
 
 func (mhl *MessageCollection) Verify(pk ed25519.PublicKey) error {
-	// TODO: Check length of pk/hashlist/etc
-
 	verified := ed25519.Verify(pk, mhl.HashList, mhl.Signature)
 
 	if !verified {
 		return errors.New("Invalid signature")
+	}
+
+	hash := sha3.New256()
+
+	for i := 0; i < mhl.Size; i++ {
+		hash.Write(mhl.HashList[32*i : (32*i)+32])
+	}
+
+	log.Info(mhl.Hash)
+	log.Info(hash.Sum(nil))
+
+	if !bytes.Equal(hash.Sum(nil), mhl.Hash) {
+		return errors.New("Invalid hash list")
 	}
 
 	return nil
