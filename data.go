@@ -92,7 +92,7 @@ func CreateCollection(db *Database, start, pieceSize int) (*Collection, error) {
 	log.Info("Piece count ", pieceCount)
 
 	for i := 0; i < pieceCount; i++ {
-		piece, err := db.QueryPiece(i, true)
+		piece, err := db.QueryPiece(i, false)
 
 		if err != nil {
 			return nil, err

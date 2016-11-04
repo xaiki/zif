@@ -4,6 +4,7 @@ import (
 	"errors"
 	"hash"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -58,6 +59,8 @@ func (p *Piece) Rehash() ([]byte, error) {
 
 		p.hash.Write(data)
 	}
+
+	log.Info("Piece rehashed")
 
 	return p.hash.Sum(nil), nil
 }

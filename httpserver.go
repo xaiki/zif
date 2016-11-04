@@ -28,6 +28,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/peer/{address}/search/", hs.PeerSearch).Methods("POST")
 	router.HandleFunc("/peer/{address}/recent/{page}/", hs.Recent)
 	router.HandleFunc("/peer/{address}/popular/{page}/", hs.Popular)
+	router.HandleFunc("/peer/{address}/mirror/", hs.Mirror)
 
 	router.HandleFunc("/self/addpost/", hs.AddPost).Methods("POST")
 	router.HandleFunc("/self/index/", hs.FtsIndex).Methods("POST")
@@ -432,4 +433,25 @@ func (hs *HTTPServer) GetMeta(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http_write_value(w, value)
+}
+
+func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Mirror request")
+
+	vars := mux.Vars(r)
+
+	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	_, cl, err := peer.Mirror()
+	defer cl.Close()
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_ok(w)
 }

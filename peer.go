@@ -271,7 +271,13 @@ func (p *Peer) Mirror() (*Database, *Client, error) {
 		if !bytes.Equal(mcol.HashList[32*i:32*i+32], hash) {
 			return nil, nil, errors.New("Piece hash mismatch")
 		}
+
+		for _, j := range piece.Posts {
+			log.Info(j.Title)
+		}
 	}
+
+	// TODO: Store in a db
 
 	return nil, &stream, err
 }
