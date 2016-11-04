@@ -241,7 +241,7 @@ func (lp *LocalPeer) HandleHashList(msg *Message) error {
 	col, err := CreateCollection(lp.Database, 0, 1000)
 
 	sig := lp.Sign(col.HashList())
-	log.Info(col.HashList())
+
 	mhl := MessageCollection{col.Hash(), col.HashList(), len(col.HashList()) / 32, sig}
 	data, err := mhl.Encode()
 

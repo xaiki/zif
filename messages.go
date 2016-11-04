@@ -7,8 +7,6 @@ import (
 
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/sha3"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // This contains the more "complex" structures that will be sent in message
@@ -43,8 +41,6 @@ func (mhl *MessageCollection) Verify(pk ed25519.PublicKey) error {
 	for i := 0; i < mhl.Size; i++ {
 		hash.Write(mhl.HashList[32*i : (32*i)+32])
 	}
-
-	log.Info(mhl.HashList)
 
 	if !bytes.Equal(hash.Sum(nil), mhl.Hash) {
 		return errors.New("Invalid hash list")

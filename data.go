@@ -93,7 +93,6 @@ func CreateCollection(db *Database, start, pieceSize int) (*Collection, error) {
 
 	for i := 0; i < pieceCount; i++ {
 		piece, err := db.QueryPiece(i, true)
-		piece.Rehash()
 
 		if err != nil {
 			return nil, err

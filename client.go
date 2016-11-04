@@ -351,5 +351,14 @@ func (c *Client) Piece(address Address, id int) (*Piece, error) {
 
 	c.WriteMessage(msg)
 
-	return nil, nil
+	rep, err := c.ReadMessage()
+
+	piece := Piece{}
+	err = rep.Decode(&piece)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &piece, nil
 }

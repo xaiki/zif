@@ -44,7 +44,7 @@ func (c *Collection) Hash() []byte {
 }
 
 func (c *Collection) HashList() []byte {
-	hash_list := make([]byte, len(c.Pieces))
+	hash_list := make([]byte, 0, len(c.Pieces))
 
 	for _, h := range c.Pieces {
 		hash_list = append(hash_list, h.Hash()...)

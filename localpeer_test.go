@@ -1,6 +1,7 @@
 package zif_test
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -22,7 +23,7 @@ func CreateLocalPeer(name string, port int) zif.LocalPeer {
 	lp.Entry.PublicKey = lp.PublicKey
 	lp.Entry.ZifAddress = lp.ZifAddress
 
-	lp.Database = zif.NewDatabase("file::memory:?cache=shared")
+	lp.Database = zif.NewDatabase(fmt.Sprintf("test-%s.db", name))
 	lp.Database.Connect()
 
 	lp.SignEntry()
@@ -121,7 +122,7 @@ func TestLocalPeerPosts(t *testing.T) {
 
 	BootstrapLocalPeer(&lp_requester, &lp_remote, t)
 
-	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2016-09-03", 100, 10, 1472860800, source)
+	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2015-09-03", 100, 10, 1472860800, source)
 	ubuntu := zif.NewPost(UbuntuInfoHash, "Ubuntu Linux 16.04.1", 101, 9, 1472860800, source)
 
 	lp_remote.AddPost(arch, false)
@@ -160,7 +161,7 @@ func TestLocalPeerRecent(t *testing.T) {
 
 	BootstrapLocalPeer(&lp_requester, &lp_remote, t)
 
-	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2016-09-03", 100, 10, 1472860800, source)
+	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2015-09-03", 100, 10, 1472860800, source)
 	ubuntu := zif.NewPost(UbuntuInfoHash, "Ubuntu Linux 16.04.1", 101, 9, 1472860800, source)
 
 	lp_remote.AddPost(arch, false)
@@ -191,15 +192,15 @@ func TestLocalPeerRecent(t *testing.T) {
 
 func TestLocalPeerMirror(t *testing.T) {
 	source, _ := zif.CryptoRandBytes(20)
-	lp_remote := CreateLocalPeer("remote", 5057)
-	lp_requester := CreateLocalPeer("requester", 5058)
+	lp_remote := CreateLocalPeer("remote-mirror", 5057)
+	lp_requester := CreateLocalPeer("requester-mirror", 5058)
 
 	defer lp_remote.Close()
 	defer lp_requester.Close()
 
 	BootstrapLocalPeer(&lp_requester, &lp_remote, t)
 
-	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2016-09-03", 100, 10, 1472860800, source)
+	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2015-09-03", 100, 10, 1472860800, source)
 	ubuntu := zif.NewPost(UbuntuInfoHash, "Ubuntu Linux 16.04.1", 101, 9, 1472860800, source)
 
 	lp_remote.AddPost(arch, false)
