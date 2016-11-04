@@ -213,7 +213,7 @@ func TestLocalPeerMirror(t *testing.T) {
 		t.Fatal("Failed to connect")
 	}
 
-	_, _, err = peer.Mirror()
+	_, _, err = peer.Mirror("./data")
 
 	if err != nil {
 		t.Fatal(err.Error())

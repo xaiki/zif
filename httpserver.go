@@ -446,7 +446,7 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, cl, err := peer.Mirror()
+	_, cl, err := peer.Mirror("./data")
 	defer cl.Close()
 
 	if http_error_check(w, http.StatusInternalServerError, err) {

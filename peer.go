@@ -8,7 +8,9 @@ package zif
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/hashicorp/yamux"
@@ -231,9 +233,14 @@ func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
 
 }
 
-func (p *Peer) Mirror() (*Database, *Client, error) {
+func (p *Peer) Mirror(path string) (*Database, *Client, error) {
 	col := Collection{}
 	col.Setup()
+
+	// Open a database for the peer
+	os.Mkdir(fmt.Sprintf("%s/%s"), 0777)
+	db := NewDatabase(fmt.Sprintf("%s/%s/posts.db", path, p.ZifAddress.Encode()))
+	db.Connect()
 
 	log.WithField("peer", p.ZifAddress.Encode()).Info("Mirroring")
 
@@ -272,12 +279,10 @@ func (p *Peer) Mirror() (*Database, *Client, error) {
 			return nil, nil, errors.New("Piece hash mismatch")
 		}
 
-		for _, j := range piece.Posts {
-			log.Info(j.Title)
+		for _, i := range piece.Posts {
+			db.InsertPost(i)
 		}
 	}
 
-	// TODO: Store in a db
-
-	return nil, &stream, err
+	return db, &stream, err
 }
