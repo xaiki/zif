@@ -4,6 +4,7 @@ import (
 	"errors"
 	"hash"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -18,12 +19,14 @@ func (p *Piece) Setup() {
 	p.hash = sha3.New256()
 }
 
-func (p *Piece) Add(post Post) error {
+func (p *Piece) Add(post Post, store bool) error {
 	if len(p.Posts) > PieceSize {
 		return errors.New("Piece full")
 	}
 
-	p.Posts = append(p.Posts, post)
+	if store {
+		p.Posts = append(p.Posts, post)
+	}
 
 	json, err := post.Json()
 
@@ -42,4 +45,22 @@ func (p *Piece) Hash() []byte {
 	ret = p.hash.Sum(nil)
 
 	return ret
+}
+
+func (p *Piece) Rehash() ([]byte, error) {
+	p.hash = sha3.New256()
+
+	for _, i := range p.Posts {
+		data, err := i.Json()
+
+		if err != nil {
+			return nil, err
+		}
+
+		p.hash.Write(data)
+	}
+
+	log.Info("Piece rehashed")
+
+	return p.hash.Sum(nil), nil
 }

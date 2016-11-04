@@ -4,6 +4,7 @@ package zif
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -25,9 +26,11 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 
 	router.HandleFunc("/peer/{address}/ping/", hs.Ping)
 	router.HandleFunc("/peer/{address}/announce/", hs.Announce)
+	router.HandleFunc("/peer/{address}/rsearch/", hs.PeerRSearch).Methods("POST")
 	router.HandleFunc("/peer/{address}/search/", hs.PeerSearch).Methods("POST")
 	router.HandleFunc("/peer/{address}/recent/{page}/", hs.Recent)
 	router.HandleFunc("/peer/{address}/popular/{page}/", hs.Popular)
+	router.HandleFunc("/peer/{address}/mirror/", hs.Mirror)
 
 	router.HandleFunc("/self/addpost/", hs.AddPost).Methods("POST")
 	router.HandleFunc("/self/index/", hs.FtsIndex).Methods("POST")
@@ -38,6 +41,8 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/self/popular/{page}/", hs.SelfPopular)
 	router.HandleFunc("/self/addmeta/{pid}/{key}/{value}/", hs.AddMeta)
 	router.HandleFunc("/self/getmeta/{pid}/{key}/", hs.GetMeta)
+	router.HandleFunc("/self/savecollection/", hs.SaveCollection)
+	router.HandleFunc("/self/rebuildcollection/", hs.RebuildCollection)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -50,13 +55,17 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 
 func http_error_check(w http.ResponseWriter, errCode int, err error) bool {
 	if err != nil {
-		w.WriteHeader(errCode)
-		w.Write([]byte("{ \"status\": \"err\", \"err\": \"" + err.Error() + "\"}"))
+		http_write_error(w, errCode, err)
 
 		return true
 	}
 
 	return false
+}
+
+func http_write_error(w http.ResponseWriter, errCode int, err error) {
+	w.WriteHeader(errCode)
+	w.Write([]byte("{ \"status\": \"err\", \"err\": \"" + err.Error() + "\"}"))
 }
 
 func http_write_ok(w http.ResponseWriter) {
@@ -106,7 +115,8 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 
 	peer.ConnectClient(hs.LocalPeer)
 
-	_, err = peer.Bootstrap(&hs.LocalPeer.RoutingTable)
+	client, err := peer.Bootstrap(&hs.LocalPeer.RoutingTable)
+	defer client.Close()
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
@@ -164,8 +174,9 @@ func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
 	w.Write(entry_json)
 }
 
-func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
-	log.Info("HTTP: Peer Search request")
+// Runs a remote search on a peer, ie, a search performed over a network connection.
+func (hs *HTTPServer) PeerRSearch(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Peer Remote Search request")
 	vars := mux.Vars(r)
 	addr := vars["address"]
 
@@ -196,6 +207,38 @@ func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
 	http_write_posts(w, posts)
 }
 
+func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Peer Search request")
+	vars := mux.Vars(r)
+	addr := vars["address"]
+
+	if !hs.LocalPeer.Databases.Has(addr) {
+		http_write_error(w, http.StatusNotFound, errors.New("Database not found. Either run a remote query, or mirror the peer."))
+	}
+
+	query := r.FormValue("query")
+	page := r.FormValue("page")
+
+	page_i, err := strconv.Atoi(page)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	log.Info("Searching ", addr, " for ", query)
+
+	db, _ := hs.LocalPeer.Databases.Get(addr)
+
+	posts, err := db.(*Database).Search(query, page_i)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_posts(w, posts)
+
+}
+
 func (hs *HTTPServer) AddPost(w http.ResponseWriter, r *http.Request) {
 	log.Info("HTTP: Add Post request")
 
@@ -211,7 +254,7 @@ func (hs *HTTPServer) AddPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hs.LocalPeer.AddPost(post)
+	hs.LocalPeer.AddPost(post, false)
 
 	http_write_ok(w)
 }
@@ -431,4 +474,45 @@ func (hs *HTTPServer) GetMeta(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http_write_value(w, value)
+}
+
+func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Mirror request")
+
+	vars := mux.Vars(r)
+
+	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	db, cl, err := peer.Mirror("./data")
+
+	hs.LocalPeer.Databases.Set(peer.ZifAddress.Encode(), db)
+
+	defer cl.Close()
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_ok(w)
+}
+
+func (hs *HTTPServer) SaveCollection(w http.ResponseWriter, r *http.Request) {
+	hs.LocalPeer.Collection.Save("./data/collection.dat")
+
+	http_write_ok(w)
+}
+
+func (hs *HTTPServer) RebuildCollection(w http.ResponseWriter, r *http.Request) {
+	var err error
+	hs.LocalPeer.Collection, err = CreateCollection(hs.LocalPeer.Database, 0, PieceSize)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_ok(w)
 }

@@ -296,7 +296,7 @@ func (c *Client) Popular(page int) ([]*Post, error) {
 
 // Download a hash list for a peer. Expects said hash list to be valid and
 // signed.
-func (c *Client) HashList(address Address, pk ed25519.PublicKey) ([]byte, error) {
+func (c *Client) Collection(address Address, pk ed25519.PublicKey) (*MessageCollection, error) {
 	log.WithField("for", address.Encode()).Info("Sending request for a collection")
 
 	msg := &Message{
@@ -312,7 +312,7 @@ func (c *Client) HashList(address Address, pk ed25519.PublicKey) ([]byte, error)
 		return nil, err
 	}
 
-	mhl := MessageHashList{}
+	mhl := MessageCollection{}
 	err = hl.Decode(&mhl)
 
 	if err != nil {
@@ -325,5 +325,40 @@ func (c *Client) HashList(address Address, pk ed25519.PublicKey) ([]byte, error)
 		return nil, err
 	}
 
-	return mhl.HashList, nil
+	log.WithField("pieces", mhl.Size).Info("Recieved valid collection")
+
+	return &mhl, nil
+}
+
+// Download a piece from a peer, given the address and id of the piece we want.
+func (c *Client) Piece(address Address, id int) (*Piece, error) {
+	log.WithFields(log.Fields{
+		"address": address.Encode(),
+		"id":      id,
+	}).Info("Sending request for piece")
+
+	mrp := MessageRequestPiece{address.Encode(), id}
+	data, err := mrp.Encode()
+
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &Message{
+		Header:  ProtoRequestPiece,
+		Content: data,
+	}
+
+	c.WriteMessage(msg)
+
+	rep, err := c.ReadMessage()
+
+	piece := Piece{}
+	err = rep.Decode(&piece)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &piece, nil
 }

@@ -6,8 +6,11 @@
 package zif
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/hashicorp/yamux"
@@ -230,6 +233,51 @@ func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
 
 }
 
-func (p *Peer) Mirror() (*Database, error) {
-	return nil, nil
+func (p *Peer) Mirror(path string) (*Database, *Client, error) {
+	// Open a database for the peer
+	os.Mkdir(fmt.Sprintf("%s/%s", path, p.ZifAddress.Encode()), 0777)
+	db := NewDatabase(fmt.Sprintf("%s/%s/posts.db", path, p.ZifAddress.Encode()))
+	db.Connect()
+
+	log.WithField("peer", p.ZifAddress.Encode()).Info("Mirroring")
+
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	entry, err := p.Entry()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	mcol, err := stream.Collection(entry.ZifAddress, entry.PublicKey)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for i := 0; i < mcol.Size; i++ {
+		piece, err := stream.Piece(entry.ZifAddress, i)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		hash, err := piece.Rehash()
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if !bytes.Equal(mcol.HashList[32*i:32*i+32], hash) {
+			return nil, nil, errors.New("Piece hash mismatch")
+		}
+
+		db.InsertPiece(piece)
+	}
+
+	return db, &stream, err
 }

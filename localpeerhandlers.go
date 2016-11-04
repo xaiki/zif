@@ -233,14 +233,14 @@ func (lp *LocalPeer) HandlePopular(msg *Message) error {
 }
 
 func (lp *LocalPeer) HandleHashList(msg *Message) error {
-	cl := Client{msg.Stream, nil, nil}
+	cl := NewClient(msg.Stream)
 	address := Address{msg.Content}
 
 	log.WithField("address", address.Encode()).Info("Collection request recieved")
 
-	hashlist := lp.Collection.HashList()
 	sig := lp.Sign(lp.Collection.HashList())
-	mhl := MessageHashList{hashlist, sig}
+
+	mhl := MessageCollection{lp.Collection.Hash(), lp.Collection.HashList(), len(lp.Collection.HashList()) / 32, sig}
 	data, err := mhl.Encode()
 
 	if err != nil {
@@ -253,6 +253,58 @@ func (lp *LocalPeer) HandleHashList(msg *Message) error {
 	}
 
 	cl.WriteMessage(resp)
+
+	return nil
+}
+
+func (lp *LocalPeer) HandlePiece(msg *Message) error {
+	cl := NewClient(msg.Stream)
+
+	mrp := MessageRequestPiece{}
+	err := msg.Decode(&mrp)
+
+	if err != nil {
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"address": mrp.Address,
+		"id":      mrp.Id,
+	}).Info("New piece request")
+
+	var piece *Piece
+	piece = nil
+
+	if mrp.Address == lp.Entry.ZifAddress.Encode() {
+		piece, err = lp.Database.QueryPiece(mrp.Id, true)
+
+		if err != nil {
+			return err
+		}
+	} else if lp.Databases.Has(mrp.Address) {
+		db, _ := lp.Databases.Get(mrp.Address)
+		piece, err = db.(*Database).QueryPiece(mrp.Id, true)
+
+		if err != nil {
+			return err
+		}
+
+	} else {
+		return errors.New("Piece not found")
+	}
+
+	data, err := json.Marshal(piece)
+
+	if err != nil {
+		return err
+	}
+
+	rep := &Message{
+		Header:  ProtoPiece,
+		Content: data,
+	}
+
+	cl.WriteMessage(rep)
 
 	return nil
 }

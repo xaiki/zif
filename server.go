@@ -85,20 +85,22 @@ func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 
 	cl := Client{stream, nil, nil}
 
-	msg, err := cl.ReadMessage()
+	for {
+		msg, err := cl.ReadMessage()
 
-	if err != nil {
-		log.Error(err.Error())
-		return
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+		msg.From = peer
+
+		select {
+		case s.localPeer.MsgChan <- *msg:
+		default:
+		}
+
+		s.RouteMessage(msg)
 	}
-	msg.From = peer
-
-	select {
-	case s.localPeer.MsgChan <- *msg:
-	default:
-	}
-
-	s.RouteMessage(msg)
 }
 
 func (s *Server) RouteMessage(msg *Message) {
@@ -118,6 +120,10 @@ func (s *Server) RouteMessage(msg *Message) {
 		err = s.localPeer.HandleRecent(msg)
 	case ProtoPopular:
 		err = s.localPeer.HandlePopular(msg)
+	case ProtoRequestHashList:
+		err = s.localPeer.HandleHashList(msg)
+	case ProtoRequestPiece:
+		err = s.localPeer.HandlePiece(msg)
 
 	default:
 		log.Error("Unknown message type")

@@ -49,6 +49,30 @@ func (db *Database) Connect() error {
 	return nil
 }
 
+func (db *Database) InsertPiece(piece *Piece) (err error) {
+	tx, err := db.conn.Begin()
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		err = tx.Commit()
+	}()
+
+	for _, i := range piece.Posts {
+		_, err = tx.Exec(sql_insert_post, i.InfoHash, i.Title, i.Size, i.FileCount,
+			i.Seeders, i.Leechers, i.UploadDate, i.Source[:], i.Tags)
+
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 func (db *Database) InsertPost(post Post) error {
 	// TODO: Is preparing all statements before hand worth doing for perf?
 	stmt, err := db.conn.Prepare(sql_insert_post)
@@ -169,9 +193,10 @@ func (db *Database) QueryPostId(id uint) (Post, error) {
 	return post, nil
 }
 
-func (db *Database) QueryPiece(id int) (*Piece, error) {
+func (db *Database) QueryPiece(id int, store bool) (*Piece, error) {
 	page_size := PieceSize // TODO: Configure this elsewhere
 	var piece Piece
+	piece.Setup()
 
 	rows, err := db.conn.Query(sql_query_paged_post, id*page_size,
 		page_size)
@@ -192,7 +217,7 @@ func (db *Database) QueryPiece(id int) (*Piece, error) {
 			return nil, err
 		}
 
-		piece.Add(post)
+		piece.Add(post, store)
 	}
 
 	return &piece, nil
