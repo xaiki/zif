@@ -234,11 +234,8 @@ func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
 }
 
 func (p *Peer) Mirror(path string) (*Database, *Client, error) {
-	col := Collection{}
-	col.Setup()
-
 	// Open a database for the peer
-	os.Mkdir(fmt.Sprintf("%s/%s"), 0777)
+	os.Mkdir(fmt.Sprintf("%s/%s", path, p.ZifAddress.Encode()), 0777)
 	db := NewDatabase(fmt.Sprintf("%s/%s/posts.db", path, p.ZifAddress.Encode()))
 	db.Connect()
 
@@ -279,9 +276,7 @@ func (p *Peer) Mirror(path string) (*Database, *Client, error) {
 			return nil, nil, errors.New("Piece hash mismatch")
 		}
 
-		for _, i := range piece.Posts {
-			db.InsertPost(i)
-		}
+		db.InsertPiece(piece)
 	}
 
 	return db, &stream, err

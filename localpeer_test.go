@@ -189,33 +189,3 @@ func TestLocalPeerRecent(t *testing.T) {
 		t.Error("Remote post search failed")
 	}
 }
-
-func TestLocalPeerMirror(t *testing.T) {
-	source, _ := zif.CryptoRandBytes(20)
-	lp_remote := CreateLocalPeer("remote-mirror", 5057)
-	lp_requester := CreateLocalPeer("requester-mirror", 5058)
-
-	defer lp_remote.Close()
-	defer lp_requester.Close()
-
-	BootstrapLocalPeer(&lp_requester, &lp_remote, t)
-
-	arch := zif.NewPost(ArchInfoHash, "Arch Linux 2015-09-03", 100, 10, 1472860800, source)
-	ubuntu := zif.NewPost(UbuntuInfoHash, "Ubuntu Linux 16.04.1", 101, 9, 1472860800, source)
-
-	lp_remote.AddPost(arch, false)
-	lp_remote.AddPost(ubuntu, false)
-	lp_remote.Database.GenerateFts(0)
-
-	peer, err := lp_requester.ConnectPeer(lp_remote.ZifAddress.Encode())
-
-	if err != nil {
-		t.Fatal("Failed to connect")
-	}
-
-	_, _, err = peer.Mirror("./data")
-
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-}

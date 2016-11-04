@@ -82,8 +82,7 @@ func main() {
 	signal.Notify(sigchan, os.Interrupt)
 
 	for _ = range sigchan {
-		lp.RoutingTable.Save()
-		lp.Database.Close()
+		lp.Close()
 
 		os.Exit(0)
 	}

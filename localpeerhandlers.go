@@ -238,11 +238,9 @@ func (lp *LocalPeer) HandleHashList(msg *Message) error {
 
 	log.WithField("address", address.Encode()).Info("Collection request recieved")
 
-	col, err := CreateCollection(lp.Database, 0, 1000)
+	sig := lp.Sign(lp.Collection.HashList())
 
-	sig := lp.Sign(col.HashList())
-
-	mhl := MessageCollection{col.Hash(), col.HashList(), len(col.HashList()) / 32, sig}
+	mhl := MessageCollection{lp.Collection.Hash(), lp.Collection.HashList(), len(lp.Collection.HashList()) / 32, sig}
 	data, err := mhl.Encode()
 
 	if err != nil {
@@ -283,8 +281,9 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 		if err != nil {
 			return err
 		}
-	} else if _, ok := lp.Databases[mrp.Address]; ok {
-		piece, err = lp.Databases[mrp.Address].QueryPiece(mrp.Id, true)
+	} else if lp.Databases.Has(mrp.Address) {
+		db, _ := lp.Databases.Get(mrp.Address)
+		piece, err = db.(*Database).QueryPiece(mrp.Id, true)
 
 		if err != nil {
 			return err

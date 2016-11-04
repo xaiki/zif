@@ -49,6 +49,30 @@ func (db *Database) Connect() error {
 	return nil
 }
 
+func (db *Database) InsertPiece(piece *Piece) (err error) {
+	tx, err := db.conn.Begin()
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+
+		err = tx.Commit()
+	}()
+
+	for _, i := range piece.Posts {
+		_, err = tx.Exec(sql_insert_post, i.InfoHash, i.Title, i.Size, i.FileCount,
+			i.Seeders, i.Leechers, i.UploadDate, i.Source[:], i.Tags)
+
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 func (db *Database) InsertPost(post Post) error {
 	// TODO: Is preparing all statements before hand worth doing for perf?
 	stmt, err := db.conn.Prepare(sql_insert_post)

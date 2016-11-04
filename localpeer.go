@@ -20,9 +20,9 @@ type LocalPeer struct {
 	Entry        Entry
 	RoutingTable RoutingTable
 	Server       Server
-	Collection   Collection
+	Collection   *Collection
 	Database     *Database
-	Databases    map[string]*Database
+	Databases    cmap.ConcurrentMap
 
 	privateKey ed25519.PrivateKey
 
@@ -36,9 +36,12 @@ type LocalPeer struct {
 }
 
 func (lp *LocalPeer) Setup() {
+	var err error
+
 	lp.Entry.Signature = make([]byte, ed25519.SignatureSize)
 	lp.peers = cmap.New()
 	lp.public_to_zif = cmap.New()
+	lp.Databases = cmap.New()
 	lp.ZifAddress.Generate(lp.PublicKey)
 
 	lp.Server.localPeer = lp
@@ -46,7 +49,13 @@ func (lp *LocalPeer) Setup() {
 	lp.MsgChan = make(chan Message)
 
 	lp.RoutingTable.Setup(lp.ZifAddress)
-	lp.Collection.Setup()
+
+	lp.Collection, err = LoadCollection("./data/collection.dat")
+
+	if err != nil {
+		lp.Collection = NewCollection()
+		log.Info("Created new collection")
+	}
 }
 
 // Creates a peer, connects to a public address
@@ -284,6 +293,9 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 func (lp *LocalPeer) Close() {
 	lp.CloseStreams()
 	lp.Server.Close()
+	lp.Database.Close()
+	lp.RoutingTable.Save()
+	lp.Collection.Save("./data/collection.dat")
 }
 
 func (lp *LocalPeer) AddPost(p Post, store bool) {

@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -79,27 +77,4 @@ func ValidateEntry(entry *Entry) error {
 	}
 
 	return nil
-}
-
-// Takes a database, starting id, and piece size. Generates a hash list.
-func CreateCollection(db *Database, start, pieceSize int) (*Collection, error) {
-	col := Collection{}
-	col.Setup()
-
-	postCount := db.PostCount()
-	pieceCount := int(math.Ceil(float64(postCount) / float64(pieceSize)))
-
-	log.Info("Piece count ", pieceCount)
-
-	for i := 0; i < pieceCount; i++ {
-		piece, err := db.QueryPiece(i, false)
-
-		if err != nil {
-			return nil, err
-		}
-
-		col.Add(piece)
-	}
-
-	return &col, nil
 }
