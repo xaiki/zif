@@ -17,4 +17,6 @@ Peer discovery is done via an implementation of Kademlia, a DHT similar to the o
 
 # Sounds cool, when can I use it?
 
-Sometime in the future. As of the time of writing, I have written a large portion of the DHT and a fair amount of the database, there's just still a lot of work left to do to glue the two together. Plus I need to write a nice graphical client!
+Sometime in the future. As of the time of writing, I have written a DHT for peer resolution, a database system for post storage/indexing, and a protocol for remote searching of posts and mirroring of peer databases. There's also a graphical client in the works, see the ui folder!
+
+It's actually relatively usable at the moment, just needs more testing - the UI also needs work for it to be properly functional.
