@@ -113,7 +113,7 @@ func (c *Collection) Rehash() {
 	c.hash = sha3.New256()
 
 	for i := 0; i < len(c.hashlist)/32; i++ {
-		c.hash.Write(c.hashlist[i*32 : i*32+i])
+		c.hash.Write(c.hashlist[i*32 : i*32+32])
 	}
 }
 

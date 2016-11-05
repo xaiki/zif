@@ -267,11 +267,6 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 		return err
 	}
 
-	log.WithFields(log.Fields{
-		"address": mrp.Address,
-		"id":      mrp.Id,
-	}).Info("New piece request")
-
 	var piece chan *Post
 
 	if mrp.Address == lp.Entry.ZifAddress.Encode() {
@@ -285,16 +280,14 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 		return errors.New("Piece not found")
 	}
 
+	// We do not use a Message struct in here to maximise performance, as we will
+	// potentially be sending a LOT of posts over the network.
 	for i := range piece {
-		data, err := json.Marshal(i)
+		err = cl.encoder.Encode(i)
+
 		if err != nil {
 			return err
 		}
-		rep := &Message{
-			Header:  ProtoPosts,
-			Content: data,
-		}
-		cl.WriteMessage(rep)
 	}
 
 	return nil

@@ -106,8 +106,6 @@ func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 func (s *Server) RouteMessage(msg *Message) {
 	var err error
 
-	log.Debug("Routing message ", msg.Header)
-
 	switch msg.Header {
 
 	case ProtoDhtAnnounce:

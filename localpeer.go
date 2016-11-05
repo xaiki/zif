@@ -54,6 +54,7 @@ func (lp *LocalPeer) Setup() {
 
 	if err != nil {
 		lp.Collection = NewCollection()
+		log.Error(err.Error())
 		log.Info("Created new collection")
 	}
 }
