@@ -8,14 +8,13 @@ package zif
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"net"
-	"os"
 	"time"
 
 	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
+	"gopkg.in/cheggaaa/pb.v1"
 )
 
 type Peer struct {
@@ -233,51 +232,51 @@ func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
 
 }
 
-func (p *Peer) Mirror(path string) (*Database, *Client, error) {
+func (p *Peer) Mirror(db *Database) (*Client, error) {
 	pieces := make(chan *Piece, 100)
 	defer close(pieces)
 
-	// Open a database for the peer
-	os.Mkdir(fmt.Sprintf("%s/%s", path, p.ZifAddress.Encode()), 0777)
-	db := NewDatabase(fmt.Sprintf("%s/%s/posts.db", path, p.ZifAddress.Encode()))
-	db.Connect()
-
-	go db.InsertPieces(pieces)
+	go db.InsertPieces(pieces, true)
 
 	log.WithField("peer", p.ZifAddress.Encode()).Info("Mirroring")
 
 	stream, err := p.OpenStream()
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	entry, err := p.Entry()
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	mcol, err := stream.Collection(entry.ZifAddress, entry.PublicKey)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
+	bar := pb.StartNew(mcol.Size)
 	for i := 0; i < mcol.Size; i++ {
 		piece, err := stream.Piece(entry.ZifAddress, i)
 
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		if !bytes.Equal(mcol.HashList[32*i:32*i+32], piece.Hash()) {
-			return nil, nil, errors.New("Piece hash mismatch")
+			return nil, errors.New("Piece hash mismatch")
 		}
 
-		pieces <- piece
+		bar.Increment()
 
+		if len(pieces) == 100 {
+			log.Info("Piece buffer full, io is blocking")
+		}
+		pieces <- piece
 	}
 
-	return db, &stream, err
+	return &stream, err
 }

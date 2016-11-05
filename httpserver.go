@@ -5,7 +5,9 @@ package zif
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -354,13 +356,11 @@ func (hs *HTTPServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
 
 	since_i, err := strconv.Atoi(since)
 
-	log.Info("Generating FTS index since ", since_i)
-
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
-	err = hs.LocalPeer.Database.GenerateFts(uint64(since_i))
+	err = hs.LocalPeer.Database.GenerateFts(since_i)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
@@ -497,7 +497,14 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, _, err := peer.Mirror("./data")
+	// Open a database for the peer
+	os.Mkdir(fmt.Sprintf("%s/%s", "./data", peer.ZifAddress.Encode()), 0777)
+	db := NewDatabase(fmt.Sprintf("%s/%s/posts.db", "./data", peer.ZifAddress.Encode()))
+	db.Connect()
+
+	hs.LocalPeer.Databases.Set(peer.ZifAddress.Encode(), db)
+
+	_, err = peer.Mirror(db)
 
 	hs.LocalPeer.Databases.Set(peer.ZifAddress.Encode(), db)
 
