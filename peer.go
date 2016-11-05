@@ -258,7 +258,9 @@ func (p *Peer) Mirror(db *Database) (*Client, error) {
 		return nil, err
 	}
 
-	bar := pb.StartNew(mcol.Size)
+	bar := pb.StartNew(mcol.Size - 1)
+	bar.ShowSpeed = true
+
 	for i := 0; i < mcol.Size; i++ {
 		piece, err := stream.Piece(entry.ZifAddress, i)
 
@@ -277,6 +279,8 @@ func (p *Peer) Mirror(db *Database) (*Client, error) {
 		}
 		pieces <- piece
 	}
+
+	bar.Finish()
 
 	return &stream, err
 }
