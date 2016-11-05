@@ -30,7 +30,7 @@ func (db *Database) Connect() error {
 	// Enable Write-Ahead Logging
 	db.conn.Exec("PRAGMA journal_mode=WAL")
 
-	db.conn.SetMaxOpenConns(1)
+	//db.conn.SetMaxOpenConns(1)
 
 	_, err = db.conn.Exec(sql_create_post_table)
 	if err != nil {

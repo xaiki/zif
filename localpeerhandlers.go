@@ -153,6 +153,7 @@ func (lp *LocalPeer) HandleSearch(msg *Message) error {
 	if err != nil {
 		return err
 	}
+	log.Info("Posts loaded")
 
 	json, err := PostsToJson(posts)
 

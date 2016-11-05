@@ -79,7 +79,8 @@ const sql_query_post_id string = `SELECT 	 * FROM post
 												 WHERE id = ?`
 
 const sql_query_paged_post string = `SELECT 	 * FROM post
-												 LIMIT ?,?`
+												 WHERE id > ?
+												 LIMIT 0,?`
 
 // Seeders are weighted, things with more seeders are better than things with
 // more leechers, though both are important.
