@@ -4,7 +4,6 @@ import (
 	"database/sql"
 
 	_ "github.com/mattn/go-sqlite3"
-	log "github.com/sirupsen/logrus"
 )
 
 type Database struct {
@@ -79,7 +78,10 @@ func (db *Database) InsertPiece(piece *Piece) (err error) {
 	return
 }
 
-func (db *Database) InsertPieces(pieces chan *Piece) (err error) {
+// Insert pieces from a channel, good for streaming them from a network or something.
+// The fts bool is whether or not a fts index will be generated on every transaction
+// commit. Transactions contain 100 pieces, or 100,000 posts.
+func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 	tx, err := db.conn.Begin()
 
 	n := 0
@@ -93,14 +95,18 @@ func (db *Database) InsertPieces(pieces chan *Piece) (err error) {
 		err = tx.Commit()
 	}()
 
+	//lastId := 0
 	for piece := range pieces {
-		// Insert the transaction every 100,000 pieces
-		if n > 100 {
+		// Insert the transaction every 100,000 posts.
+		if n == 99 {
 			err = tx.Commit()
 
 			if err != nil {
 				return
 			}
+
+			//db.GenerateFts(lastId)
+			//lastId = piece.Posts[len(piece.Posts)-1].Id
 
 			tx, err = db.conn.Begin()
 
@@ -108,7 +114,6 @@ func (db *Database) InsertPieces(pieces chan *Piece) (err error) {
 				return
 			}
 
-			log.Info("Commited transaction")
 			n = 0
 		}
 
@@ -144,7 +149,8 @@ func (db *Database) InsertPost(post Post) error {
 	return nil
 }
 
-func (db *Database) GenerateFts(since uint64) error {
+// Generate a full text search index since the given id.
+func (db *Database) GenerateFts(since int) error {
 	stmt, err := db.conn.Prepare(sql_generate_fts)
 
 	if err != nil {
