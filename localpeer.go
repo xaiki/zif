@@ -6,6 +6,9 @@ package zif
 import (
 	"errors"
 	"io/ioutil"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -57,6 +60,32 @@ func (lp *LocalPeer) Setup() {
 		log.Error(err.Error())
 		log.Info("Created new collection")
 	}
+
+	// Loop through all the databases of other peers in ./data, load them.
+	handler := func(path string, info os.FileInfo, err error) error {
+		if path != "data/posts.db" && info.Name() == "posts.db" {
+			r, err := regexp.Compile("data/(\\w+)/.+")
+
+			if err != nil {
+				return err
+			}
+
+			addr := r.FindStringSubmatch(path)
+
+			db := NewDatabase(path)
+
+			err = db.Connect()
+
+			if err != nil {
+				return err
+			}
+
+			lp.Databases.Set(addr[1], db)
+		}
+		return nil
+	}
+
+	filepath.Walk("./data", handler)
 }
 
 // Creates a peer, connects to a public address

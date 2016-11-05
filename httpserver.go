@@ -34,9 +34,10 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/peer/{address}/recent/{page}/", hs.Recent)
 	router.HandleFunc("/peer/{address}/popular/{page}/", hs.Popular)
 	router.HandleFunc("/peer/{address}/mirror/", hs.Mirror)
+	router.HandleFunc("/peer/{address}/index/{since}/", hs.PeerFtsIndex)
 
 	router.HandleFunc("/self/addpost/", hs.AddPost).Methods("POST")
-	router.HandleFunc("/self/index/", hs.FtsIndex).Methods("POST")
+	router.HandleFunc("/self/index/{since}/", hs.FtsIndex)
 	router.HandleFunc("/self/resolve/{address}/", hs.Resolve)
 	router.HandleFunc("/self/bootstrap/{address}/", hs.Bootstrap)
 	router.HandleFunc("/self/search/", hs.SelfSearch).Methods("POST")
@@ -352,7 +353,8 @@ func (hs *HTTPServer) Popular(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
 	log.Info("HTTP: FTS Index request")
 
-	since := r.FormValue("since")
+	vars := mux.Vars(r)
+	since := vars["since"]
 
 	since_i, err := strconv.Atoi(since)
 
@@ -361,6 +363,29 @@ func (hs *HTTPServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = hs.LocalPeer.Database.GenerateFts(since_i)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_ok(w)
+}
+
+func (hs *HTTPServer) PeerFtsIndex(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: FTS Index request")
+
+	vars := mux.Vars(r)
+	since := vars["since"]
+	addr := vars["address"]
+
+	since_i, err := strconv.Atoi(since)
+
+	if !hs.LocalPeer.Databases.Has(addr) {
+		err = errors.New("Peer database not loaded")
+	}
+	db, _ := hs.LocalPeer.Databases.Get(addr)
+
+	err = db.(*Database).GenerateFts(since_i)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
