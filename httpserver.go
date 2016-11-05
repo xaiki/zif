@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 
@@ -107,7 +108,16 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 	log.Info("HTTP: Bootstrap request")
 	vars := mux.Vars(r)
 
-	peer, err := hs.LocalPeer.ConnectPeerDirect(vars["address"])
+	address := strings.Split(vars["address"], ":")
+	host := address[0]
+	var port string
+	if len(address) == 1 {
+		port = "5050"
+	} else {
+		port = address[1]
+	}
+
+	peer, err := hs.LocalPeer.ConnectPeerDirect(host + ":" + port)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
