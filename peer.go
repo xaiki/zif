@@ -271,13 +271,7 @@ func (p *Peer) Mirror(path string) (*Database, *Client, error) {
 			return nil, nil, err
 		}
 
-		hash, err := piece.Rehash()
-
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if !bytes.Equal(mcol.HashList[32*i:32*i+32], hash) {
+		if !bytes.Equal(mcol.HashList[32*i:32*i+32], piece.Hash()) {
 			return nil, nil, errors.New("Piece hash mismatch")
 		}
 

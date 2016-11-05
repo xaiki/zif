@@ -352,16 +352,11 @@ func (c *Client) Piece(address Address, id int) (*Piece, error) {
 	c.WriteMessage(msg)
 
 	piece := Piece{}
+	piece.Setup()
 
 	for i := 0; i < PieceSize; i++ {
-		rep, err := c.ReadMessage()
-
-		if err != nil {
-			return nil, err
-		}
-
 		post := Post{}
-		err = rep.Decode(&post)
+		err = c.decoder.Decode(&post)
 
 		if err != nil {
 			return nil, err
