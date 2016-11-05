@@ -272,39 +272,30 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 		"id":      mrp.Id,
 	}).Info("New piece request")
 
-	var piece *Piece
-	piece = nil
+	var piece chan *Post
 
 	if mrp.Address == lp.Entry.ZifAddress.Encode() {
-		piece, err = lp.Database.QueryPiece(mrp.Id, true)
+		piece = lp.Database.QueryPiecePosts(mrp.Id, true)
 
-		if err != nil {
-			return err
-		}
 	} else if lp.Databases.Has(mrp.Address) {
 		db, _ := lp.Databases.Get(mrp.Address)
-		piece, err = db.(*Database).QueryPiece(mrp.Id, true)
-
-		if err != nil {
-			return err
-		}
+		piece = db.(*Database).QueryPiecePosts(mrp.Id, true)
 
 	} else {
 		return errors.New("Piece not found")
 	}
 
-	data, err := json.Marshal(piece)
-
-	if err != nil {
-		return err
+	for i := range piece {
+		data, err := json.Marshal(i)
+		if err != nil {
+			return err
+		}
+		rep := &Message{
+			Header:  ProtoPosts,
+			Content: data,
+		}
+		cl.WriteMessage(rep)
 	}
-
-	rep := &Message{
-		Header:  ProtoPiece,
-		Content: data,
-	}
-
-	cl.WriteMessage(rep)
 
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/sha3"
 )
@@ -27,6 +28,24 @@ type MessageSearchQuery struct {
 type MessageRequestPiece struct {
 	Address string
 	Id      int
+}
+
+// Allows us to decode a pieces without also decoding all of the posts within it.
+type MessagePiece struct {
+	Posts interface{}
+}
+
+func (mp *MessagePiece) Hash() ([]byte, error) {
+	hash := sha3.New256()
+
+	//for _, i := range mp.Posts {
+	//h := sha3.Sum256([]byte(i))
+	//hash.Write(h[:])
+	//}
+
+	log.Info("Piece hashed")
+
+	return hash.Sum(nil), nil
 }
 
 func (mhl *MessageCollection) Verify(pk ed25519.PublicKey) error {

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	_ "github.com/mattn/go-sqlite3"
+	log "github.com/sirupsen/logrus"
 )
 
 type Database struct {
@@ -25,6 +26,11 @@ func (db *Database) Connect() error {
 	if err != nil {
 		return err
 	}
+
+	// Enable Write-Ahead Logging
+	db.conn.Exec("PRAGMA journal_mode=WAL")
+
+	db.conn.SetMaxOpenConns(1)
 
 	_, err = db.conn.Exec(sql_create_post_table)
 	if err != nil {
@@ -76,6 +82,8 @@ func (db *Database) InsertPiece(piece *Piece) (err error) {
 func (db *Database) InsertPieces(pieces chan *Piece) (err error) {
 	tx, err := db.conn.Begin()
 
+	n := 0
+
 	defer func() {
 		if err != nil {
 			tx.Rollback()
@@ -86,6 +94,24 @@ func (db *Database) InsertPieces(pieces chan *Piece) (err error) {
 	}()
 
 	for piece := range pieces {
+		// Insert the transaction every 100,000 pieces
+		if n > 100 {
+			err = tx.Commit()
+
+			if err != nil {
+				return
+			}
+
+			tx, err = db.conn.Begin()
+
+			if err != nil {
+				return
+			}
+
+			log.Info("Commited transaction")
+			n = 0
+		}
+
 		for _, i := range piece.Posts {
 			_, err = tx.Exec(sql_insert_post, i.InfoHash, i.Title, i.Size, i.FileCount,
 				i.Seeders, i.Leechers, i.UploadDate, i.Source[:], i.Tags)
@@ -95,6 +121,7 @@ func (db *Database) InsertPieces(pieces chan *Piece) (err error) {
 			}
 		}
 
+		n += 1
 	}
 
 	return
@@ -248,6 +275,39 @@ func (db *Database) QueryPiece(id int, store bool) (*Piece, error) {
 	}
 
 	return &piece, nil
+}
+
+func (db *Database) QueryPiecePosts(id int, store bool) chan *Post {
+	ret := make(chan *Post)
+	page_size := PieceSize // TODO: Configure this elsewhere
+
+	go func() {
+		rows, err := db.conn.Query(sql_query_paged_post, id*page_size,
+			page_size)
+
+		if err != nil {
+			close(ret)
+		}
+
+		for rows.Next() {
+
+			var post Post
+
+			err := rows.Scan(&post.Id, &post.InfoHash, &post.Title, &post.Size,
+				&post.FileCount, &post.Seeders, &post.Leechers, &post.UploadDate,
+				&post.Source, &post.Tags)
+
+			if err != nil {
+				close(ret)
+			}
+
+			ret <- &post
+		}
+
+		close(ret)
+	}()
+
+	return ret
 }
 
 func (db *Database) PostCount() uint {

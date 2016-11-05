@@ -35,7 +35,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 
 	router.HandleFunc("/self/addpost/", hs.AddPost).Methods("POST")
 	router.HandleFunc("/self/index/", hs.FtsIndex).Methods("POST")
-	router.HandleFunc("/self/resolve/{address}", hs.Resolve)
+	router.HandleFunc("/self/resolve/{address}/", hs.Resolve)
 	router.HandleFunc("/self/bootstrap/{address}/", hs.Bootstrap)
 	router.HandleFunc("/self/search/", hs.SelfSearch).Methods("POST")
 	router.HandleFunc("/self/recent/{page}/", hs.SelfRecent)
@@ -497,11 +497,9 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, cl, err := peer.Mirror("./data")
+	db, _, err := peer.Mirror("./data")
 
 	hs.LocalPeer.Databases.Set(peer.ZifAddress.Encode(), db)
-
-	defer cl.Close()
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
