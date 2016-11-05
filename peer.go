@@ -235,17 +235,14 @@ func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
 
 func (p *Peer) Mirror(path string) (*Database, *Client, error) {
 	pieces := make(chan *Piece, 100)
+	defer close(pieces)
 
 	// Open a database for the peer
 	os.Mkdir(fmt.Sprintf("%s/%s", path, p.ZifAddress.Encode()), 0777)
 	db := NewDatabase(fmt.Sprintf("%s/%s/posts.db", path, p.ZifAddress.Encode()))
 	db.Connect()
 
-	go func() {
-		for i := range pieces {
-			db.InsertPiece(i)
-		}
-	}()
+	go db.InsertPieces(pieces)
 
 	log.WithField("peer", p.ZifAddress.Encode()).Info("Mirroring")
 
