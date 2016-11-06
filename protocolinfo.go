@@ -18,6 +18,7 @@ var (
 	ProtoSig       = 0x0005
 	ProtoPing      = 0x0006
 	ProtoPong      = 0x0007
+	ProtoDone      = 0x0008
 
 	ProtoBootstrap = 0x0100 // Request a bootstrap
 	ProtoSearch    = 0x0101 // Request a search

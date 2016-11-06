@@ -258,7 +258,8 @@ func (p *Peer) Mirror(db *Database) (*Client, error) {
 		return nil, err
 	}
 
-	bar := pb.StartNew(mcol.Size - 1)
+	log.Info("Downloading collection, size ", mcol.Size)
+	bar := pb.StartNew(mcol.Size)
 	bar.ShowSpeed = true
 
 	for i := 0; i < mcol.Size; i++ {
@@ -281,6 +282,7 @@ func (p *Peer) Mirror(db *Database) (*Client, error) {
 	}
 
 	bar.Finish()
+	log.Info("Mirror complete")
 
 	return &stream, err
 }

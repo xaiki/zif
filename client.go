@@ -24,6 +24,7 @@ type Client struct {
 	encoder *json.Encoder
 }
 
+// Creates a new client, automatically setting up the json encoder/decoder.
 func NewClient(conn net.Conn) *Client {
 	return &Client{conn, json.NewDecoder(conn), json.NewEncoder(conn)}
 }
@@ -32,6 +33,7 @@ func (c *Client) Terminate() {
 	//c.conn.Write(proto_terminate)
 }
 
+// Close the client connection.
 func (c *Client) Close() (err error) {
 	if c.conn != nil {
 		err = c.conn.Close()
@@ -39,16 +41,19 @@ func (c *Client) Close() (err error) {
 	return
 }
 
+// Encodes v as json and writes it to c.conn.
 func (c *Client) WriteMessage(v interface{}) error {
 	if c.encoder == nil {
 		c.encoder = json.NewEncoder(c.conn)
 	}
 
-	err := json.NewEncoder(c.conn).Encode(v)
+	err := c.encoder.Encode(v)
 
 	return err
 }
 
+// Blocks until a message is read from c.conn, decodes it into a *Message and
+// returns.
 func (c *Client) ReadMessage() (*Message, error) {
 	var msg Message
 
@@ -65,6 +70,8 @@ func (c *Client) ReadMessage() (*Message, error) {
 	return &msg, nil
 }
 
+// Pings a client with a specified timeout, returns true/false depending on
+// if it recieves a reply.
 func (c *Client) Ping(timeout time.Duration) bool {
 	/*c.conn.Write(proto_ping)
 
@@ -86,10 +93,12 @@ func (c *Client) Ping(timeout time.Duration) bool {
 	return true
 }
 
+// Replies to a Ping request.
 func (c *Client) Pong() {
 	//c.conn.Write(proto_pong)
 }
 
+// Sends a DHT entry to a peer.
 func (c *Client) SendEntry(e *Entry) error {
 	json, err := EntryToJson(e)
 	msg := Message{Header: ProtoEntry, Content: json}
@@ -104,6 +113,8 @@ func (c *Client) SendEntry(e *Entry) error {
 	return nil
 }
 
+// Announce the given DHT entry to a peer, passes on this peers details,
+// meaning that it can be reached by other peers on the network.
 func (c *Client) Announce(e *Entry) error {
 	json, err := EntryToJson(e)
 
@@ -136,6 +147,9 @@ func (c *Client) Announce(e *Entry) error {
 	return nil
 }
 
+// Given a Zif address, attempts to resolve it for a DHT entry. Returns the k
+// closest peers to the address. It only returns the closest entries that the
+// peer knows about, so more Queries may well be needed.
 func (c *Client) Query(address string) ([]Entry, error) {
 	// TODO: LimitReader
 
@@ -175,6 +189,9 @@ func (c *Client) Query(address string) ([]Entry, error) {
 	return entries, err
 }
 
+// Adds the initial entries into the given routing table. Essentially queries for
+// both it's own and the peers address, storing the result. This means that after
+// a bootstrap, it should be possible to connect to *any* peer!
 func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 	peers, err := c.Query(address.Encode())
 
@@ -332,10 +349,10 @@ func (c *Client) Collection(address Address, pk ed25519.PublicKey) (*MessageColl
 
 // Download a piece from a peer, given the address and id of the piece we want.
 func (c *Client) Piece(address Address, id int) (*Piece, error) {
-	/*log.WithFields(log.Fields{
+	log.WithFields(log.Fields{
 		"address": address.Encode(),
 		"id":      id,
-	}).Info("Sending request for piece")*/
+	}).Info("Sending request for piece")
 
 	mrp := MessageRequestPiece{address.Encode(), id}
 	data, err := mrp.Encode()
@@ -354,9 +371,19 @@ func (c *Client) Piece(address Address, id int) (*Piece, error) {
 	piece := Piece{}
 	piece.Setup()
 
-	for i := 0; i < PieceSize; i++ {
+	for {
+		rep, err := c.ReadMessage()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if rep.Header == ProtoDone {
+			break
+		}
+
 		post := Post{}
-		err = c.decoder.Decode(&post)
+		err = rep.Decode(&post)
 
 		if err != nil {
 			return nil, err
