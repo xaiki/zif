@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	_ "github.com/mattn/go-sqlite3"
+	log "github.com/sirupsen/logrus"
 )
 
 type Database struct {
@@ -310,6 +311,7 @@ func (db *Database) QueryPiecePosts(id int, store bool) chan *Post {
 			ret <- &post
 		}
 
+		log.Debug("Queried piece")
 		close(ret)
 	}()
 

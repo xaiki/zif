@@ -281,15 +281,25 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 		return errors.New("Piece not found")
 	}
 
-	// We do not use a Message struct in here to maximise performance, as we will
-	// potentially be sending a LOT of posts over the network.
 	for i := range piece {
-		err = cl.encoder.Encode(i)
-
+		data, err := i.Json()
 		if err != nil {
 			return err
 		}
+
+		rep := &Message{
+			Header:  ProtoPost,
+			Content: data,
+		}
+
+		cl.WriteMessage(rep)
 	}
+
+	rep := &Message{
+		Header: ProtoDone,
+	}
+
+	cl.WriteMessage(rep)
 
 	return nil
 }

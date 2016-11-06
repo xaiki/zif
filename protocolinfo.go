@@ -18,6 +18,7 @@ var (
 	ProtoSig       = 0x0005
 	ProtoPing      = 0x0006
 	ProtoPong      = 0x0007
+	ProtoDone      = 0x0008
 
 	ProtoBootstrap = 0x0100 // Request a bootstrap
 	ProtoSearch    = 0x0101 // Request a search
@@ -33,7 +34,8 @@ var (
 	ProtoEntry    = 0x0200 // An individual DHT entry in Content
 	ProtoPosts    = 0x0201 // A list of posts in Content
 	ProtoHashList = 0x0202
-	ProtoPiece    = 0x203
+	ProtoPiece    = 0x0203
+	ProtoPost     = 0x0204
 
 	ProtoDhtQuery    = 0x0300
 	ProtoDhtAnnounce = 0x0301
