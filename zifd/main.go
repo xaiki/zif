@@ -57,7 +57,6 @@ func main() {
 	lp.Entry.Desc = "Decentralize all the things! :D"
 	lp.Entry.Port = port
 	lp.Entry.PublicAddress = ""
-	lp.Entry.PublicAddress = "127.0.0.1"
 	lp.Entry.SetLocalPeer(lp)
 	lp.SignEntry()
 
