@@ -349,10 +349,10 @@ func (c *Client) Collection(address Address, pk ed25519.PublicKey) (*MessageColl
 
 // Download a piece from a peer, given the address and id of the piece we want.
 func (c *Client) Piece(address Address, id int) (*Piece, error) {
-	log.WithFields(log.Fields{
+	/*log.WithFields(log.Fields{
 		"address": address.Encode(),
 		"id":      id,
-	}).Info("Sending request for piece")
+	}).Info("Sending request for piece")*/
 
 	mrp := MessageRequestPiece{address.Encode(), id}
 	data, err := mrp.Encode()

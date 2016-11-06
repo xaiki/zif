@@ -1,31 +1,51 @@
-const {app, BrowserWindow} = require("electron")
-const spawn = require("child_process").spawn;
+'use strict';
 
-require('electron-context-menu')({
-    prepend: params => [{
-        label: 'Zif',
-        // only show it when right-clicking images
-        visible: params.mediaType === 'image'
-    }]
-});
+var electron = require('electron');
+// Module to control application life.
+var app = require('app');
+// Module to create native browser window.
+var BrowserWindow = require('browser-window')
 
-let win
-let zifd
+// Keep a global reference of the window object, if you don't, the window will
+// be closed automatically when the JavaScript object is garbage collected.
+let mainWindow;
 
-function createWindow() 
-{
-	win = new BrowserWindow({ width: 800, height: 600 });
+function createWindow () {
+  // Create the browser window.
+  mainWindow = new BrowserWindow({width: 800, height: 600});
 
-	win.loadURL(`file://${__dirname}/index.html`);
-	//win.webContents.openDevTools();
+  // and load the index.html of the app.
+  mainWindow.loadURL('file://' + __dirname + '/dist/index.html');
 
-	win.on("closed", () => {
-		win = null;
-	})
+  // Open the DevTools.
+  // mainWindow.webContents.openDevTools();
 
-	// TODO: Make this optional. Some users may well be running a remote daemon,
-	// or may have one running anyway in order to use other clients. Who knows?
-	zifd = spawn("zifd", [], {stdio: "inherit"});
+  // Emitted when the window is closed.
+  mainWindow.on('closed', function() {
+    // Dereference the window object, usually you would store windows
+    // in an array if your app supports multi windows, this is the time
+    // when you should delete the corresponding element.
+    mainWindow = null;
+  });
 }
 
-app.on("ready", createWindow);
+// This method will be called when Electron has finished
+// initialization and is ready to create browser windows.
+app.on('ready', createWindow);
+
+// Quit when all windows are closed.
+app.on('window-all-closed', function () {
+  // On OS X it is common for applications and their menu bar
+  // to stay active until the user quits explicitly with Cmd + Q
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', function () {
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (mainWindow === null) {
+    createWindow();
+  }
+});

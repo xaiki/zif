@@ -1,60 +1,31 @@
-var path = require('path')
-var webpack = require('webpack')
-var nodeExternals = require('webpack-node-externals');
+var webpack = require('webpack');
+var path = require('path');
 
 module.exports = {
-  entry: './src/main.js',
-  target: "electron",
-  output: {
-    path: path.resolve(__dirname, './dist'),
-    publicPath: '/dist/',
-    filename: 'build.js'
-  },
-  resolveLoader: {
-    root: path.join(__dirname, 'node_modules'),
-  },
+  entry: [
+    './src/index'
+  ],
   module: {
     loaders: [
-      {
-        test: /\.vue$/,
-        loader: 'vue',
-        exclude: /node_modules/
-      },
-      {
-        test: /\.js$/,
-        loader: 'babel',
-        exclude: /node_modules/
-      },
-      {
-        test: /\.(png|jpg|gif|svg|woff|woff2|ttf)$/,
-        loader: 'file',
-        query: {
-          name: '[name].[ext]'
-        }
-      }
+      { test: /\.js?$/, loader: 'babel', exclude: /node_modules/ },
+      { test: /\.s?css$/, loader: 'style!css!sass' },
     ]
   },
-  devServer: {
-    historyApiFallback: true,
-    noInfo: true
+  resolve: {
+    extensions: ['', '.js']
   },
-  externals: [nodeExternals()],
-  devtool: '#eval-source-map'
-}
-
-if (process.env.NODE_ENV === 'production') {
-  module.exports.devtool = '#source-map'
-  // http://vue-loader.vuejs.org/en/workflow/production.html
-  module.exports.plugins = (module.exports.plugins || []).concat([
-    new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: '"production"'
-      }
-    }),
-    new webpack.optimize.UglifyJsPlugin({
-      compress: {
-        warnings: false
-      }
-    })
-  ])
-}
+  output: {
+    path: path.join(__dirname, '/dist'),
+    publicPath: '/',
+    filename: 'bundle.js'
+  },
+  devServer: {
+    contentBase: './dist',
+    hot: true
+  },
+  plugins: [
+    new webpack.optimize.OccurenceOrderPlugin(),
+    new webpack.HotModuleReplacementPlugin(),
+    new webpack.NoErrorsPlugin()
+  ]
+};

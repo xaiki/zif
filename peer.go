@@ -234,7 +234,7 @@ func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
 }
 
 func (p *Peer) Mirror(db *Database) (*Client, error) {
-	pieces := make(chan *Piece, 100)
+	pieces := make(chan *Piece, PieceSize)
 	defer close(pieces)
 
 	go db.InsertPieces(pieces, true)
