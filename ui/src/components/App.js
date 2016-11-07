@@ -11,24 +11,43 @@ import MenuItem from 'material-ui/MenuItem';
 import Home from './Home';
 
 
-class App extends Component{
-  render() {
-    return(
-    	<div>
-    		<AppBar title="Zif"/>
+class App extends Component
+{
 
-			<Drawer width={200} docked={true} open={true} className="drawer">
-				<MenuItem>Home</MenuItem>
-			</Drawer>
+	constructor(props)
+	{
+		super(props);
+		this.state = {
+			drawerOpen : true
+		};
 
-			<div id="router">
-				<Router history={hashHistory}>
-					<Route path="/" component={Home}/>
-				</Router>
+		this.handleToggle = this.handleToggle.bind(this);
+	}
+
+	handleToggle(){ this.setState({ drawerOpen: !this.state.drawerOpen }) }
+
+	render() 
+	{
+		return(
+			<div>
+				<AppBar title="Zif"
+					onLeftIconButtonTouchTap={this.handleToggle}
+				/>
+
+				<Drawer width={200} docked={true} open={this.state.drawerOpen} className="drawer">
+					<div className="drawerItems">
+						<MenuItem>Home</MenuItem>
+					</div>
+				</Drawer>
+
+				<div id="router">
+					<Router history={hashHistory}>
+						<Route path="/" component={Home}/>
+					</Router>
+				</div>
 			</div>
-		</div>
-    )
-  }
+		)
+	}
 }
 
 export default App;
