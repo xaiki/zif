@@ -1,12 +1,34 @@
 import '../assets/stylesheets/base.scss';
-import React, { Component } from 'react';
+import '../assets/stylesheets/app.scss';
 
-const Hello = React.createClass({
+import React, { Component } from 'react';
+import { Router, Route, hashHistory } from 'react-router'
+
+import AppBar from 'material-ui/AppBar';
+import Drawer from 'material-ui/Drawer';
+import MenuItem from 'material-ui/MenuItem';
+
+import Home from './Home';
+
+
+class App extends Component{
   render() {
     return(
-      <h1>Hello, {this.props.name}!</h1>
+    	<div>
+    		<AppBar title="Zif"/>
+
+			<Drawer width={200} docked={true} open={true} className="drawer">
+				<MenuItem>Home</MenuItem>
+			</Drawer>
+
+			<div id="router">
+				<Router history={hashHistory}>
+					<Route path="/" component={Home}/>
+				</Router>
+			</div>
+		</div>
     )
   }
-});
+}
 
-export default Hello;
+export default App;
