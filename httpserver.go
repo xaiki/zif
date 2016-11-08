@@ -400,6 +400,9 @@ func (hs *HTTPServer) SelfSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.FormValue("query")
 	page := r.FormValue("page")
 
+	log.Debug(query)
+	log.Debug(page)
+
 	page_i, err := strconv.Atoi(page)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {

@@ -39,6 +39,7 @@ class Home extends Component{
 				{this.state.posts.map((post, index) => {
 					return (
 						<Post
+							key={post.Id}
 							Title={post.Title}
 							Source={post.Source}
 							Description="Description"
