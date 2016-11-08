@@ -86,12 +86,13 @@ func (lp *LocalPeer) Setup() {
 
 	filepath.Walk("./data", handler)
 
-	if lp.Entry.PublicAddress == "" {
+	// TODO: This does not work without internet xD
+	/*if lp.Entry.PublicAddress == "" {
 		log.Debug("Local peer public address is nil, attempting to fetch")
 		ip := external_ip()
 		log.Debug("External IP is ", ip)
 		lp.Entry.PublicAddress = ip
-	}
+	}*/
 }
 
 // Creates a peer, connects to a public address
