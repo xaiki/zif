@@ -10,15 +10,16 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// a collection of pieces, by extension a structure containing all posts this
-// peer has.
-
+// A collection of pieces, by extension a structure containing all posts this
+// peer has. Whether or not the pieces are *actually* there is optional, if not
+// this is essentially a hash list.
 type Collection struct {
 	Pieces   []*Piece
 	hashlist []byte
 	hash     hash.Hash
 }
 
+// Create a new collection, set all it's members to the correct default values.
 func NewCollection() *Collection {
 	col := &Collection{}
 
@@ -29,7 +30,8 @@ func NewCollection() *Collection {
 	return col
 }
 
-// Takes a database, starting id, and piece size. Generates a hash list.
+// Takes a database, starting id, and piece size. From this we create a
+// collection, except it does not contain any posts - consider making this optional.
 func CreateCollection(db *Database, start, pieceSize int) (*Collection, error) {
 	col := NewCollection()
 
@@ -51,7 +53,7 @@ func CreateCollection(db *Database, start, pieceSize int) (*Collection, error) {
 	return col, nil
 }
 
-// Loads a collection from file
+// Loads a collection from file.
 // This essentially loads the hash list, the data of pieces themselves is just
 // left. It's all in the database if it is really needed.
 func LoadCollection(path string) (col *Collection, err error) {
@@ -74,10 +76,13 @@ func LoadCollection(path string) (col *Collection, err error) {
 	return
 }
 
+// Save the collection hash list to the given path, with permissions 0777.
 func (c *Collection) Save(path string) {
 	ioutil.WriteFile(path, c.hashlist, 0777)
 }
 
+// Add a piece to the collection, storing it in c.Pieces and appending it's hash
+// to the hash list.
 func (c *Collection) Add(piece *Piece) {
 	c.Pieces = append(c.Pieces, piece)
 	c.hashlist = append(c.hashlist, piece.Hash()...)
@@ -85,6 +90,9 @@ func (c *Collection) Add(piece *Piece) {
 	c.hash.Write(piece.Hash())
 }
 
+// Add a post to the collection. Automatically assigns to the correct piece,
+// allocates a new piece if needed! Optional whether or not the actual post is
+// stored, if not just it's hash is.
 func (c *Collection) AddPost(post Post, store bool) {
 	if len(c.Pieces) == 0 || len(c.Pieces[len(c.Pieces)-1].Posts) == PieceSize {
 		piece := &Piece{}
@@ -101,6 +109,9 @@ func (c *Collection) AddPost(post Post, store bool) {
 	copy(c.hashlist[lastIndex*32:lastIndex*32+32], last.Hash())
 }
 
+// Return the hash of the hash list, which can then go on to be signed by the
+// LocalPeer. This allows proper validation of an entire collection, but the
+// localpeer only needs to sign a single hash.
 func (c *Collection) Hash() []byte {
 	var ret []byte
 
@@ -109,6 +120,7 @@ func (c *Collection) Hash() []byte {
 	return ret
 }
 
+// Regenerates the root hash from the hash list we have.
 func (c *Collection) Rehash() {
 	c.hash = sha3.New256()
 
@@ -117,6 +129,7 @@ func (c *Collection) Rehash() {
 	}
 }
 
+// Simply return the hash list.
 func (c *Collection) HashList() []byte {
 	return c.hashlist
 }

@@ -25,7 +25,8 @@ type LocalPeer struct {
 	Server       Server
 	Collection   *Collection
 	Database     *Database
-	Databases    cmap.ConcurrentMap
+	// These are the databases of all of the peers that we have mirrored.
+	Databases cmap.ConcurrentMap
 
 	privateKey ed25519.PrivateKey
 
@@ -95,7 +96,9 @@ func (lp *LocalPeer) Setup() {
 	}*/
 }
 
-// Creates a peer, connects to a public address
+// Given a direct address, for instance an IP or domain, connect to the peer there.
+// This can be used for something like bootstrapping, or for something like
+// connecting to a peer whose Zif address we have just resolved.
 func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 	lp.CheckSessions()
 
@@ -115,8 +118,8 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 	return lp.AddPeer(&peer), nil
 }
 
-// Creates a peer, resolves a zif address then connects to the assosciated
-// public address
+// Resolved a Zif address into an entry, connects to the peer at the
+// PublicAddress in the Entry, then return it. The peer is also stored in a map.
 func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 	lp.CheckSessions()
 
@@ -148,6 +151,9 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 	return lp.AddPeer(peer), nil
 }
 
+// Store the peer in a map. It's public address is also mapped to it's Zif
+// address, as future resolutions can be loaded from this cache - could even
+// return a TCP connection if it is still connected.
 func (lp *LocalPeer) AddPeer(peer *Peer) *Peer {
 	lp.peers.Set(peer.ZifAddress.Encode(), peer)
 	lp.public_to_zif.Set(peer.PublicAddress, peer.ZifAddress.Encode())
@@ -155,6 +161,7 @@ func (lp *LocalPeer) AddPeer(peer *Peer) *Peer {
 	return peer
 }
 
+// Gets a cached peer given it's Zif address.
 func (lp *LocalPeer) GetPeer(addr string) *Peer {
 	if p, ok := lp.peers.Get(addr); ok {
 		peer := p.(*Peer)
@@ -168,15 +175,17 @@ func (lp *LocalPeer) SignEntry() {
 	copy(lp.Entry.Signature, ed25519.Sign(lp.privateKey, EntryToBytes(&lp.Entry)))
 }
 
+// Sign any bytes.
 func (lp *LocalPeer) Sign(msg []byte) []byte {
 	return ed25519.Sign(lp.privateKey, msg)
 }
 
-// address, router (TCP) port, dht (udp) port
+// Pass the address to listen on. This is for the Zif connection.
 func (lp *LocalPeer) Listen(addr string) {
 	go lp.Server.Listen(addr)
 }
 
+// Generate a ed25519 keypair.
 func (lp *LocalPeer) GenerateKey() {
 	var err error
 
@@ -189,6 +198,7 @@ func (lp *LocalPeer) GenerateKey() {
 
 // Writes the private key to a file, in this way persisting your identity -
 // all the other addresses can be generated from this, no need to save them.
+// By default this file is "identity.dat"
 func (lp *LocalPeer) WriteKey() error {
 	if len(lp.privateKey) == 0 {
 		return errors.
@@ -200,6 +210,8 @@ func (lp *LocalPeer) WriteKey() error {
 	return err
 }
 
+// Read the private key from file. This is the "identity.dat" file. The public
+// key is also then generated from the private key.
 func (lp *LocalPeer) ReadKey() error {
 	pk, err := ioutil.ReadFile("identity.dat")
 
@@ -213,6 +225,8 @@ func (lp *LocalPeer) ReadKey() error {
 	return nil
 }
 
+// Iterates over all peers we are connected to. If any of them either fail to
+// ping, or have closed sessions, they are removed from the peers map.
 func (lp *LocalPeer) CheckSessions() {
 	log.Debug("Checking peer sessions")
 
@@ -248,7 +262,6 @@ func (lp *LocalPeer) CheckSessions() {
 }
 
 // At the moment just query for the closest known peer
-
 // This takes a Zif address as a string and attempts to resolve it to an entry.
 // This may be fast, may be a little slower. Will recurse its way through as
 // many Queries as needed, getting closer to the target until either it cannot
@@ -256,9 +269,8 @@ func (lp *LocalPeer) CheckSessions() {
 // Cannot be found if a Query returns nothing, in this case the address does not
 // exist on the DHT. Otherwise we should get to a peer that either has the entry,
 // or one that IS the peer we are hunting.
-
 // Takes a string as the API will just be passing a Zif address as a string.
-// May well change, I'm unsure really.
+// May well change, I'm unsure really. Pretty happy with it at the moment though.
 func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	log.Debug("Resolving ", addr)
 
@@ -310,11 +322,9 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 			}
 		}
 
-		client, results, err := peer.Query(closest.ZifAddress.Encode())
-
-		if closest.ZifAddress.Equals(&results[0].ZifAddress) {
-			return nil, nil
-		}
+		// Query the peer we just connected to for the address we are hunting
+		// for.
+		client, results, err := peer.Query(addr)
 
 		closest = &results[0]
 		defer client.Close()

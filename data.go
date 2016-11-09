@@ -33,7 +33,9 @@ func JsonToEntry(data []byte) (Entry, error) {
 	return e, err
 }
 
-// This is signed, *not* the JSON.
+// This is signed, *not* the JSON. This is needed because otherwise the order of
+// the posts encoded is not actually guaranteed, which can lead to invalid
+// signatures. Plus we can only sign data that is actually needed.
 func EntryToBytes(e *Entry) []byte {
 	var str string
 
@@ -48,6 +50,9 @@ func EntryToBytes(e *Entry) []byte {
 	return []byte(str)
 }
 
+// Ensures that all the members of an entry struct fit the requirements for the
+// Zif protocol. If an entry passes this, then we should be able to perform
+// most operations on it.
 func ValidateEntry(entry *Entry) error {
 	if len(entry.PublicKey) < ed25519.PublicKeySize {
 		return errors.New(fmt.Sprintf("Public key too small: %d", len(entry.PublicKey)))

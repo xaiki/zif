@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Perform a handshake operation given a peer. server.go does the other end of this.
 func handshake(cl Client, lp *LocalPeer) (ed25519.PublicKey, error) {
 	header, err := handshake_recieve(cl)
 
@@ -31,6 +32,7 @@ func handshake(cl Client, lp *LocalPeer) (ed25519.PublicKey, error) {
 	return header, nil
 }
 
+// Just recieves a handshake from a peer.
 func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	check := func(e error) bool {
 		if e != nil {
@@ -100,6 +102,7 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	return header.Content, nil
 }
 
+// Sends a handshake to a peer.
 func handshake_send(cl Client, lp *LocalPeer) error {
 	log.Debug("Handshaking with ", cl.conn.RemoteAddr().String())
 

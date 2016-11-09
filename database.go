@@ -19,6 +19,8 @@ func NewDatabase(path string) *Database {
 	return &db
 }
 
+// Connect to a database. If it does not already exist it is created, and the
+// proper schema is also setup.
 func (db *Database) Connect() error {
 	var err error
 
@@ -55,6 +57,8 @@ func (db *Database) Connect() error {
 	return nil
 }
 
+// Inserts a piece into the database. All the posts are iterated over and inserted
+// within a single SQL transaction.
 func (db *Database) InsertPiece(piece *Piece) (err error) {
 	tx, err := db.conn.Begin()
 
@@ -133,6 +137,7 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 	return
 }
 
+// Insert a single post into the database.
 func (db *Database) InsertPost(post Post) error {
 	// TODO: Is preparing all statements before hand worth doing for perf?
 	stmt, err := db.conn.Prepare(sql_insert_post)
@@ -150,7 +155,9 @@ func (db *Database) InsertPost(post Post) error {
 	return nil
 }
 
-// Generate a full text search index since the given id.
+// Generate a full text search index since the given id. This should ideally be
+// done only for new additions, otherwise on a large dataset it can take a bit of
+// time.
 func (db *Database) GenerateFts(since int) error {
 	stmt, err := db.conn.Prepare(sql_generate_fts)
 
@@ -163,6 +170,8 @@ func (db *Database) GenerateFts(since int) error {
 	return nil
 }
 
+// Performs a query upon the database where the only arguments are the page range.
+// This is useful for thing such as popular and recent posts.
 func (db *Database) PaginatedQuery(query string, page int) ([]*Post, error) {
 	page_size := 25
 	posts := make([]*Post, 0, page_size)
@@ -191,14 +200,20 @@ func (db *Database) PaginatedQuery(query string, page int) ([]*Post, error) {
 	return posts, nil
 }
 
+// Returns a page of posts ordered by upload data, descending.
 func (db *Database) QueryRecent(page int) ([]*Post, error) {
 	return db.PaginatedQuery(sql_query_recent_post, page)
 }
 
+// Returns a page of posts ordered by popularity, descending.
+// Popularity is a combination of seeders and leechers, weighted ever so slightly
+// towards seeders.
 func (db *Database) QueryPopular(page int) ([]*Post, error) {
 	return db.PaginatedQuery(sql_query_popular_post, page)
 }
 
+// Perform a query on the FTS table. The results returned are used to pull actual
+// results out of the post table, and these are returned.
 func (db *Database) Search(query string, page int) ([]*Post, error) {
 	page_size := 25 // TODO: Configure this elsewhere
 
@@ -232,6 +247,7 @@ func (db *Database) Search(query string, page int) ([]*Post, error) {
 	return posts, nil
 }
 
+// Return a single post given it's id.
 func (db *Database) QueryPostId(id uint) (Post, error) {
 	var post Post
 	rows, err := db.conn.Query(sql_query_post_id, id)
@@ -254,6 +270,8 @@ func (db *Database) QueryPostId(id uint) (Post, error) {
 	return post, nil
 }
 
+// Return a single piece given it's id. Optionally store the posts as well,
+// otherwise we just get a hash.
 func (db *Database) QueryPiece(id int, store bool) (*Piece, error) {
 	page_size := PieceSize // TODO: Configure this elsewhere
 	var piece Piece
@@ -284,6 +302,8 @@ func (db *Database) QueryPiece(id int, store bool) (*Piece, error) {
 	return &piece, nil
 }
 
+// Very simmilar to QueryPiece, except this returns a channel and streams posts
+// out as they arrive.
 func (db *Database) QueryPiecePosts(id int, store bool) chan *Post {
 	ret := make(chan *Post)
 	page_size := PieceSize // TODO: Configure this elsewhere
@@ -318,6 +338,7 @@ func (db *Database) QueryPiecePosts(id int, store bool) chan *Post {
 	return ret
 }
 
+// How many posts are in the database?
 func (db *Database) PostCount() uint {
 	var res uint
 
@@ -326,6 +347,7 @@ func (db *Database) PostCount() uint {
 	return res
 }
 
+// Add a metadata key/value.
 func (db *Database) AddMeta(pid int, key, value string) error {
 
 	stmt, err := db.conn.Prepare(sql_insert_meta)
@@ -342,6 +364,7 @@ func (db *Database) AddMeta(pid int, key, value string) error {
 	return nil
 }
 
+// Get a metadata key/value.
 func (db *Database) GetMeta(pid int, key string) (string, error) {
 	var value string
 
@@ -361,6 +384,7 @@ func (db *Database) GetMeta(pid int, key string) (string, error) {
 	return value, nil
 }
 
+// Close the database connection.
 func (db *Database) Close() {
 	db.conn.Close()
 }

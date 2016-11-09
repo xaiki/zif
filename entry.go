@@ -1,5 +1,7 @@
 package zif
 
+// This is an entry into the DHT. It is used to connect to a peer given just
+// it's Zif address.
 type Entry struct {
 	ZifAddress    Address
 	Name          string
