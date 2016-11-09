@@ -1,7 +1,7 @@
 import styles from  '../assets/stylesheets/base.scss';
 
 import React, { Component } from 'react';
-import { Router, Route, hashHistory } from 'react-router';
+import { Router, Route, hashHistory, Link } from 'react-router';
 
 import AppBar from 'material-ui/AppBar';
 import Drawer from 'material-ui/Drawer';
@@ -11,8 +11,15 @@ import {grey100, grey50} from 'material-ui/styles/colors';
 
 import Home from './Home';
 import Search from "./Search"
+import SearchResults from "./SearchResults"
+import Stream from "./Stream"
 
-const routes = [{path: "/", component: Home}];
+var fs = require("fs");
+var WebTorrent = require("webtorrent");
+
+var routes = [{ path: "/", component: Home },
+			  { path: "/search", component: SearchResults },
+			  { path: "/stream/:infohash", component: Stream }];
 
 class App extends Component
 {
@@ -29,10 +36,31 @@ class App extends Component
 			}
 		};
 
+		this.loadConfig();
+
 		this.handleToggle = this.handleToggle.bind(this);
+		this.onResults = this.onResults.bind(this);
+	}
+
+	loadConfig()
+	{ 
+		console.log(fs.readFile)
 	}
 
 	handleToggle(){ this.setState({ drawerOpen: !this.state.drawerOpen }) }
+
+	onResults(res) 
+	{
+		routes[1].component = () => {
+			return (
+				<SearchResults posts={res.posts}/>
+			)
+		};
+
+		hashHistory.push("/search")
+	}
+
+	homeButtonClick(){ hashHistory.push("/") }
 
 	render() 
 	{
@@ -62,7 +90,8 @@ class App extends Component
 					style={{position: "fixed", top: 0, paddingRight: 0}}
 					onLeftIconButtonTouchTap={this.handleToggle}>
 
-					<Search/>
+					<Search
+						onResults={this.onResults}/>
 
 				</AppBar>
 
@@ -73,7 +102,7 @@ class App extends Component
 						containerStyle={style.drawer}>
 
 					<div style={style.drawerItems}>
-						<MenuItem>Home</MenuItem>
+						<a onClick={this.homeButtonClick}><MenuItem>Home</MenuItem></a>
 					</div>
 
 				</Drawer>

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import axios from "axios"
+import request from "superagent"
 
 import TextField from 'material-ui/TextField';
 
@@ -11,7 +11,8 @@ class Search extends Component
 
 		this.state = {
 			focus: false,
-			searchValue: ""
+			searchValue: "",
+			focuedWidth: this.props.focusedWidth
 		};
 
 
@@ -25,17 +26,20 @@ class Search extends Component
 		return{
 			underlineShow: false,
 			hintText: "Search...",
+			growOnFocus: true,
 			unfocusedWidth: "256px",
 			focusedWidth: "512px",
-			growOnFocus: true,
-			transitionTime: ".3s"
+			transitionTime: ".3s",
+			onResults: function(){}
 		} 
 	}
 
-	toggleFocus()
+	static get searchWidth()
 	{
-		this.setState({ focus: !this.state.focus });
+		return window.innerWidth - 446;
 	}
+
+	toggleFocus(){ this.setState({ focus: !this.state.focus })} 
 
 	onChange(e)
 	{
@@ -45,6 +49,16 @@ class Search extends Component
 	onSubmit(e)
 	{
 		console.log("Searching for", this.state.searchValue);
+
+		request.post("http://127.0.0.1:8080/self/search/")
+				.type("form")
+				.send({ query: this.state.searchValue, page:0 })
+				.end((err, res) => {
+					this.props.onResults(res.body);
+				});
+
+		// stops the page refreshing
+		e.preventDefault();
 	}
 
 	componentWillUnmount() {
@@ -53,6 +67,8 @@ class Search extends Component
 	
 	render()
 	{
+		this.state.focusedWidth = window.innerWidth - 444;
+
 		var style = {
 			backgroundColor: "white",
 			paddingLeft: "5px",
@@ -61,7 +77,7 @@ class Search extends Component
 			marginTop: "8px",
 			transition: this.props.transitionTime,
 			width: this.state.focus && this.props.growOnFocus ? 
-						this.props.focusedWidth : this.props.unfocusedWidth
+						this.state.focusedWidth : this.props.unfocusedWidth
 		};
 
 		return (

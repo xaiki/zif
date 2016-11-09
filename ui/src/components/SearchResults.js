@@ -7,7 +7,7 @@ import FlatButton from 'material-ui/FlatButton';
 
 import Post from "./Post"
 
-class Home extends Component{
+class SearchResults extends Component{
 
 	constructor(props){
 		super(props);
@@ -24,28 +24,11 @@ class Home extends Component{
 		} 
 	}
 
-	componentDidMount() {
-		this.getPosts = request.get("http://127.0.0.1:8080/self/popular/0/")
-						.accept("json")
-						.type("json")
-						.end((err, res) => {
-							if (err) {
-								return console.log(err);
-							}
-							this.setState({posts: res.body.posts});
-						});
-
-	}
-
-	componentWillUnmount() {
-		this.getPosts.abort()
-	}
-
 	render() {
 		return(
 
 			<div>
-				<h3>Popular</h3>
+				<h3>Search Results</h3>
 				{this.state.posts.map((post, index) => {
 					return (
 						<Post
@@ -63,4 +46,4 @@ class Home extends Component{
 	}
 }
 
-export default Home;
+export default SearchResults;

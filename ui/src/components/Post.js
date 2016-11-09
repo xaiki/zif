@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { hashHistory, Link } from 'react-router';
 import {Card, CardActions, CardHeader, CardText} from 'material-ui/Card';
 import FlatButton from 'material-ui/FlatButton';
 import axios from "axios"
@@ -29,7 +30,10 @@ class Post extends Component
 
 					<CardActions>
 						<FlatButton label="Download" />
-						<FlatButton label="Stream" />
+
+						<Link to={"/stream/" + this.props.InfoHash}>
+							<FlatButton label="Stream" />
+						</Link>
 					</CardActions>
 				</Card>
 			</div>)
