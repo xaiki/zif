@@ -1,4 +1,3 @@
-import '../assets/stylesheets/base.scss';
 import React, { Component } from 'react';
 import request from "superagent"
 

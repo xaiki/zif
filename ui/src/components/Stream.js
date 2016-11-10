@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
+import File from "./File";
+import util from "../util"
 
 var WebTorrent = require("webtorrent");
+
 var client;
 
 class Stream extends Component
@@ -11,23 +14,27 @@ class Stream extends Component
 
 		this.infohash = this.props.routeParams.infohash;
 		this.magnet = this.infohashToMagnet(this.infohash);
+		this.client = new WebTorrent();
+
+		this.state = { files: [] };
 
 		this.torrentAdded = this.torrentAdded.bind(this);
 	}
 
 	componentDidMount()
 	{
-		client = new WebTorrent();
-		console.log(client.add("magnet:?xt=urn:btih:d169e8930f820496bef1f42097f3ebcf6192fe52",
-					function(t) {
-						console.log(t);
-					}));
+		this.client.add(this.magnet, this.torrentAdded);
 	}
 
 	torrentAdded(torrent)
 	{
-		console.log("added");
-		console.log(torrent);
+		this.torrent = torrent;
+
+		this.setState({ files: torrent.files.sort(
+			(a, b) => {
+				return util.sort.alphanum(a.name, b.name);
+			}) 
+		});
 	}
 
 	infohashToMagnet(ih)
@@ -36,8 +43,17 @@ class Stream extends Component
 	}
 
 	render() {
+		var i= 0;
 		return(
-				<h1></h1>
+			<div>
+				{this.state.files.map((file) => {
+					return <File 	key={i++}
+									Index={i}
+									Torrent={this.torrent}
+									File={file}
+									Title={file.name}/>
+				})}
+			</div>
 		)
 	}
 }

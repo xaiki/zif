@@ -54,6 +54,7 @@ class Search extends Component
 				.type("form")
 				.send({ query: this.state.searchValue, page:0 })
 				.end((err, res) => {
+					console.log(res.body)
 					this.props.onResults(res.body);
 				});
 

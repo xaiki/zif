@@ -1,4 +1,5 @@
-import '../assets/stylesheets/base.scss';
+"use babel";
+
 import React, { Component } from 'react';
 import request from "superagent"
 

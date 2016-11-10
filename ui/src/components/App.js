@@ -1,5 +1,3 @@
-import styles from  '../assets/stylesheets/base.scss';
-
 import React, { Component } from 'react';
 import { Router, Route, hashHistory, Link } from 'react-router';
 
@@ -13,9 +11,6 @@ import Home from './Home';
 import Search from "./Search"
 import SearchResults from "./SearchResults"
 import Stream from "./Stream"
-
-var fs = require("fs");
-var WebTorrent = require("webtorrent");
 
 var routes = [{ path: "/", component: Home },
 			  { path: "/search", component: SearchResults },
@@ -44,7 +39,6 @@ class App extends Component
 
 	loadConfig()
 	{ 
-		console.log(fs.readFile)
 	}
 
 	handleToggle(){ this.setState({ drawerOpen: !this.state.drawerOpen }) }
