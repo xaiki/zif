@@ -2,6 +2,9 @@
 
 Thank you for at least considering contributing time and effort to Zif! It's awesome that you think it's worth your time.
 
+## How should I make my PR?
+The project is organized so that `master` contains the current version that builds and works (mostly) as intended. `develop` contains the current WIP changes. Please make all PRs against the `develop` branch, or a branch specifically for the issue/PR. 
+
 ## I have an issue I want to work on
 That's great! Just leave a comment on the issue so we know that you want to dedicate time to it, that way nobody else will take it up either.
 
