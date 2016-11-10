@@ -95,7 +95,7 @@ func http_write_posts(w http.ResponseWriter, posts []*Post) {
 	// TODO: Use/write some sort of json building, based on a map.
 	// This is kinda gross.
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Write([]byte("{ \"status\": \"ok\", \"count\": " + post_length + ", \"posts\": " + string(json) + "}"))
+	w.Write([]byte("{ \"status\": \"ok\", \"value\": " + string(json) + "}"))
 }
 
 func (hs *HTTPServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +184,10 @@ func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+
+	w.Write([]byte("{\"status\": \"ok\", \"value\":"))
 	w.Write(entry_json)
+	w.Write([]byte(" }"))
 }
 
 // Runs a remote search on a peer, ie, a search performed over a network connection.
