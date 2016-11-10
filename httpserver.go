@@ -184,7 +184,10 @@ func (hs *HTTPServer) Resolve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+
+	w.Write([]byte("{\"status\": \"ok\", \"value\":"))
 	w.Write(entry_json)
+	w.Write([]byte(" }"))
 }
 
 // Runs a remote search on a peer, ie, a search performed over a network connection.
