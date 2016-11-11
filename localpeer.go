@@ -37,6 +37,8 @@ type LocalPeer struct {
 	public_to_zif cmap.ConcurrentMap
 
 	MsgChan chan Message
+
+	Tor bool
 }
 
 func (lp *LocalPeer) Setup() {
@@ -113,6 +115,11 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 	}
 
 	var peer Peer
+
+	if lp.Tor {
+		peer.streams.Tor = true
+	}
+
 	err := peer.Connect(addr, lp)
 
 	if err != nil {

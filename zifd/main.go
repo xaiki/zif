@@ -60,6 +60,8 @@ func main() {
 
 		if err == nil {
 			lp.PublicAddress = onion
+			lp.Entry.PublicAddress = onion
+			lp.Tor = true
 			lp.Peer.Streams().Tor = true
 		}
 	}
