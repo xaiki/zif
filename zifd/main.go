@@ -45,6 +45,7 @@ func main() {
 	var addr = flag.String("address", "0.0.0.0:5050", "Bind address")
 	var db_path = flag.String("database", "./data/posts.db", "Posts database path")
 	var newAddr = flag.Bool("new", false, "Ignore identity file and create a new address")
+	var tor = flag.Bool("tor", false, "Start hidden service and proxy connections through tor")
 
 	var http = flag.String("http", "127.0.0.1:8080", "HTTP address and port")
 
@@ -53,10 +54,19 @@ func main() {
 	port, _ := strconv.Atoi(strings.Split(*addr, ":")[1])
 
 	lp := SetupLocalPeer(fmt.Sprintf("%s:%v", *addr), *newAddr)
+
+	if *tor {
+		err, _, onion := zif.SetupZifTorService(5050, 9051, "./tor/cookie")
+
+		if err == nil {
+			lp.PublicAddress = onion
+			lp.Peer.Streams().Tor = true
+		}
+	}
+
 	lp.Entry.Name = "Zif"
 	lp.Entry.Desc = "Decentralize all the things! :D"
 	lp.Entry.Port = port
-	lp.Entry.PublicAddress = ""
 	lp.Entry.SetLocalPeer(lp)
 	lp.SignEntry()
 

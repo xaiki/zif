@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"golang.org/x/crypto/ed25519"
+	"golang.org/x/net/proxy"
 
 	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
@@ -23,6 +24,9 @@ type StreamManager struct {
 
 	// Open yamux streams
 	clients []Client
+
+	Tor       bool
+	torDialer proxy.Dialer
 }
 
 func (sm *StreamManager) Setup(lp *LocalPeer) {
@@ -31,7 +35,40 @@ func (sm *StreamManager) Setup(lp *LocalPeer) {
 	sm.clients = make([]Client, 0, 10)
 }
 
+func (sm *StreamManager) OpenTor(addr string, lp *LocalPeer) (*ConnHeader, error) {
+	if sm.torDialer == nil {
+		dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:9050", nil, proxy.Direct)
+
+		if err != nil {
+			return nil, err
+		}
+
+		sm.torDialer = dialer
+	}
+
+	conn, err := sm.torDialer.Dial("tcp", addr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := sm.Handshake(conn, lp)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pair := ConnHeader{Client{conn, nil, nil}, header}
+	sm.connection = pair
+
+	return &pair, nil
+}
+
 func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (*ConnHeader, error) {
+	if sm.Tor {
+		return sm.OpenTor(addr, lp)
+	}
+
 	if sm.connection.cl.conn != nil {
 		return &sm.connection, nil
 	}

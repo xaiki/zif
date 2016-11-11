@@ -51,7 +51,7 @@ class App extends Component
 	{
 		routes[1].component = () => {
 			return (
-				<SearchResults posts={res.posts}/>
+				<SearchResults posts={res.value}/>
 			)
 		};
 

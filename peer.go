@@ -28,6 +28,10 @@ type Peer struct {
 	entry *Entry
 }
 
+func (p *Peer) Streams() *StreamManager {
+	return &p.streams
+}
+
 func (p *Peer) Announce(lp *LocalPeer) error {
 	log.Debug("Sending announce to ", p.ZifAddress.Encode())
 
