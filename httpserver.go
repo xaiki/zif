@@ -90,8 +90,6 @@ func http_write_posts(w http.ResponseWriter, posts []*Post) {
 		return
 	}
 
-	post_length := strconv.Itoa(len(posts))
-
 	// TODO: Use/write some sort of json building, based on a map.
 	// This is kinda gross.
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")

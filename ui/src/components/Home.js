@@ -12,8 +12,10 @@ class Home extends Component{
 		super(props);
 
 		this.state = {
-			posts: this.props.posts
 		};
+
+		if(!this.props.Posts) this.state.posts = [];
+		else this.state.posts = this.props.Posts;
 	}
 
 	static get defaultProps()
@@ -31,7 +33,7 @@ class Home extends Component{
 							if (err) {
 								return console.log(err);
 							}
-							this.setState({posts: res.body.posts});
+							this.setState({posts: res.body.value});
 						});
 
 	}
@@ -41,6 +43,7 @@ class Home extends Component{
 	}
 
 	render() {
+		console.log(this);
 		return(
 
 			<div>
