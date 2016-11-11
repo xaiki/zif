@@ -1,3 +1,5 @@
+var fs = require("fs");
+
 function make_magnet(infohash) 
 {
 	// TODO: Include name, trackers, etc. This will work for now though :)
@@ -89,6 +91,19 @@ function bytes_to_size(bytes)
    return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
 }
 
+function loadConfig()
+{
+	var conf = fs.readFileSync("./config.json", "utf-8");
+	return JSON.parse(conf);
+}
+
+function saveConfig(obj)
+{
+	var json = JSON.stringify(obj);
+
+	fs.writeFile("./config.json", json, (err) => {console.log(err);});
+}
+
 module.exports = {
 	make_magnet: make_magnet,
 	chunk: chunk,
@@ -96,5 +111,7 @@ module.exports = {
 	bytes_to_size: bytes_to_size,
 	sort: {
 		alphanum: alphanum
-	}
+	},
+	loadConfig: loadConfig,
+	saveConfig: saveConfig
 }

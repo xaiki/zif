@@ -12,6 +12,8 @@ import Search from "./Search"
 import SearchResults from "./SearchResults"
 import Stream from "./Stream"
 
+import util from "../util"
+
 var routes = [{ path: "/", component: Home },
 			  { path: "/search", component: SearchResults },
 			  { path: "/stream/:infohash", component: Stream }];
@@ -35,6 +37,8 @@ class App extends Component
 
 		this.handleToggle = this.handleToggle.bind(this);
 		this.onResults = this.onResults.bind(this);
+
+		this.config = util.loadConfig();
 	}
 
 	loadConfig()
@@ -85,7 +89,8 @@ class App extends Component
 					onLeftIconButtonTouchTap={this.handleToggle}>
 
 					<Search
-						onResults={this.onResults}/>
+						onResults={this.onResults}
+						Subscriptions={this.config.subscriptions}/>
 
 				</AppBar>
 

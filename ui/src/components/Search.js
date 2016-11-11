@@ -19,6 +19,9 @@ class Search extends Component
 		this.toggleFocus = this.toggleFocus.bind(this);
 		this.onChange = this.onChange.bind(this);
 		this.onSubmit = this.onSubmit.bind(this);
+
+		// How many search results we need before they are displayed (and sorted)
+		this.searchTotal = 1 + this.props.Subscriptions.length;
 	}
 
 	static get defaultProps()
@@ -48,8 +51,6 @@ class Search extends Component
 
 	onSubmit(e)
 	{
-		console.log("Searching for", this.state.searchValue);
-
 		request.post("http://127.0.0.1:8080/self/search/")
 				.type("form")
 				.send({ query: this.state.searchValue, page:0 })
@@ -68,7 +69,7 @@ class Search extends Component
 	
 	render()
 	{
-		this.state.focusedWidth = window.innerWidth - 444;
+		thisstate.focusedWidth = window.innerWidth - 444;
 
 		var style = {
 			backgroundColor: "white",
