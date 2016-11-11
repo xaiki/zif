@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Zif</title>
+    <style>
+		html {
+			margin: 0 0 0 0;
+			height: 100%;
+			background-color: #fafafa;
+		}
+
+		body{
+			margin: 0 0 0 0;
+		}
+
+		h1 {
+		  font-family: helvetica;
+		  font-weight: 200;
+		}
+
+		#root {
+			margin: 0 0 0 0;
+		}
+
+		.searchBar:focus {
+			width: 100%;
+		}
+	</style>
+  </head>
+  <body>
+    <div id='root'/>
+  </body>
+  <script>
+		require("babel-core/register")
+		var electron = require("electron");
+		var remote = electron.remote;
+		require("../src/index.js")
+  </script>
+</html>
