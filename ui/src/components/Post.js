@@ -3,7 +3,6 @@ import Chip from 'material-ui/Chip';
 import { hashHistory, Link } from 'react-router';
 import {Card, CardActions, CardHeader, CardText} from 'material-ui/Card';
 import FlatButton from 'material-ui/FlatButton';
-import axios from "axios"
 
 const style = {
 	marginTop: "10px"

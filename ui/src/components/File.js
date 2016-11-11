@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { hashHistory, Link } from 'react-router';
 import {Card, CardActions, CardHeader, CardText, CardMedia} from 'material-ui/Card';
 import FlatButton from 'material-ui/FlatButton';
-import axios from "axios"
 
 
 const style = {

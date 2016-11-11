@@ -80,6 +80,10 @@ func (lp *LocalPeer) Setup() {
 				return err
 			}
 
+			if len(addr) < 2 {
+				return nil
+			}
+
 			lp.Databases.Set(addr[1], db)
 		}
 		return nil
