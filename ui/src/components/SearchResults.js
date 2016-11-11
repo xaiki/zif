@@ -38,6 +38,8 @@ class SearchResults extends Component{
 							Source={post.Source}
 							Description="Description"
 							InfoHash={post.InfoHash}
+							Seeders={post.Seeders}
+							Leechers={post.Leechers}
 						>
 						</Post>
 					)

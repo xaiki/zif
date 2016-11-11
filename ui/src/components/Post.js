@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import Chip from 'material-ui/Chip';
 import { hashHistory, Link } from 'react-router';
 import {Card, CardActions, CardHeader, CardText} from 'material-ui/Card';
 import FlatButton from 'material-ui/FlatButton';
@@ -22,8 +23,14 @@ class Post extends Component
 						title={this.props.Title}
 						subtitle={this.props.Source}
 						actAsExpander={true}
-						showExpandableButton={true}
-					/>
+						showExpandableButton={true}>
+
+						<div style={{display: "flex", flexWrap: "wrap"}}>
+							<Chip>{this.props.Seeders} Seeders</Chip>
+							<Chip>{this.props.Leechers} Leechers</Chip>
+						</div>
+
+					</CardHeader>
 					<CardText expandable={true}>
 						{this.props.Description}
 					</CardText>
