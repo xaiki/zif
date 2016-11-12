@@ -96,14 +96,13 @@ func http_write_posts(w http.ResponseWriter, posts []*Post) {
 	w.Write([]byte("{ \"status\": \"ok\", \"value\": " + string(json) + "}"))
 }
 
+// TODO: wjh: actually implement these (and no, no "shhh") -poro
 func (hs *HTTPServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Zif"))
+	http_write_ok(w)
 }
 
 func (hs *HTTPServer) Ping(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Done."))
+	http_write_ok(w)
 }
 
 func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
