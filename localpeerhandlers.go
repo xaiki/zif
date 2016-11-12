@@ -22,7 +22,7 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 	log.Info("Handling query")
 	cl := Client{msg.Stream, nil, nil}
 
-	msg.From.limiter.queryLimiter.Wait()
+	//msg.From.limiter.queryLimiter.Wait()
 
 	address := DecodeAddress(string(msg.Content))
 	log.WithField("target", address.Encode()).Info("Recieved query")
