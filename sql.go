@@ -10,7 +10,6 @@ const sql_create_post_table string = `CREATE TABLE IF NOT EXISTS
 											seeders INTEGER NOT NULL,
 											leechers INTEGER NOT NULL,
 											upload_date INTEGER NOT NULL,
-											source BINARY(20),
 											tags STRING
 										)`
 
@@ -43,7 +42,6 @@ const sql_insert_post string = `INSERT OR IGNORE INTO post(
 									seeders,
 									leechers,
 									upload_date,
-									source,
 									tags
 								) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
 

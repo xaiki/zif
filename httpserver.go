@@ -228,7 +228,8 @@ func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
 	addr := vars["address"]
 
 	if !hs.LocalPeer.Databases.Has(addr) {
-		http_write_error(w, http.StatusNotFound, errors.New("Database not found. Either run a remote query, or mirror the peer."))
+		hs.PeerRSearch(w, r)
+		return
 	}
 
 	query := r.FormValue("query")
@@ -251,7 +252,6 @@ func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http_write_posts(w, posts)
-
 }
 
 func (hs *HTTPServer) AddPost(w http.ResponseWriter, r *http.Request) {
@@ -385,6 +385,11 @@ func (hs *HTTPServer) PeerFtsIndex(w http.ResponseWriter, r *http.Request) {
 	if !hs.LocalPeer.Databases.Has(addr) {
 		err = errors.New("Peer database not loaded")
 	}
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
 	db, _ := hs.LocalPeer.Databases.Get(addr)
 
 	err = db.(*Database).GenerateFts(since_i)

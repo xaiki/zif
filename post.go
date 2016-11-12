@@ -21,7 +21,6 @@ type Post struct {
 	Seeders    int
 	Leechers   int
 	UploadDate int
-	Source     []byte
 	Tags       string
 }
 
@@ -33,7 +32,6 @@ func NewPost(ih, title string, seeders, leechers, uploaddate int, source []byte)
 	p.Seeders = seeders
 	p.Leechers = leechers
 	p.UploadDate = uploaddate
-	copy(p.Source[:], source)
 
 	return p
 }
