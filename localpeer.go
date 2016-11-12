@@ -100,6 +100,8 @@ func (lp *LocalPeer) Setup() {
 		log.Debug("External IP is ", ip)
 		lp.Entry.PublicAddress = ip
 	}*/
+
+	lp.RoutingTable.Load()
 }
 
 // Given a direct address, for instance an IP or domain, connect to the peer there.
@@ -124,6 +126,12 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	log.Debug("Peer ok, checking session")
+
+	if peer.GetSession() == nil {
+		peer.ConnectClient(lp)
 	}
 
 	return lp.AddPeer(&peer), nil
@@ -249,6 +257,8 @@ func (lp *LocalPeer) CheckSessions() {
 
 		if session == nil {
 			log.Debug("Peer has no session")
+			log.Debug("Removing ", peer.ZifAddress.Encode(), " from map")
+			lp.peers.Remove(peer.ZifAddress.Encode())
 			return
 		}
 
@@ -294,13 +304,15 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	// First, find the closest peers in our routing table.
 	// Satisfying if we already have the address :D
 	var closest *Entry
-	closest_returned := lp.RoutingTable.FindClosest(address, ResolveListSize)
+	closest_returned := lp.RoutingTable.FindClosest(address, 1)
 
 	if len(closest_returned) < 1 {
 		return nil, errors.New("Routing table is empty")
 	}
 
 	closest = closest_returned[0]
+
+	log.Info(len(closest_returned))
 
 	for {
 		// Check the current closest known peers. First iteration this will be
@@ -319,7 +331,9 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		// If the peer is not already connected, then connect.
 		if peer = lp.GetPeer(closest.ZifAddress.Encode()); peer == nil {
 
-			var peer Peer
+			peer = &Peer{}
+			peer.streams.Tor = lp.Tor
+
 			err := peer.Connect(closest.PublicAddress+":"+strconv.Itoa(closest.Port), lp)
 
 			if err != nil {

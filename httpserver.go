@@ -303,11 +303,12 @@ func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	posts, stream, err := peer.Recent(page_i)
-	defer stream.Close()
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
+
+	defer stream.Close()
 
 	http_write_posts(w, posts)
 }
