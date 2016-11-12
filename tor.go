@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	torc "github.com/postfix/goControlTor"
 	log "github.com/sirupsen/logrus"
 )
 
-func SetupZifTorService(port, tor int, cookie string) (error, *torc.TorControl, string) {
+func SetupZifTorService(port, tor int, cookie string) (*torc.TorControl, string, error) {
 	control := &torc.TorControl{}
 
 	serviceDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -20,7 +21,7 @@ func SetupZifTorService(port, tor int, cookie string) (error, *torc.TorControl, 
 
 	if err != nil {
 		log.Error(err.Error())
-		return err, nil, ""
+		return nil, "", err
 	}
 
 	log.Info("Dialed Tor control port")
@@ -29,7 +30,7 @@ func SetupZifTorService(port, tor int, cookie string) (error, *torc.TorControl, 
 
 	if err != nil {
 		log.Error(err.Error())
-		return err, nil, ""
+		return nil, "", err
 	}
 
 	log.Info("Authenticated with Tor, creating service")
@@ -38,14 +39,15 @@ func SetupZifTorService(port, tor int, cookie string) (error, *torc.TorControl, 
 
 	if err != nil {
 		log.Error(err.Error())
-		return err, nil, ""
+		return nil, "", err
 	}
 
 	log.Info("Service created")
 
 	onion, err := torc.ReadOnion(serviceDir)
+	onion = strings.Replace(onion, `\n`, "", -1)
 
 	log.Info("Tor address ", onion)
 
-	return nil, control, onion
+	return control, onion, nil
 }

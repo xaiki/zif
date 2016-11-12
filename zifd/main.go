@@ -56,7 +56,7 @@ func main() {
 	lp := SetupLocalPeer(fmt.Sprintf("%s:%v", *addr), *newAddr)
 
 	if *tor {
-		err, _, onion := zif.SetupZifTorService(5050, 9051, "./tor/cookie")
+		_, onion, err := zif.SetupZifTorService(5050, 9051, "./tor/cookie")
 
 		if err == nil {
 			lp.PublicAddress = onion
