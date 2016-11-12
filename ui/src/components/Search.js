@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import request from "superagent"
+import async from "async";
 
 import TextField from 'material-ui/TextField';
 
@@ -53,23 +54,38 @@ class Search extends Component
 
 	onSubmit(e)
 	{
+		// stops the page refreshing
+		e.preventDefault();
+
 		var functions = [];
+
+		// Append local search
+		functions.push((cb) => {
+			
+			request.post("http://127.0.0.1:8080/self/search/")
+					.type("form")
+					.send({ query: this.state.searchValue, page:0 })
+					.end(cb)
+		});
 
 		for (var i = 0; i < this.props.Subscriptions.length; i++) 
 		{
-		
+			var fn = ((i) => { 
+				return ((cb) => {
+					request.post("http://127.0.0.1:8080/peer/" + this.props.Subscriptions[i] + "/search/")
+							.type("form")
+							.send({ query: this.state.searchValue, page:0 })
+							.end(cb);
+				}).bind(this)
+			})(i);
+
+			functions.push(fn);
 		}
 
-		request.post("http://127.0.0.1:8080/self/search/")
-				.type("form")
-				.send({ query: this.state.searchValue, page:0 })
-				.end((err, res) => {
-					console.log(res.body)
-					this.props.onResults(res.body);
-				});
+		async.series(functions, (err, res) => {
+			this.props.onResults(res);
+		});
 
-		// stops the page refreshing
-		e.preventDefault();
 	}
 
 	componentWillUnmount() {

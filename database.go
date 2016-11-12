@@ -92,13 +92,13 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 	n := 0
 
 	defer func() {
+		err = tx.Commit()
+
 		if err != nil {
 			tx.Rollback()
 			log.Error(err.Error())
 			return
 		}
-
-		err = tx.Commit()
 	}()
 
 	//lastId := 0

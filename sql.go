@@ -43,7 +43,7 @@ const sql_insert_post string = `INSERT OR IGNORE INTO post(
 									leechers,
 									upload_date,
 									tags
-								) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
+								) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
 
 const sql_insert_meta string = `INSERT OR IGNORE INTO meta(
 									post_id,

@@ -13,8 +13,23 @@ class SearchResults extends Component{
 	constructor(props){
 		super(props);
 
+		var posts = [];
+
+		for(var i = 0; i < this.props.posts.length; i++)
+		{
+			if (this.props.posts[i].error) continue
+			posts = posts.concat(this.props.posts[i].body.value);
+		}
+
+		posts.sort((a, b) => {
+			var aScore = (a.Seeders * 1.1) + a.Leechers;
+			var bScore = (b.Seeders * 1.1) + b.Leechers;
+
+			return bScore - aScore;
+		});
+
 		this.state = {
-			posts: this.props.posts
+			posts: posts
 		};
 	}
 
