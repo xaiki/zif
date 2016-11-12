@@ -45,7 +45,7 @@ func SetupZifTorService(port, tor int, cookie string) (*torc.TorControl, string,
 	log.Info("Service created")
 
 	onion, err := torc.ReadOnion(serviceDir)
-	onion = strings.Replace(onion, `\n`, "", -1)
+	onion = strings.TrimSpace(onion)
 
 	log.Info("Tor address ", onion)
 
