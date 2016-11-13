@@ -47,6 +47,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/self/getmeta/{pid}/{key}/", hs.GetMeta)
 	router.HandleFunc("/self/savecollection/", hs.SaveCollection)
 	router.HandleFunc("/self/rebuildcollection/", hs.RebuildCollection)
+	router.HandleFunc("/self/peers/", hs.Peers)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -548,6 +549,24 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http_write_ok(w)
+}
+
+func (hs *HTTPServer) Peers(w http.ResponseWriter, r *http.Request) {
+	log.Info("Peers request")
+
+	peers := make([]*Peer, 0, hs.LocalPeer.peers.Count())
+
+	for i := range hs.LocalPeer.peers.IterBuffered() {
+		peers = append(peers, i.Val.(*Peer))
+	}
+
+	data, err := json.Marshal(peers)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_value(w, string(data))
 }
 
 func (hs *HTTPServer) SaveCollection(w http.ResponseWriter, r *http.Request) {
