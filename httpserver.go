@@ -79,9 +79,14 @@ func http_write_ok(w http.ResponseWriter) {
 }
 
 // writes a single string value (eg, for metadata gets)
-func http_write_value(w http.ResponseWriter, val string) {
+func http_write_string(w http.ResponseWriter, val string) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{\"status\": \"ok\", \"value\":\"" + val + "\" }"))
+}
+
+func http_write_data(w http.ResponseWriter, val string) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("{\"status\": \"ok\", \"value\":" + val + " }"))
 }
 
 func http_write_posts(w http.ResponseWriter, posts []*Post) {
@@ -519,7 +524,7 @@ func (hs *HTTPServer) GetMeta(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http_write_value(w, value)
+	http_write_string(w, value)
 }
 
 func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
@@ -566,7 +571,7 @@ func (hs *HTTPServer) Peers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http_write_value(w, string(data))
+	http_write_data(w, string(data))
 }
 
 func (hs *HTTPServer) SaveCollection(w http.ResponseWriter, r *http.Request) {
