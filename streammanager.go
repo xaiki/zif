@@ -93,7 +93,6 @@ func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (*ConnHeader, error
 
 func (sm *StreamManager) Handshake(conn net.Conn, lp *LocalPeer) (ed25519.PublicKey, error) {
 	cl := NewClient(conn)
-	// I use the term "server" somewhat loosely. It's the "server" part of a peer.
 	log.Debug("Sending handshake")
 	err := handshake_send(*cl, lp)
 

@@ -65,7 +65,6 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 	cl := Client{msg.Stream, nil, nil}
 	msg.From.limiter.announceLimiter.Wait()
-	lp.CheckSessions()
 
 	defer msg.Stream.Close()
 
@@ -90,10 +89,11 @@ func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 	}
 
 	// next up, tell other people!
-	closest := lp.RoutingTable.FindClosest(entry.ZifAddress, BucketSize)
+	//closest := lp.RoutingTable.FindClosest(entry.ZifAddress, BucketSize)
 
 	// TODO: Parallize this
-	for _, i := range closest {
+	// TODO: Implement currently-connected peer lists.
+	/*for _, i := range closest {
 		if i.ZifAddress.Equals(&entry.ZifAddress) || i.ZifAddress.Equals(&msg.From.ZifAddress) {
 			continue
 		}
@@ -129,7 +129,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 			Content: msg.Content,
 		}
 		peer_stream.WriteMessage(peer_announce)
-	}
+	}*/
 	return nil
 
 }

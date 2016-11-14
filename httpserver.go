@@ -559,19 +559,7 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Peers(w http.ResponseWriter, r *http.Request) {
 	log.Info("Peers request")
 
-	peers := make([]*Peer, 0, hs.LocalPeer.peers.Count())
-
-	for i := range hs.LocalPeer.peers.IterBuffered() {
-		peers = append(peers, i.Val.(*Peer))
-	}
-
-	data, err := json.Marshal(peers)
-
-	if http_error_check(w, http.StatusInternalServerError, err) {
-		return
-	}
-
-	http_write_data(w, string(data))
+	http_write_data(w, "")
 }
 
 func (hs *HTTPServer) SaveCollection(w http.ResponseWriter, r *http.Request) {

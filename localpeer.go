@@ -30,12 +30,6 @@ type LocalPeer struct {
 
 	privateKey ed25519.PrivateKey
 
-	// a map of zif addresses to peers
-	peers cmap.ConcurrentMap
-
-	// maps public addresses to zif address
-	public_to_zif cmap.ConcurrentMap
-
 	MsgChan chan Message
 
 	Tor bool
@@ -45,8 +39,6 @@ func (lp *LocalPeer) Setup() {
 	var err error
 
 	lp.Entry.Signature = make([]byte, ed25519.SignatureSize)
-	lp.peers = cmap.New()
-	lp.public_to_zif = cmap.New()
 	lp.Databases = cmap.New()
 	lp.ZifAddress.Generate(lp.PublicKey)
 
@@ -108,21 +100,20 @@ func (lp *LocalPeer) Setup() {
 // This can be used for something like bootstrapping, or for something like
 // connecting to a peer whose Zif address we have just resolved.
 func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
-	lp.CheckSessions()
+	var peer *Peer
+	var err error
 
-	zif_address, ok := lp.public_to_zif.Get(addr)
+	peer = &Peer{}
 
-	if ok {
-		return lp.GetPeer(zif_address.(string)), nil
+	if err != nil {
+		return nil, err
 	}
-
-	var peer Peer
 
 	if lp.Tor {
 		peer.streams.Tor = true
 	}
 
-	err := peer.Connect(addr, lp)
+	err = peer.Connect(addr, lp)
 
 	if err != nil {
 		return nil, err
@@ -130,23 +121,16 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 
 	log.Debug("Peer ok, checking session")
 
-	if peer.GetSession() == nil {
-		peer.ConnectClient(lp)
-	}
+	peer.ConnectClient(lp)
 
-	return lp.AddPeer(&peer), nil
+	return (peer), nil
 }
 
 // Resolved a Zif address into an entry, connects to the peer at the
 // PublicAddress in the Entry, then return it. The peer is also stored in a map.
 func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
-	lp.CheckSessions()
 
-	peer := lp.GetPeer(addr)
-
-	if peer != nil {
-		return peer, nil
-	}
+	var peer *Peer
 
 	entry, err := lp.Resolve(addr)
 
@@ -167,27 +151,7 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 		return nil, err
 	}
 
-	return lp.AddPeer(peer), nil
-}
-
-// Store the peer in a map. It's public address is also mapped to it's Zif
-// address, as future resolutions can be loaded from this cache - could even
-// return a TCP connection if it is still connected.
-func (lp *LocalPeer) AddPeer(peer *Peer) *Peer {
-	lp.peers.Set(peer.ZifAddress.Encode(), peer)
-	lp.public_to_zif.Set(peer.PublicAddress, peer.ZifAddress.Encode())
-
-	return peer
-}
-
-// Gets a cached peer given it's Zif address.
-func (lp *LocalPeer) GetPeer(addr string) *Peer {
-	if p, ok := lp.peers.Get(addr); ok {
-		peer := p.(*Peer)
-		return peer
-	}
-
-	return nil
+	return peer, nil
 }
 
 func (lp *LocalPeer) SignEntry() {
@@ -244,44 +208,6 @@ func (lp *LocalPeer) ReadKey() error {
 	return nil
 }
 
-// Iterates over all peers we are connected to. If any of them either fail to
-// ping, or have closed sessions, they are removed from the peers map.
-func (lp *LocalPeer) CheckSessions() {
-	log.Debug("Checking peer sessions")
-
-	// TODO: Stick this in a wait group
-	for p := range lp.peers.Iter() {
-		peer := p.Val.(*Peer)
-
-		session := peer.GetSession()
-
-		if session == nil {
-			log.Debug("Peer has no session")
-			log.Debug("Removing ", peer.ZifAddress.Encode(), " from map")
-			lp.peers.Remove(peer.ZifAddress.Encode())
-			return
-		}
-
-		_, err := session.Ping()
-
-		if err != nil {
-			log.Debug(err.Error())
-			log.Debug("Removing ", peer.ZifAddress.Encode(), " from map")
-			lp.peers.Remove(peer.ZifAddress.Encode())
-			return
-		}
-
-		if peer.GetSession().IsClosed() {
-			log.Warn("TCP session has closed")
-			log.Debug("Removing ", peer.ZifAddress.Encode(), " from map")
-			lp.peers.Remove(peer.ZifAddress.Encode())
-			return
-		}
-	}
-
-	log.Debug("Peer sessions checked")
-}
-
 // At the moment just query for the closest known peer
 // This takes a Zif address as a string and attempts to resolve it to an entry.
 // This may be fast, may be a little slower. Will recurse its way through as
@@ -329,22 +255,20 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		var peer *Peer
 
 		// If the peer is not already connected, then connect.
-		if peer = lp.GetPeer(closest.ZifAddress.Encode()); peer == nil {
 
-			peer = &Peer{}
-			peer.streams.Tor = lp.Tor
+		peer = &Peer{}
+		peer.streams.Tor = lp.Tor
 
-			err := peer.Connect(closest.PublicAddress+":"+strconv.Itoa(closest.Port), lp)
+		err := peer.Connect(closest.PublicAddress+":"+strconv.Itoa(closest.Port), lp)
 
-			if err != nil {
-				return nil, err
-			}
+		if err != nil {
+			return nil, err
+		}
 
-			_, err = peer.ConnectClient(lp)
+		_, err = peer.ConnectClient(lp)
 
-			if err != nil {
-				return nil, err
-			}
+		if err != nil {
+			return nil, err
 		}
 
 		// Query the peer we just connected to for the address we are hunting

@@ -56,8 +56,6 @@ func (s *Server) ListenStream(peer *Peer) {
 				log.Error(err.Error())
 			}
 
-			s.localPeer.CheckSessions()
-
 			return
 		}
 
@@ -135,22 +133,13 @@ func (s *Server) Handshake(conn net.Conn) {
 		return
 	}
 
-	peer := s.localPeer.GetPeer(addr.Encode())
+	peer := &Peer{}
+	peer.SetTCP(ConnHeader{cl, header})
+	_, err = peer.ConnectServer()
 
-	if peer == nil {
-		peer = &Peer{}
-		peer.SetTCP(ConnHeader{cl, header})
-		s.localPeer.AddPeer(peer)
-	}
-
-	if peer.GetSession() == nil {
-		log.WithField("peer", peer.ZifAddress.Encode()).Info("No session, starting server")
-		_, err := peer.ConnectServer()
-
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
+	if err != nil {
+		log.Error(err.Error())
+		return
 	}
 
 	go s.ListenStream(peer)
