@@ -89,16 +89,15 @@ func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 	}
 
 	// next up, tell other people!
-	//closest := lp.RoutingTable.FindClosest(entry.ZifAddress, BucketSize)
+	closest := lp.RoutingTable.FindClosest(entry.ZifAddress, BucketSize)
 
 	// TODO: Parallize this
-	// TODO: Implement currently-connected peer lists.
-	/*for _, i := range closest {
+	for _, i := range closest {
 		if i.ZifAddress.Equals(&entry.ZifAddress) || i.ZifAddress.Equals(&msg.From.ZifAddress) {
 			continue
 		}
 
-		peer := lp.GetPeer(i.ZifAddress.Encode())
+		peer := lp.GetPeer(entry.ZifAddress.Encode())
 
 		if peer == nil {
 			log.Debug("Connecting to new peer")
@@ -129,7 +128,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 			Content: msg.Content,
 		}
 		peer_stream.WriteMessage(peer_announce)
-	}*/
+	}
 	return nil
 
 }

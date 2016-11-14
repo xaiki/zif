@@ -20,13 +20,20 @@ const ResolveListSize = 1
 
 type LocalPeer struct {
 	Peer
-	Entry        Entry
-	RoutingTable RoutingTable
-	Server       Server
-	Collection   *Collection
-	Database     *Database
+	Entry         Entry
+	RoutingTable  RoutingTable
+	Server        Server
+	Collection    *Collection
+	Database      *Database
+	PublicAddress string
 	// These are the databases of all of the peers that we have mirrored.
 	Databases cmap.ConcurrentMap
+
+	// a map of currently connected peers
+	// also use to cancel reconnects :)
+	Peers cmap.ConcurrentMap
+	// A map of public address to Zif address
+	PublicToZif cmap.ConcurrentMap
 
 	privateKey ed25519.PrivateKey
 
@@ -39,7 +46,11 @@ func (lp *LocalPeer) Setup() {
 	var err error
 
 	lp.Entry.Signature = make([]byte, ed25519.SignatureSize)
+
 	lp.Databases = cmap.New()
+	lp.Peers = cmap.New()
+	lp.PublicToZif = cmap.New()
+
 	lp.ZifAddress.Generate(lp.PublicKey)
 
 	lp.Server.localPeer = lp
@@ -103,6 +114,10 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 	var peer *Peer
 	var err error
 
+	if lp.PublicToZif.Has(addr) {
+		return nil, errors.New("Already connected")
+	}
+
 	peer = &Peer{}
 
 	if err != nil {
@@ -119,17 +134,27 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 		return nil, err
 	}
 
-	log.Debug("Peer ok, checking session")
-
 	peer.ConnectClient(lp)
 
-	return (peer), nil
+	lp.Peers.Set(peer.ZifAddress.Encode(), peer)
+	lp.PublicToZif.Set(addr, peer.ZifAddress.Encode())
+
+	return peer, nil
+}
+
+func (lp *LocalPeer) GetPeer(addr string) *Peer {
+	peer, has := lp.Peers.Get(addr)
+
+	if !has {
+		return nil
+	}
+
+	return peer.(*Peer)
 }
 
 // Resolved a Zif address into an entry, connects to the peer at the
 // PublicAddress in the Entry, then return it. The peer is also stored in a map.
 func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
-
 	var peer *Peer
 
 	entry, err := lp.Resolve(addr)

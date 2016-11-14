@@ -18,10 +18,9 @@ import (
 )
 
 type Peer struct {
-	ZifAddress    Address
-	PublicAddress string
-	PublicKey     ed25519.PublicKey
-	streams       StreamManager
+	ZifAddress Address
+	PublicKey  ed25519.PublicKey
+	streams    StreamManager
 
 	limiter *PeerLimiter
 

@@ -3,6 +3,7 @@ package zif
 // tcp server
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"time"
@@ -52,6 +53,14 @@ func (s *Server) ListenStream(peer *Peer) {
 		if err != nil {
 			if err == io.EOF {
 				log.Info("Peer closed connection")
+				s.localPeer.Peers.Remove(peer.ZifAddress.Encode())
+
+				if peer.entry == nil {
+					return
+				}
+
+				s.localPeer.Peers.Remove(fmt.Sprintf("%s:%d",
+					peer.entry.PublicAddress, peer.entry.Port))
 			} else {
 				log.Error(err.Error())
 			}
@@ -141,6 +150,8 @@ func (s *Server) Handshake(conn net.Conn) {
 		log.Error(err.Error())
 		return
 	}
+
+	s.localPeer.Peers.Set(peer.ZifAddress.Encode(), peer)
 
 	go s.ListenStream(peer)
 }
