@@ -348,17 +348,20 @@ func (c *Client) Collection(address Address, pk ed25519.PublicKey) (*MessageColl
 }
 
 // Download a piece from a peer, given the address and id of the piece we want.
-func (c *Client) Piece(address Address, id int) (*Piece, error) {
-	/*log.WithFields(log.Fields{
+func (c *Client) Pieces(address Address, id, length int) chan *Piece {
+	log.WithFields(log.Fields{
 		"address": address.Encode(),
 		"id":      id,
-	}).Info("Sending request for piece")*/
+		"length":  length,
+	}).Info("Sending request for piece")
 
-	mrp := MessageRequestPiece{address.Encode(), id}
+	ret := make(chan *Piece, 100)
+
+	mrp := MessageRequestPiece{address.Encode(), id, length}
 	data, err := mrp.Encode()
 
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	msg := &Message{
@@ -368,29 +371,73 @@ func (c *Client) Piece(address Address, id int) (*Piece, error) {
 
 	c.WriteMessage(msg)
 
-	piece := Piece{}
-	piece.Setup()
-
-	for {
-		rep, err := c.ReadMessage()
-
-		if err != nil {
-			return nil, err
-		}
-
-		if rep.Header == ProtoDone {
-			break
-		}
-
-		post := Post{}
-		err = rep.Decode(&post)
+	// Convert a string to an int, prevents endless error checks below.
+	convert := func(val string) int {
+		var ret int
+		ret, err := strconv.Atoi(val)
 
 		if err != nil {
-			return nil, err
+			return 0
 		}
 
-		piece.Add(post, true)
+		return ret
 	}
 
-	return &piece, nil
+	go func() {
+		defer close(ret)
+
+		errReader := NewErrorReader(c.conn)
+
+		for i := 0; i < length; i++ {
+			piece := Piece{}
+			piece.Setup()
+
+			count := 0
+			for {
+				if count >= PieceSize {
+					break
+				}
+
+				id := convert(errReader.ReadString('|'))
+				ih := errReader.ReadString('|')
+				title := errReader.ReadString('|')
+				size := convert(errReader.ReadString('|'))
+				filecount := convert(errReader.ReadString('|'))
+				seeders := convert(errReader.ReadString('|'))
+				leechers := convert(errReader.ReadString('|'))
+				uploaddate := convert(errReader.ReadString('|'))
+				tags := errReader.ReadString('|')
+
+				if errReader.err != nil {
+					log.Error("Failed to read post: ", errReader.err.Error())
+					return
+				}
+
+				if err != nil {
+					log.Error(err.Error())
+				}
+
+				log.Info(ih)
+
+				post := Post{
+					Id:         id,
+					InfoHash:   ih,
+					Title:      title,
+					Size:       size,
+					FileCount:  filecount,
+					Seeders:    seeders,
+					Leechers:   leechers,
+					UploadDate: uploaddate,
+					Tags:       tags,
+				}
+
+				piece.Add(post, true)
+				count++
+			}
+			log.Info("piece downloaded")
+			ret <- &piece
+		}
+	}()
+
+	return ret
 }

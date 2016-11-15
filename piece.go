@@ -28,13 +28,8 @@ func (p *Piece) Add(post Post, store bool) error {
 		p.Posts = append(p.Posts, post)
 	}
 
-	json, err := post.Json()
-
-	if err != nil {
-		return err
-	}
-
-	p.hash.Write(json)
+	data := PostToString(&post, "|", "")
+	p.hash.Write([]byte(data))
 
 	return nil
 }
@@ -51,13 +46,8 @@ func (p *Piece) Rehash() ([]byte, error) {
 	p.hash = sha3.New256()
 
 	for _, i := range p.Posts {
-		data, err := i.Json()
-
-		if err != nil {
-			return nil, err
-		}
-
-		p.hash.Write(data)
+		data := PostToString(&i, "|", "")
+		p.hash.Write([]byte(data))
 	}
 
 	log.Info("Piece rehashed")

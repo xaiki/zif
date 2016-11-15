@@ -28,6 +28,7 @@ type MessageSearchQuery struct {
 type MessageRequestPiece struct {
 	Address string
 	Id      int
+	Length  int
 }
 
 // Allows us to decode a pieces without also decoding all of the posts within it.

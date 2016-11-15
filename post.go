@@ -1,10 +1,6 @@
 package zif
 
-import (
-	"encoding/json"
-	"errors"
-	"net"
-)
+import "encoding/json"
 
 const (
 	TitleMax    = 144
@@ -24,18 +20,6 @@ type Post struct {
 	Tags       string
 }
 
-func NewPost(ih, title string, seeders, leechers, uploaddate int, source []byte) Post {
-	var p Post
-
-	p.InfoHash = ih
-	p.Title = title
-	p.Seeders = seeders
-	p.Leechers = leechers
-	p.UploadDate = uploaddate
-
-	return p
-}
-
 func (p Post) Json() ([]byte, error) {
 	json, err := json.Marshal(p)
 
@@ -44,8 +28,4 @@ func (p Post) Json() ([]byte, error) {
 	}
 
 	return json, nil
-}
-
-func (p *Post) NetSend(conn net.Conn) error {
-	return errors.New("not implemented")
 }

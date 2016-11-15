@@ -263,42 +263,36 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 	mrp := MessageRequestPiece{}
 	err := msg.Decode(&mrp)
 
+	log.WithFields(log.Fields{
+		"id":     mrp.Id,
+		"length": mrp.Length,
+	}).Info("Recieved piece request")
+
 	if err != nil {
 		return err
 	}
 
-	var piece chan *Post
+	var posts chan *Post
 
 	if mrp.Address == lp.Entry.ZifAddress.Encode() {
-		piece = lp.Database.QueryPiecePosts(mrp.Id, true)
+		posts = lp.Database.QueryPiecePosts(mrp.Id, mrp.Length, true)
 
 	} else if lp.Databases.Has(mrp.Address) {
 		db, _ := lp.Databases.Get(mrp.Address)
-		piece = db.(*Database).QueryPiecePosts(mrp.Id, true)
+		posts = db.(*Database).QueryPiecePosts(mrp.Id, mrp.Length, true)
 
 	} else {
 		return errors.New("Piece not found")
 	}
 
-	for i := range piece {
-		data, err := i.Json()
-		if err != nil {
-			return err
-		}
-
-		rep := &Message{
-			Header:  ProtoPost,
-			Content: data,
-		}
-
-		cl.WriteMessage(rep)
+	// This needs to be sped up *more*
+	// Totally remove JSON serialization, it's thrashing the potential speed.
+	// Instead, convert posts to just raw text. Minimal.
+	// Then just dump this over the network as FAST as possible.
+	// JSON is super neat for normal messages though :D
+	for i := range posts {
+		WritePost(i, "|", "", cl.conn)
 	}
-
-	rep := &Message{
-		Header: ProtoDone,
-	}
-
-	cl.WriteMessage(rep)
 
 	return nil
 }

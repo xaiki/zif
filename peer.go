@@ -178,6 +178,7 @@ func (p *Peer) Bootstrap(rt *RoutingTable) (*Client, error) {
 		return nil, err
 	}
 	rt.Update(*initial)
+	log.Info(rt.NumPeers())
 
 	stream, _ := p.OpenStream()
 
@@ -266,13 +267,10 @@ func (p *Peer) Mirror(db *Database) (*Client, error) {
 	bar := pb.StartNew(mcol.Size)
 	bar.ShowSpeed = true
 
-	for i := 0; i < mcol.Size; i++ {
-		piece, err := stream.Piece(entry.ZifAddress, i)
+	piece_stream := stream.Pieces(entry.ZifAddress, 0, mcol.Size)
 
-		if err != nil {
-			return nil, err
-		}
-
+	i := 0
+	for piece := range piece_stream {
 		if !bytes.Equal(mcol.HashList[32*i:32*i+32], piece.Hash()) {
 			return nil, errors.New("Piece hash mismatch")
 		}
@@ -283,6 +281,8 @@ func (p *Peer) Mirror(db *Database) (*Client, error) {
 			log.Info("Piece buffer full, io is blocking")
 		}
 		pieces <- piece
+
+		i++
 	}
 
 	bar.Finish()

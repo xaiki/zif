@@ -143,12 +143,17 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 
 func (hs *HTTPServer) Announce(w http.ResponseWriter, r *http.Request) {
 	log.Info("HTTP: Announce request")
+	var err error
 	vars := mux.Vars(r)
 
-	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
+	peer := hs.LocalPeer.GetPeer(vars["address"])
 
-	if http_error_check(w, http.StatusInternalServerError, err) {
-		return
+	if peer == nil {
+		peer, err = hs.LocalPeer.ConnectPeer(vars["address"])
+
+		if http_error_check(w, http.StatusInternalServerError, err) {
+			return
+		}
 	}
 
 	_, err = peer.ConnectClient(hs.LocalPeer)
@@ -210,10 +215,14 @@ func (hs *HTTPServer) PeerRSearch(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Searching ", addr, " for ", query)
 
-	peer, err := hs.LocalPeer.ConnectPeer(addr)
+	peer := hs.LocalPeer.GetPeer(addr)
 
-	if http_error_check(w, http.StatusInternalServerError, err) {
-		return
+	if peer == nil {
+		peer, err = hs.LocalPeer.ConnectPeer(addr)
+
+		if http_error_check(w, http.StatusInternalServerError, err) {
+			return
+		}
 	}
 
 	posts, stream, err := peer.Search(query, page_i)
@@ -302,10 +311,15 @@ func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
 		http_write_posts(w, posts)
 	}
 
-	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
+	peer := hs.LocalPeer.GetPeer(vars["address"])
 
-	if http_error_check(w, http.StatusInternalServerError, err) {
-		return
+	if peer == nil {
+		log.Info(hs.LocalPeer.RoutingTable.NumPeers())
+		peer, err = hs.LocalPeer.ConnectPeer(vars["address"])
+
+		if http_error_check(w, http.StatusInternalServerError, err) {
+			return
+		}
 	}
 
 	posts, stream, err := peer.Recent(page_i)
@@ -342,10 +356,14 @@ func (hs *HTTPServer) Popular(w http.ResponseWriter, r *http.Request) {
 		http_write_posts(w, posts)
 	}
 
-	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
+	peer := hs.LocalPeer.GetPeer(vars["address"])
 
-	if http_error_check(w, http.StatusInternalServerError, err) {
-		return
+	if peer == nil {
+		peer, err = hs.LocalPeer.ConnectPeer(vars["address"])
+
+		if http_error_check(w, http.StatusInternalServerError, err) {
+			return
+		}
 	}
 
 	posts, stream, err := peer.Popular(page_i)
@@ -529,13 +547,18 @@ func (hs *HTTPServer) GetMeta(w http.ResponseWriter, r *http.Request) {
 
 func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 	log.Info("HTTP: Mirror request")
+	var err error
 
 	vars := mux.Vars(r)
 
-	peer, err := hs.LocalPeer.ConnectPeer(vars["address"])
+	peer := hs.LocalPeer.GetPeer(vars["address"])
 
-	if http_error_check(w, http.StatusInternalServerError, err) {
-		return
+	if peer == nil {
+		peer, err = hs.LocalPeer.ConnectPeer(vars["address"])
+
+		if http_error_check(w, http.StatusInternalServerError, err) {
+			return
+		}
 	}
 
 	// Open a database for the peer

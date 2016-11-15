@@ -304,17 +304,20 @@ func (db *Database) QueryPiece(id int, store bool) (*Piece, error) {
 }
 
 // Very simmilar to QueryPiece, except this returns a channel and streams posts
-// out as they arrive.
-func (db *Database) QueryPiecePosts(id int, store bool) chan *Post {
+// out as they arrive. Queries a range of posts, so you can ask for 100 posts
+// starting at an id.
+func (db *Database) QueryPiecePosts(start, length int, store bool) chan *Post {
 	ret := make(chan *Post)
 	page_size := PieceSize // TODO: Configure this elsewhere
 
 	go func() {
-		rows, err := db.conn.Query(sql_query_paged_post, id*page_size,
-			page_size)
+		defer close(ret)
+
+		rows, err := db.conn.Query(sql_query_paged_post, start*page_size,
+			start+page_size*length)
 
 		if err != nil {
-			close(ret)
+			return
 		}
 
 		for rows.Next() {
@@ -326,14 +329,13 @@ func (db *Database) QueryPiecePosts(id int, store bool) chan *Post {
 				&post.Tags)
 
 			if err != nil {
-				close(ret)
+				log.Error(err)
+				return
 			}
 
 			ret <- &post
 		}
 
-		log.Debug("Queried piece")
-		close(ret)
 	}()
 
 	return ret
