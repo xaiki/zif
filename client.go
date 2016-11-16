@@ -388,7 +388,9 @@ func (c *Client) Pieces(address Address, id, length int) chan *Piece {
 		defer close(ret)
 
 		gzr, err := gzip.NewReader(c.conn)
+
 		if err != nil {
+			log.Error(err.Error())
 			return
 		}
 

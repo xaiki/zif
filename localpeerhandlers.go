@@ -291,6 +291,8 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 	// or
 	// gzip -> buffered writer -> net
 	// I'm guessing the latter allows for gzip to maybe run a little faster?
+	// The former may allow for database reads to occur a little faster though.
+	// buffer both?
 	bw := bufio.NewWriter(cl.conn)
 	gzw := gzip.NewWriter(bw)
 
@@ -298,6 +300,11 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 		WritePost(i, "|", "", gzw)
 	}
 	WritePost(&Post{Id: -1}, "|", "", gzw)
+
+	gzw.Flush()
+	bw.Flush()
+
+	log.Info("Sent all")
 
 	return nil
 }
