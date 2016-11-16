@@ -68,18 +68,53 @@ func PostToString(p *Post, sep, term string) string {
 }
 
 func WritePost(p *Post, sep, term string, w io.Writer) {
-	bw := bufio.NewWriter(w)
+	w.Write([]byte(strconv.Itoa(p.Id)))
+	w.Write([]byte(sep))
+	w.Write([]byte(p.InfoHash))
+	w.Write([]byte(sep))
+	w.Write([]byte(p.Title))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.Size)))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.FileCount)))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.Seeders)))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.Leechers)))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.UploadDate)))
+	w.Write([]byte(sep))
+	w.Write([]byte(p.Tags))
+	w.Write([]byte(sep))
+	w.Write([]byte(term))
 
-	bw.WriteString(strconv.Itoa(p.Id) + sep)
-	bw.WriteString(p.InfoHash + sep)
-	bw.WriteString(p.Title + sep)
-	bw.WriteString(strconv.Itoa(p.Size) + sep)
-	bw.WriteString(strconv.Itoa(p.FileCount) + sep)
-	bw.WriteString(strconv.Itoa(p.Seeders) + sep)
-	bw.WriteString(strconv.Itoa(p.Leechers) + sep)
-	bw.WriteString(strconv.Itoa(p.UploadDate) + sep)
-	bw.WriteString(p.Tags + sep)
-	bw.WriteString(term)
+	/*
+		The above seems to be a little faster, though mildly more awkward code.
+		I suppose because it avoids allocating a buffer every write?
+
+		bw := bufio.NewWriter(w)
+
+		bw.WriteString(strconv.Itoa(p.Id))
+		bw.WriteString(sep)
+		bw.WriteString(p.InfoHash)
+		bw.WriteString(sep)
+		bw.WriteString(p.Title)
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.Size))
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.FileCount))
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.Seeders))
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.Leechers))
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.UploadDate))
+		bw.WriteString(sep)
+		bw.WriteString(p.Tags)
+		bw.WriteString(sep)
+		bw.WriteString(term)
+
+		bw.Flush()*/
 }
 
 func ReadPost(r io.Reader, delim byte) {

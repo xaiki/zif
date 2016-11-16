@@ -1,6 +1,7 @@
 package zif
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"net"
@@ -386,7 +387,12 @@ func (c *Client) Pieces(address Address, id, length int) chan *Piece {
 	go func() {
 		defer close(ret)
 
-		errReader := NewErrorReader(c.conn)
+		gzr, err := gzip.NewReader(c.conn)
+		if err != nil {
+			return
+		}
+
+		errReader := NewErrorReader(gzr)
 
 		for i := 0; i < length; i++ {
 			piece := Piece{}
@@ -399,6 +405,11 @@ func (c *Client) Pieces(address Address, id, length int) chan *Piece {
 				}
 
 				id := convert(errReader.ReadString('|'))
+
+				if id == -1 {
+					break
+				}
+
 				ih := errReader.ReadString('|')
 				title := errReader.ReadString('|')
 				size := convert(errReader.ReadString('|'))
@@ -410,14 +421,12 @@ func (c *Client) Pieces(address Address, id, length int) chan *Piece {
 
 				if errReader.err != nil {
 					log.Error("Failed to read post: ", errReader.err.Error())
-					return
+					break
 				}
 
 				if err != nil {
 					log.Error(err.Error())
 				}
-
-				log.Info(ih)
 
 				post := Post{
 					Id:         id,
@@ -434,7 +443,6 @@ func (c *Client) Pieces(address Address, id, length int) chan *Piece {
 				piece.Add(post, true)
 				count++
 			}
-			log.Info("piece downloaded")
 			ret <- &piece
 		}
 	}()

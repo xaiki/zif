@@ -1,6 +1,8 @@
 package zif
 
 import (
+	"bufio"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"strconv"
@@ -285,14 +287,17 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 		return errors.New("Piece not found")
 	}
 
-	// This needs to be sped up *more*
-	// Totally remove JSON serialization, it's thrashing the potential speed.
-	// Instead, convert posts to just raw text. Minimal.
-	// Then just dump this over the network as FAST as possible.
-	// JSON is super neat for normal messages though :D
+	// Buffered writer -> gzip -> net
+	// or
+	// gzip -> buffered writer -> net
+	// I'm guessing the latter allows for gzip to maybe run a little faster?
+	bw := bufio.NewWriter(cl.conn)
+	gzw := gzip.NewWriter(bw)
+
 	for i := range posts {
-		WritePost(i, "|", "", cl.conn)
+		WritePost(i, "|", "", gzw)
 	}
+	WritePost(&Post{Id: -1}, "|", "", gzw)
 
 	return nil
 }

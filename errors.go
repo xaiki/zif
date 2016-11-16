@@ -23,6 +23,18 @@ func (er *ErrorReader) ReadString(delim byte) string {
 		return ""
 	}
 
+	return ret[0 : len(ret)-1]
+}
+
+func (er *ErrorReader) ReadByte() byte {
+	var ret byte
+
+	ret, er.err = er.reader.ReadByte()
+
+	if er.err != nil {
+		return 0
+	}
+
 	return ret
 }
 
