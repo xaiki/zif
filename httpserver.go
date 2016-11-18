@@ -103,6 +103,17 @@ func http_write_posts(w http.ResponseWriter, posts []*Post) {
 	w.Write([]byte("{ \"status\": \"ok\", \"value\": " + string(json) + "}"))
 }
 
+func http_write_peers(w http.ResponseWriter, peers []*Peer) {
+	json, err := json.Marshal(peers)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF8-8")
+	w.Write([]byte("{ \"status\": \"ok\", \"value\": " + string(json) + "}"))
+}
+
 // TODO: wjh: actually implement these (and no, no "shhh") -poro
 func (hs *HTTPServer) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	http_write_ok(w)
@@ -583,7 +594,18 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Peers(w http.ResponseWriter, r *http.Request) {
 	log.Info("Peers request")
 
-	http_write_data(w, "")
+	ps := make([]*Peer, hs.LocalPeer.Peers.Count())
+
+	ps[0] = &hs.LocalPeer.Peer
+
+	i := 1
+
+	for _, p := range hs.LocalPeer.Peers.Items() {
+		ps[i] = p.(*Peer)
+		i = i + 1
+	}
+
+	http_write_peers(w, ps)
 }
 
 func (hs *HTTPServer) SaveCollection(w http.ResponseWriter, r *http.Request) {
