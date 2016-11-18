@@ -315,7 +315,7 @@ func (lp *LocalPeer) Close() {
 	lp.CloseStreams()
 	lp.Server.Close()
 	lp.Database.Close()
-	lp.RoutingTable.Save()
+	lp.RoutingTable.Save("dht")
 	lp.Collection.Save("./data/collection.dat")
 }
 

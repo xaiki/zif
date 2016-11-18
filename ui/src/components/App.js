@@ -14,9 +14,12 @@ import Stream from "./Stream"
 
 import util from "../util"
 
+var WebTorrent = require("webtorrent");
+
 var routes = [{ path: "/", component: Home },
 			  { path: "/search", component: SearchResults },
-			  { path: "/stream/:infohash", component: Stream }];
+			  { path: "/stream/:infohash", component: Stream },
+			  { path: "/downloads", component: Stream }];
 
 class App extends Component
 {
@@ -39,6 +42,8 @@ class App extends Component
 		this.onResults = this.onResults.bind(this);
 
 		this.config = util.loadConfig();
+
+		window.downloadClient = new WebTorrent();
 	}
 
 	loadConfig()

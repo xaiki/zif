@@ -36,38 +36,12 @@ func (rt *RoutingTable) Setup(addr Address) {
 	}
 }
 
-func (rt *RoutingTable) Save() {
-	err := rt.SaveBuckets(rt.Buckets, "dht_active.dat")
+func (rt *RoutingTable) Save(filename string) error {
+	json, err := json.Marshal(rt)
+	log.Info(string(json))
 
 	if err != nil {
 		log.Error(err.Error())
-	}
-
-	err = rt.SaveBuckets(rt.LongBuckets, "dht_long.dat")
-
-	if err != nil {
-		log.Error(err.Error())
-	}
-}
-
-func (rt *RoutingTable) SaveBuckets(buckets []*list.List, filename string) error {
-	all_buckets := make([][]*Entry, 0, len(buckets))
-
-	for _, b := range buckets {
-		slice := make([]*Entry, b.Len())
-
-		index := 0
-		for i := b.Front(); i != nil; i = i.Next() {
-			slice[index] = i.Value.(*Entry)
-			index++
-		}
-
-		all_buckets = append(all_buckets, slice)
-	}
-
-	json, err := json.Marshal(all_buckets)
-
-	if err != nil {
 		return err
 	}
 
@@ -81,13 +55,13 @@ func (rt *RoutingTable) SaveBuckets(buckets []*list.List, filename string) error
 }
 
 func (rt *RoutingTable) Load() {
-	err := rt.LoadBuckets(rt.Buckets, "dht_active")
+	err := rt.LoadBuckets(rt.Buckets, "dht_active.dat")
 
 	if err != nil {
 		log.Error(err.Error())
 	}
 
-	err = rt.LoadBuckets(rt.LongBuckets, "dht_long")
+	err = rt.LoadBuckets(rt.LongBuckets, "dht_long.dat")
 
 	if err != nil {
 		log.Error(err.Error())
@@ -103,6 +77,10 @@ func (rt *RoutingTable) LoadBuckets(buckets []*list.List, filename string) error
 	}
 
 	err = json.Unmarshal(file, &entries)
+
+	if err != nil {
+		return err
+	}
 
 	for i, b := range entries {
 		for _, e := range b {

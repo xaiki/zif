@@ -72,6 +72,11 @@ func main() {
 	lp.Entry.SetLocalPeer(lp)
 	lp.SignEntry()
 
+	post := zif.Post{}
+	post.InfoHash = "foo"
+	post.Title = "Foo"
+	log.Info(zif.PostToString(&post, "|", ""))
+
 	lp.Database = zif.NewDatabase(*db_path)
 
 	err := lp.Database.Connect()

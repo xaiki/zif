@@ -35,7 +35,9 @@ class Post extends Component
 					</CardText>
 
 					<CardActions>
-						<FlatButton label="Download" />
+						<Link to={"/downloads"}>
+							<FlatButton label="Download" />
+						</Link>
 
 						<Link to={"/stream/" + this.props.InfoHash}>
 							<FlatButton label="Stream" />

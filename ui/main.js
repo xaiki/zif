@@ -1,5 +1,6 @@
 'use strict';
 
+
 var electron = require('electron');
 var {app, BrowserWindow} = electron;
 

@@ -1,7 +1,7 @@
 {
-  "name": "react-electron-starter",
+  "name": "zif",
   "version": "0.1.0",
-  "description": "An example React + Electron application",
+  "description": "Decentralized magnet link distribution",
   "main": "main.js",
   "scripts": {
     "start": "electron main.js",
@@ -25,7 +25,7 @@
   "dependencies": {
     "async": "^2.1.2",
     "material-ui": "^0.16.1",
-    "react-tap-event-plugin": "^1.0.0",
+    "react-tap-event-plugin": "2.0.0",
     "superagent": "^2.3.0",
     "webtorrent": "^0.97.2"
   }

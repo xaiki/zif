@@ -48,6 +48,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/self/savecollection/", hs.SaveCollection)
 	router.HandleFunc("/self/rebuildcollection/", hs.RebuildCollection)
 	router.HandleFunc("/self/peers/", hs.Peers)
+	router.HandleFunc("/self/saveroutingtable/", hs.SaveRoutingTable)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -594,6 +595,16 @@ func (hs *HTTPServer) SaveCollection(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) RebuildCollection(w http.ResponseWriter, r *http.Request) {
 	var err error
 	hs.LocalPeer.Collection, err = CreateCollection(hs.LocalPeer.Database, 0, PieceSize)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_ok(w)
+}
+
+func (hs *HTTPServer) SaveRoutingTable(w http.ResponseWriter, r *http.Request) {
+	err := hs.LocalPeer.RoutingTable.Save("dht")
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return

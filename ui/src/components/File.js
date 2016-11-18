@@ -4,6 +4,7 @@ import {Card, CardActions, CardHeader, CardText, CardMedia} from 'material-ui/Ca
 import FlatButton from 'material-ui/FlatButton';
 
 
+
 const style = {
 	marginTop: "10px"
 };
@@ -39,12 +40,6 @@ class StreamFile extends Component
 		}
 
 		console.log(this.props.File);
-
-		this.props.File.appendTo(target, 
-				(err, elem) => {
-					this.elem = elem;
-					this.elem.style.width = "100%";
-				});
 	}
 
 	render() {
