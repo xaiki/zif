@@ -594,7 +594,7 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Peers(w http.ResponseWriter, r *http.Request) {
 	log.Info("Peers request")
 
-	ps := make([]*Peer, hs.LocalPeer.Peers.Count())
+	ps := make([]*Peer, hs.LocalPeer.Peers.Count() + 1)
 
 	ps[0] = &hs.LocalPeer.Peer
 
