@@ -6,16 +6,22 @@ import (
 	"container/list"
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"sort"
 
 	log "github.com/sirupsen/logrus"
 )
 
-const BucketSize = 20
+const MaxBucketSize = 20
 
 type DhtFile struct {
 	entryCount int
 	entries    [][]Entry
+}
+
+type DHTSave struct {
+	Buckets     [][]*Entry
+	LongBuckets [][]*Entry
 }
 
 type RoutingTable struct {
@@ -37,7 +43,25 @@ func (rt *RoutingTable) Setup(addr Address) {
 }
 
 func (rt *RoutingTable) Save(filename string) error {
-	json, err := json.Marshal(rt)
+	save := DHTSave{
+		make([][]*Entry, len(rt.LocalAddress.Bytes)*8),
+		make([][]*Entry, len(rt.LocalAddress.Bytes)*8),
+	}
+
+	for n, b := range rt.Buckets {
+		for i := b.Front(); i != nil; i = i.Next() {
+			save.Buckets[n] = append(save.Buckets[n], i.Value.(*Entry))
+		}
+	}
+
+	for n, b := range rt.LongBuckets {
+		for i := b.Front(); i != nil; i = i.Next() {
+			save.LongBuckets[n] = append(save.LongBuckets[n], i.Value.(*Entry))
+		}
+	}
+
+	json, err := json.Marshal(save)
+
 	log.Info(string(json))
 
 	if err != nil {
@@ -54,53 +78,51 @@ func (rt *RoutingTable) Save(filename string) error {
 	return nil
 }
 
-func (rt *RoutingTable) Load() {
-	err := rt.LoadBuckets(rt.Buckets, "dht_active.dat")
+func LoadRoutingTable(path string, addr Address) (*RoutingTable, error) {
+	var ret RoutingTable
+	ret.Setup(addr)
+	var save DHTSave
 
-	if err != nil {
-		log.Error(err.Error())
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		log.Info("Creating new routing table")
+		return &ret, nil
 	}
 
-	err = rt.LoadBuckets(rt.LongBuckets, "dht_long.dat")
+	data, err := ioutil.ReadFile(path)
 
 	if err != nil {
-		log.Error(err.Error())
+		return nil, err
 	}
-}
 
-func (rt *RoutingTable) LoadBuckets(buckets []*list.List, filename string) error {
-	entries := make([][]Entry, 0, len(buckets))
-	file, err := ioutil.ReadFile(filename)
+	err = json.Unmarshal(data, &save)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = json.Unmarshal(file, &entries)
-
-	if err != nil {
-		return err
-	}
-
-	for i, b := range entries {
-		for _, e := range b {
-			buckets[i].PushBack(&e)
+	for n, i := range save.Buckets {
+		for _, j := range i {
+			ret.Buckets[n].PushBack(j)
 		}
 	}
 
-	return nil
+	for n, i := range save.LongBuckets {
+		for _, j := range i {
+			ret.LongBuckets[n].PushBack(j)
+		}
+	}
+
+	return &ret, nil
 }
 
 func (rt *RoutingTable) NumPeers() int {
+	return BucketSize(rt.LongBuckets) + BucketSize(rt.Buckets)
+}
+
+func BucketSize(bucket []*list.List) int {
 	count := 0
 
-	for _, b := range rt.Buckets {
-		for i := b.Front(); i != nil; i = i.Next() {
-			count += 1
-		}
-	}
-
-	for _, b := range rt.LongBuckets {
+	for _, b := range bucket {
 		for i := b.Front(); i != nil; i = i.Next() {
 			count += 1
 		}
@@ -119,7 +141,7 @@ func (rt *RoutingTable) UpdateBucket(buckets []*list.List, entry Entry) bool {
 
 	// TODO: Ping peers, starting from back. If none reply, remove them.
 	// Ensures only active peers are stored.
-	if bucket.Len() == BucketSize {
+	if bucket.Len() == MaxBucketSize {
 		return false
 	}
 

@@ -21,7 +21,7 @@ const ResolveListSize = 1
 type LocalPeer struct {
 	Peer
 	Entry         Entry
-	RoutingTable  RoutingTable
+	RoutingTable  *RoutingTable
 	Server        Server
 	Collection    *Collection
 	Database      *Database
@@ -57,7 +57,11 @@ func (lp *LocalPeer) Setup() {
 
 	lp.MsgChan = make(chan Message)
 
-	lp.RoutingTable.Setup(lp.ZifAddress)
+	lp.RoutingTable, err = LoadRoutingTable("dht", lp.ZifAddress)
+
+	if err != nil {
+		panic(err)
+	}
 
 	lp.Collection, err = LoadCollection("./data/collection.dat")
 
@@ -103,8 +107,6 @@ func (lp *LocalPeer) Setup() {
 		log.Debug("External IP is ", ip)
 		lp.Entry.PublicAddress = ip
 	}*/
-
-	lp.RoutingTable.Load()
 }
 
 // Given a direct address, for instance an IP or domain, connect to the peer there.

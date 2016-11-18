@@ -44,7 +44,7 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 		closest[0] = &lp.Entry
 	} else {
 		log.Debug("Querying routing table")
-		closest = lp.RoutingTable.FindClosest(address, BucketSize)
+		closest = lp.RoutingTable.FindClosest(address, MaxBucketSize)
 	}
 
 	closest_json, err := json.Marshal(closest)
@@ -91,7 +91,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 	}
 
 	// next up, tell other people!
-	closest := lp.RoutingTable.FindClosest(entry.ZifAddress, BucketSize)
+	closest := lp.RoutingTable.FindClosest(entry.ZifAddress, MaxBucketSize)
 
 	// TODO: Parallize this
 	for _, i := range closest {
