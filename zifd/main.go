@@ -9,7 +9,7 @@ import (
 
 	"strings"
 
-	"github.com/wjh/zif"
+	zif "github.com/wjh/zif/libzif"
 
 	log "github.com/sirupsen/logrus"
 )

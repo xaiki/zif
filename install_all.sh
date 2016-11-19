@@ -7,10 +7,12 @@ if [ "$1" == "-v" ]; then
     VERBF="-v -x"
 fi
 
-go install $VERB
+pushd libzif
+go install $VERBF
+popd
 
 pushd zifd
-go install $VERB
+go install $VERBF
 popd
 
 which npm >/dev/null 2>&1
