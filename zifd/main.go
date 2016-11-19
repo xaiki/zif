@@ -27,7 +27,6 @@ func SetupLocalPeer(addr string, newAddr bool) *zif.LocalPeer {
 	}
 
 	lp.Setup()
-	lp.RoutingTable.Setup(lp.ZifAddress)
 
 	return &lp
 }
