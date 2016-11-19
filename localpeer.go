@@ -267,6 +267,15 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 
 	log.Info(len(closest_returned))
 
+	iterations := 0
+
+	defer func() {
+		// If the peer was not in our routing table, add them!
+		if iterations > 0 {
+			lp.RoutingTable.Update(*closest)
+		}
+	}()
+
 	for {
 		// Check the current closest known peers. First iteration this will be
 		// the ones from our routing table.
@@ -308,6 +317,8 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		if err != nil {
 			return nil, errors.New("Peer query failed: " + err.Error())
 		}
+
+		iterations++
 	}
 
 	return nil, errors.New("Address could not be resolved")
