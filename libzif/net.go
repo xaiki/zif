@@ -1,6 +1,6 @@
 // a few network helpers
 
-package zif
+package libzif
 
 import "golang.org/x/crypto/ed25519"
 

@@ -1,4 +1,4 @@
-package zif
+package libzif
 
 type configDaemon struct {
 	port    int

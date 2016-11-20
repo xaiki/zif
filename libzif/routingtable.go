@@ -1,6 +1,6 @@
 // Kademlia
 
-package zif
+package libzif
 
 import (
 	"container/list"

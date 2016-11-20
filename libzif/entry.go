@@ -1,4 +1,4 @@
-package zif
+package libzif
 
 // This is an entry into the DHT. It is used to connect to a peer given just
 // it's Zif address.

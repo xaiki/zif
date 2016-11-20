@@ -1,6 +1,6 @@
 // Stores things like message codes, etc.
 
-package zif
+package libzif
 
 var (
 	// Protocol header, so we know this is a zif client.

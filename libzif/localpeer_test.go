@@ -1,4 +1,4 @@
-package zif_test
+package libzif_test
 
 import (
 	"fmt"

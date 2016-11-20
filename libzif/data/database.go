@@ -1,4 +1,4 @@
-package zif
+package data
 
 import (
 	"database/sql"

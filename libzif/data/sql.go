@@ -1,4 +1,4 @@
-package zif
+package data
 
 const sql_create_post_table string = `CREATE TABLE IF NOT EXISTS 
 										post(

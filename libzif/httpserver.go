@@ -1,6 +1,6 @@
 // Used to control the Zif daemon
 
-package zif
+package libzif
 
 import (
 	"encoding/json"

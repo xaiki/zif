@@ -1,4 +1,4 @@
-package zif
+package libzif
 
 import (
 	"bytes"
