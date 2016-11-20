@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/ed25519"
 
 	log "github.com/sirupsen/logrus"
+	data "github.com/wjh/zif/libzif/data"
 )
 
 const (
@@ -218,11 +219,11 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 }
 
 // TODO: Paginate searches
-func (c *Client) Search(search string, page int) ([]*Post, error) {
+func (c *Client) Search(search string, page int) ([]*data.Post, error) {
 	log.Info("Querying for ", search)
 
 	sq := MessageSearchQuery{search, page}
-	data, err := sq.Encode()
+	dat, err := sq.Encode()
 
 	if err != nil {
 		return nil, err
@@ -230,12 +231,12 @@ func (c *Client) Search(search string, page int) ([]*Post, error) {
 
 	msg := &Message{
 		Header:  ProtoSearch,
-		Content: data,
+		Content: dat,
 	}
 
 	c.WriteMessage(msg)
 
-	var posts []*Post
+	var posts []*data.Post
 
 	recv, err := c.ReadMessage()
 
@@ -252,7 +253,7 @@ func (c *Client) Search(search string, page int) ([]*Post, error) {
 	return posts, nil
 }
 
-func (c *Client) Recent(page int) ([]*Post, error) {
+func (c *Client) Recent(page int) ([]*data.Post, error) {
 	log.Info("Fetching recent posts from peer")
 
 	page_s := strconv.Itoa(page)
@@ -274,7 +275,7 @@ func (c *Client) Recent(page int) ([]*Post, error) {
 		return nil, err
 	}
 
-	var posts []*Post
+	var posts []*data.Post
 	posts_msg.Decode(&posts)
 
 	log.Info("Recieved ", len(posts), " recent posts")
@@ -282,7 +283,7 @@ func (c *Client) Recent(page int) ([]*Post, error) {
 	return posts, nil
 }
 
-func (c *Client) Popular(page int) ([]*Post, error) {
+func (c *Client) Popular(page int) ([]*data.Post, error) {
 	log.Info("Fetching popular posts from peer")
 
 	page_s := strconv.Itoa(page)
@@ -304,7 +305,7 @@ func (c *Client) Popular(page int) ([]*Post, error) {
 		return nil, err
 	}
 
-	var posts []*Post
+	var posts []*data.Post
 	posts_msg.Decode(&posts)
 
 	log.Info("Recieved ", len(posts), " popular posts")
@@ -349,17 +350,17 @@ func (c *Client) Collection(address Address, pk ed25519.PublicKey) (*MessageColl
 }
 
 // Download a piece from a peer, given the address and id of the piece we want.
-func (c *Client) Pieces(address Address, id, length int) chan *Piece {
+func (c *Client) Pieces(address Address, id, length int) chan *data.Piece {
 	log.WithFields(log.Fields{
 		"address": address.Encode(),
 		"id":      id,
 		"length":  length,
 	}).Info("Sending request for piece")
 
-	ret := make(chan *Piece, 100)
+	ret := make(chan *data.Piece, 100)
 
 	mrp := MessageRequestPiece{address.Encode(), id, length}
-	data, err := mrp.Encode()
+	dat, err := mrp.Encode()
 
 	if err != nil {
 		return nil
@@ -367,7 +368,7 @@ func (c *Client) Pieces(address Address, id, length int) chan *Piece {
 
 	msg := &Message{
 		Header:  ProtoRequestPiece,
-		Content: data,
+		Content: dat,
 	}
 
 	c.WriteMessage(msg)
@@ -397,12 +398,12 @@ func (c *Client) Pieces(address Address, id, length int) chan *Piece {
 		errReader := NewErrorReader(gzr)
 
 		for i := 0; i < length; i++ {
-			piece := Piece{}
+			piece := data.Piece{}
 			piece.Setup()
 
 			count := 0
 			for {
-				if count >= PieceSize {
+				if count >= data.PieceSize {
 					break
 				}
 
@@ -430,7 +431,7 @@ func (c *Client) Pieces(address Address, id, length int) chan *Piece {
 					log.Error(err.Error())
 				}
 
-				post := Post{
+				post := data.Post{
 					Id:         id,
 					InfoHash:   ih,
 					Title:      title,

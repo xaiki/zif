@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
+	data "github.com/wjh/zif/libzif/data"
 )
 
 const MaxSearchLength = 256
@@ -274,14 +275,14 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 		return err
 	}
 
-	var posts chan *Post
+	var posts chan *data.Post
 
 	if mrp.Address == lp.Entry.ZifAddress.Encode() {
 		posts = lp.Database.QueryPiecePosts(mrp.Id, mrp.Length, true)
 
 	} else if lp.Databases.Has(mrp.Address) {
 		db, _ := lp.Databases.Get(mrp.Address)
-		posts = db.(*Database).QueryPiecePosts(mrp.Id, mrp.Length, true)
+		posts = db.(*data.Database).QueryPiecePosts(mrp.Id, mrp.Length, true)
 
 	} else {
 		return errors.New("Piece not found")
@@ -297,9 +298,9 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 	gzw := gzip.NewWriter(bw)
 
 	for i := range posts {
-		WritePost(i, "|", "", gzw)
+		data.WritePost(i, "|", "", gzw)
 	}
-	WritePost(&Post{Id: -1}, "|", "", gzw)
+	data.WritePost(&data.Post{Id: -1}, "|", "", gzw)
 
 	gzw.Flush()
 	bw.Flush()

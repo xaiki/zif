@@ -9,6 +9,11 @@ fi
 
 pushd libzif
 go install $VERBF
+
+pushd data
+go install $VERBF
+
+popd
 popd
 
 pushd zifd

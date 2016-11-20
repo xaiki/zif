@@ -15,6 +15,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
 	"gopkg.in/cheggaaa/pb.v1"
+
+	data "github.com/wjh/zif/libzif/data"
 )
 
 type Peer struct {
@@ -194,7 +196,7 @@ func (p *Peer) Query(address string) (*Client, []Entry, error) {
 }
 
 // asks a peer to query its database and return the results
-func (p *Peer) Search(search string, page int) ([]*Post, *Client, error) {
+func (p *Peer) Search(search string, page int) ([]*data.Post, *Client, error) {
 	log.Info("Searching ", p.ZifAddress.Encode())
 	stream, err := p.OpenStream()
 
@@ -211,7 +213,7 @@ func (p *Peer) Search(search string, page int) ([]*Post, *Client, error) {
 	return posts, &stream, nil
 }
 
-func (p *Peer) Recent(page int) ([]*Post, *Client, error) {
+func (p *Peer) Recent(page int) ([]*data.Post, *Client, error) {
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -224,7 +226,7 @@ func (p *Peer) Recent(page int) ([]*Post, *Client, error) {
 
 }
 
-func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
+func (p *Peer) Popular(page int) ([]*data.Post, *Client, error) {
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -237,8 +239,8 @@ func (p *Peer) Popular(page int) ([]*Post, *Client, error) {
 
 }
 
-func (p *Peer) Mirror(db *Database) (*Client, error) {
-	pieces := make(chan *Piece, PieceSize)
+func (p *Peer) Mirror(db *data.Database) (*Client, error) {
+	pieces := make(chan *data.Piece, data.PieceSize)
 	defer close(pieces)
 
 	go db.InsertPieces(pieces, true)

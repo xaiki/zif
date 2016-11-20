@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	zif "github.com/wjh/zif/libzif"
+	data "github.com/wjh/zif/libzif/data"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -71,12 +72,12 @@ func main() {
 	lp.Entry.SetLocalPeer(lp)
 	lp.SignEntry()
 
-	post := zif.Post{}
+	post := data.Post{}
 	post.InfoHash = "foo"
 	post.Title = "Foo"
-	log.Info(zif.PostToString(&post, "|", ""))
+	log.Info(data.PostToString(&post, "|", ""))
 
-	lp.Database = zif.NewDatabase(*db_path)
+	lp.Database = data.NewDatabase(*db_path)
 
 	err := lp.Database.Connect()
 

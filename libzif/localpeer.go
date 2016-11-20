@@ -13,6 +13,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/streamrail/concurrent-map"
+	data "github.com/wjh/zif/libzif/data"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -23,8 +24,8 @@ type LocalPeer struct {
 	Entry         Entry
 	RoutingTable  *RoutingTable
 	Server        Server
-	Collection    *Collection
-	Database      *Database
+	Collection    *data.Collection
+	Database      *data.Database
 	PublicAddress string
 	// These are the databases of all of the peers that we have mirrored.
 	Databases cmap.ConcurrentMap
@@ -63,10 +64,10 @@ func (lp *LocalPeer) Setup() {
 		panic(err)
 	}
 
-	lp.Collection, err = LoadCollection("./data/collection.dat")
+	lp.Collection, err = data.LoadCollection("./data/collection.dat")
 
 	if err != nil {
-		lp.Collection = NewCollection()
+		lp.Collection = data.NewCollection()
 		log.Info("Created new collection")
 	}
 
@@ -81,7 +82,7 @@ func (lp *LocalPeer) Setup() {
 
 			addr := r.FindStringSubmatch(path)
 
-			db := NewDatabase(path)
+			db := data.NewDatabase(path)
 
 			err = db.Connect()
 
@@ -332,7 +333,7 @@ func (lp *LocalPeer) Close() {
 	lp.Collection.Save("./data/collection.dat")
 }
 
-func (lp *LocalPeer) AddPost(p Post, store bool) {
+func (lp *LocalPeer) AddPost(p data.Post, store bool) {
 	log.Info("Adding post with title ", p.Title)
 
 	lp.Collection.AddPost(p, store)

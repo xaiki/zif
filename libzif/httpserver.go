@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 
 	log "github.com/sirupsen/logrus"
+	data "github.com/wjh/zif/libzif/data"
 )
 
 type HTTPServer struct {
@@ -90,7 +91,7 @@ func http_write_data(w http.ResponseWriter, val string) {
 	w.Write([]byte("{\"status\": \"ok\", \"value\":" + val + " }"))
 }
 
-func http_write_posts(w http.ResponseWriter, posts []*Post) {
+func http_write_posts(w http.ResponseWriter, posts []*data.Post) {
 	json, err := json.Marshal(posts)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
@@ -271,7 +272,7 @@ func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
 
 	db, _ := hs.LocalPeer.Databases.Get(addr)
 
-	posts, err := db.(*Database).Search(query, page_i)
+	posts, err := db.(*data.Database).Search(query, page_i)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
@@ -287,7 +288,7 @@ func (hs *HTTPServer) AddPost(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("Adding post, json: ", post_json)
 
-	var post Post
+	var post data.Post
 
 	err := json.Unmarshal([]byte(post_json), &post)
 
@@ -312,7 +313,7 @@ func (hs *HTTPServer) Recent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var posts []*Post
+	var posts []*data.Post
 	if vars["address"] == hs.LocalPeer.Entry.ZifAddress.Encode() {
 		posts, err = hs.LocalPeer.Database.QueryRecent(page_i)
 
@@ -357,7 +358,7 @@ func (hs *HTTPServer) Popular(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var posts []*Post
+	var posts []*data.Post
 	if vars["address"] == hs.LocalPeer.Entry.ZifAddress.Encode() {
 		posts, err = hs.LocalPeer.Database.QueryPopular(page_i)
 
@@ -428,7 +429,7 @@ func (hs *HTTPServer) PeerFtsIndex(w http.ResponseWriter, r *http.Request) {
 
 	db, _ := hs.LocalPeer.Databases.Get(addr)
 
-	err = db.(*Database).GenerateFts(since_i)
+	err = db.(*data.Database).GenerateFts(since_i)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
@@ -575,7 +576,7 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 
 	// Open a database for the peer
 	os.Mkdir(fmt.Sprintf("%s/%s", "./data", peer.ZifAddress.Encode()), 0777)
-	db := NewDatabase(fmt.Sprintf("%s/%s/posts.db", "./data", peer.ZifAddress.Encode()))
+	db := data.NewDatabase(fmt.Sprintf("%s/%s/posts.db", "./data", peer.ZifAddress.Encode()))
 	db.Connect()
 
 	hs.LocalPeer.Databases.Set(peer.ZifAddress.Encode(), db)
@@ -594,7 +595,7 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 func (hs *HTTPServer) Peers(w http.ResponseWriter, r *http.Request) {
 	log.Info("Peers request")
 
-	ps := make([]*Peer, hs.LocalPeer.Peers.Count() + 1)
+	ps := make([]*Peer, hs.LocalPeer.Peers.Count()+1)
 
 	ps[0] = &hs.LocalPeer.Peer
 
@@ -616,7 +617,7 @@ func (hs *HTTPServer) SaveCollection(w http.ResponseWriter, r *http.Request) {
 
 func (hs *HTTPServer) RebuildCollection(w http.ResponseWriter, r *http.Request) {
 	var err error
-	hs.LocalPeer.Collection, err = CreateCollection(hs.LocalPeer.Database, 0, PieceSize)
+	hs.LocalPeer.Collection, err = data.CreateCollection(hs.LocalPeer.Database, 0, data.PieceSize)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
