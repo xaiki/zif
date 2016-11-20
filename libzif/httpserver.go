@@ -42,6 +42,7 @@ func (hs *HTTPServer) ListenHTTP(addr string) {
 	router.HandleFunc("/self/resolve/{address}/", hs.Resolve)
 	router.HandleFunc("/self/bootstrap/{address}/", hs.Bootstrap)
 	router.HandleFunc("/self/search/", hs.SelfSearch).Methods("POST")
+	router.HandleFunc("/self/suggest/", hs.SelfSuggest).Methods("POST")
 	router.HandleFunc("/self/recent/{page}/", hs.SelfRecent)
 	router.HandleFunc("/self/popular/{page}/", hs.SelfPopular)
 	router.HandleFunc("/self/addmeta/{pid}/{key}/{value}/", hs.AddMeta)
@@ -270,7 +271,7 @@ func (hs *HTTPServer) PeerSearch(w http.ResponseWriter, r *http.Request) {
 
 	db, _ := hs.LocalPeer.Databases.Get(addr)
 
-	posts, err := db.(*data.Database).Search(query, page_i)
+	posts, err := hs.LocalPeer.SearchProvider.Search(db.(*data.Database), query, page_i)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
@@ -460,6 +461,22 @@ func (hs *HTTPServer) SelfSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http_write_posts(w, posts)
+}
+
+func (hs *HTTPServer) SelfSuggest(w http.ResponseWriter, r *http.Request) {
+	log.Info("HTTP: Self Autocomplete request")
+
+	query := r.FormValue("query")
+
+	completions := hs.LocalPeer.SearchProvider.Suggest(query)
+
+	data, err := json.Marshal(completions)
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	http_write_string(w, string(data))
 }
 
 func (hs *HTTPServer) SelfRecent(w http.ResponseWriter, r *http.Request) {

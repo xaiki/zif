@@ -28,7 +28,8 @@ type LocalPeer struct {
 	Database      *data.Database
 	PublicAddress string
 	// These are the databases of all of the peers that we have mirrored.
-	Databases cmap.ConcurrentMap
+	Databases      cmap.ConcurrentMap
+	SearchProvider *data.SearchProvider
 
 	// a map of currently connected peers
 	// also use to cancel reconnects :)
@@ -108,6 +109,8 @@ func (lp *LocalPeer) Setup() {
 		log.Debug("External IP is ", ip)
 		lp.Entry.PublicAddress = ip
 	}*/
+
+	lp.SearchProvider = data.NewSearchProvider()
 }
 
 // Given a direct address, for instance an IP or domain, connect to the peer there.
