@@ -38,16 +38,16 @@ done
 
 
 pushd libzif
-go install $VERBF
+go install $VERBOSE
 
 pushd data
-go install $VERBF
+go install $VERBOSE
 
 popd
 popd
 
 pushd zifd
-go install $VERBF
+go install $VERBOSE
 popd
 
 if [ $NONPMINS -eq 0 ]; then
