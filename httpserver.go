@@ -582,6 +582,7 @@ func (hs *HTTPServer) Mirror(w http.ResponseWriter, r *http.Request) {
 
 	_, err = peer.Mirror(db)
 
+	// TODO: wjh: is this needed? -poro
 	hs.LocalPeer.Databases.Set(peer.ZifAddress.Encode(), db)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
