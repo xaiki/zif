@@ -142,8 +142,6 @@ func (hs *HTTPServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	peer.ConnectClient(hs.LocalPeer)
-
 	_, err = peer.Bootstrap(hs.LocalPeer.RoutingTable)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
