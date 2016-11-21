@@ -3,8 +3,10 @@ package zif
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -39,9 +41,7 @@ type CommandMeta struct {
 	key string
 }
 
-type CommandAddPost struct {
-	// TODO
-}
+type CommandAddPost Post
 type CommandSelfIndex struct {
 	since int
 }
@@ -131,10 +131,8 @@ func (cs *CommandServer) Announce(a CommandAnnounce) CommandResult {
 		return {false,nil,err}
 
 	err = peer.Announce(cs.localPeer)
-	if err != nil
-		return {false,nil,err}
 
-	return {true,nil,nil}
+	return {err != nil,nil,err}
 }
 func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 	var err error
@@ -154,10 +152,7 @@ func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 	if stream != nil
 		defer stream.Close()
 
-	if err != nil
-		return {false,nil,err}
-
-	return {true,posts,nil}
+	return {err != nil,posts,err}
 }
 func (cs *CommandServer) PeerSearch(ps CommandPeerSearch) CommandResult {
 	var err error
@@ -170,10 +165,8 @@ func (cs *CommandServer) PeerSearch(ps CommandPeerSearch) CommandResult {
 	db, _ := cs.localPeer.Databases.Get(ps.CommandPeer.address)
 
 	posts, err := db.(*Database).Search(ps.query, ps.page)
-	if err != nil
-		return {false,nil,err}
 
-	return {true,posts,nil}
+	return {err != nil,posts,err}
 }
 func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 	var err   error
@@ -183,10 +176,8 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 
 	if pr.CommandPeer.address == cs.localPeer.Entry.ZifAddress.Encode() {
 		posts, err = cs.localPeer.Database.Query
-		if err != nil
-			return {false,nil,err}
 
-		return {true,posts,nil}
+		return {err != nil,posts,err}
 	}
 
 	peer := cs.localPeer.GetPeer(pr.CommandPeer.address)
@@ -201,10 +192,7 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 	if stream != nil
 		defer stream.Close()
 
-	if err != nil
-		return {false,nil,err}
-
-	return {true,posts,nil}
+	return {err != nil,posts,err}
 }
 func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 	var err   error
@@ -214,10 +202,8 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 
 	if pp.CommandPeer.address == cs.localPeer.Entry.ZifAddress.Encode() {
 		posts, err = cs.localPeer.Database.Query
-		if err != nil
-			return {false,nil,err}
 
-		return {true,posts,nil}
+		return {err == nil,posts,err}
 	}
 
 	peer := cs.localPeer.GetPeer(pp.CommandPeer.address)
@@ -232,10 +218,7 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 	if stream != nil
 		defer stream.Close()
 
-	if err != nil
-		return {false,nil,err}
-
-	return {true,posts,nil}
+	return {err == nil,posts,err}
 }
 func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	var err error
@@ -249,6 +232,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 			return {false,nil,err}
 	}
 
+	// TODO: make this configurable
 	d := fmt.Sprintf("./data/%s", peer.ZifAddress.Encode())
 	os.Mkdir(fmt.Sprintf("./data/%s", d, 0777)
 	db := NewDatabase(d)
@@ -275,9 +259,120 @@ func (cs *CommandServer) PeerIndex(ci CommandPeerIndex) CommandResult {
 
 	db, _ := cs.localPeer.Databases.Get(ci.CommandPeer.address)
 	err = db.(*Database).GenerateFts(ci.since)
+
+	return {err == nil,nil,err}
+}
+
+// self
+
+func (cs *CommandServer) AddPost(cp CommandAddPost) CommandResult {
+	log.Info("Command: Add Post request")
+
+	cs.localPeer.AddPost(cp, false)
+
+	return {true,nil,nil}
+}
+func (cs *CommandServer) SelfIndex(ci CommandSelfIndex) CommandResult {
+	log.Info("Command: FTS Index request")
+
+	err := cs.LocalPeer.Database.GenerateFts(ci.since)
+
+	return {err == nil, nil, err}
+}
+func (cs *CommandServer) Bootstrap(cb CommandBootstrap) CommandResult {
+	log.Info("Command: Bootstrap request")
+
+	addrnport = strings.Split(cb.address, ":")
+
+	address := addrnport[0]
+	var port string
+	if len(address) == 1
+		port = "5050" // TODO: make this configurable
+	else
+		port = addrnport[1]
+
+	peer, err := cs.localPeer.ConnectPeerDirect(host + ":" + port)
 	if err != nil
 		return {false,nil,err}
 
+	peer.ConnectClient(cs.localPeer)
+
+	_, err = peer.Bootstrap(cs.localPeer.RoutingTable)
+
+	return {err == nil,nil,err}
+}
+func (cs *CommandServer) SelfSearch(cs CommandSelfSearch) CommandResult {
+	log.Info("Command: Search request")
+
+	posts, err := cs.localPeer.Database.Search(cs.query, cs.page)
+
+	return {err == nil,posts,err}
+}
+func (cs *CommandServer) SelfRecent(cr CommandSelfRecent) CommandResult {
+	log.Info("Command: Recent request")
+
+	posts, err := cs.localPeer.Database.QueryRecent(cs.page)
+
+	return {err == nil,posts,err}
+}
+func (cs *CommandServer) SelfPopular(cp CommandSelfPopular) CommandResult {
+	log.Info("Command: Popular request")
+
+	posts, err := cs.localPeer.Database.QueryPopular(cp.page)
+
+	return {err == nil,posts,err}
+}
+func (cs *CommandServer) AddMeta(cam CommandAddMeta) CommandResult {
+	log.Info("Command: Add Meta request")
+
+	err := cs.localPeer.Database.AddMeta(cam.CommandMeta.pid, cam.CommandMeta.key, cam.value)
+
+	return {err == nil,nil,err}
+}
+func (cs *CommandServer) GetMeta(cgm CommandGetMeta) CommandResult {
+	log.Info("Command: Get Meta request")
+
+	val, err := cs.localPeer.Database.GetMeta(cgm.pid, cgm.key)
+
+	return {err == nil,nil,err}
+}
+func (cs *CommandServer) SaveCollection(csc CommandSaveCollection) CommandResult {
+	log.Info("Command: Save Collection request")
+
+	// TODO: make this configurable
+	cs.localPeer.Collection.Save("./data/collection.dat")
+
 	return {true,nil,nil}
+}
+func (cs *CommandServer) RebuildCollection(crc CommandRebuildCollection) CommandResult {
+	var err error
+
+	log.Info("Command: Rebuild Collection request")
+
+	cs.localPeer.Collection, err = CreateCollection(cs.localPeer.Database, 0, PieceSize)
+	return {err =! nil,nil,err}
+}
+func (cs *CommandServer) Peers(cp CommandPeers) CommandResult {
+	log.Info("Command: Peers request")
+
+	ps := make([]*Peer, cs.localPeer.Peers.Count() + 1)
+
+	ps[0] = &cs.localPeer.Peer
+
+	i := 1
+	for _, p := range cs.localPeer.Peers.Items() {
+		ps[i] = p.(*Peer)
+		i = i + 1
+	}
+
+	return {true,ps,nil}
+}
+func (cs *CommandServer) SaveRoutingTable(csrt CommandSaveRoutingTable) CommandResult {
+	log.Info("Command: Save Routing Table request")
+
+	// TODO: make this configurable
+	err := cs.localPeer.RoutingTable.Save("dht")
+
+	return {err != nil,nil,err}
 }
 
