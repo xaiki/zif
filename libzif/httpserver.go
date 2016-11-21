@@ -459,7 +459,7 @@ func (hs *HTTPServer) SelfSearch(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Searching for ", query)
 
-	posts, err := hs.LocalPeer.Database.Search(query, page_i)
+	posts, err := hs.LocalPeer.Database.Search(query, page_i, 25)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return

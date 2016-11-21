@@ -110,7 +110,7 @@ func (sp *SearchProvider) spellCheck(query string) string {
 	// Remove the space at the end
 	newQuery.Truncate(newQuery.Len() - 1)
 
-	eturn newQuery.String()
+	return newQuery.String()
 }
 
 func (sp *SearchProvider) Suggest(db *Database, query string) ([]string, error) {

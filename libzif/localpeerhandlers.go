@@ -150,7 +150,7 @@ func (lp *LocalPeer) HandleSearch(msg *Message) error {
 
 	log.WithField("query", sq.Query).Info("Search recieved")
 
-	posts, err := lp.Database.Search(sq.Query, sq.Page)
+	posts, err := lp.Database.Search(sq.Query, sq.Page, 25)
 
 	if err != nil {
 		return err
