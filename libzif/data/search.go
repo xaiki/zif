@@ -2,8 +2,11 @@ package data
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/sajari/fuzzy"
 	log "github.com/sirupsen/logrus"
@@ -93,20 +96,40 @@ func (sp *SearchProvider) loadCorpus() error {
 	return sp.SaveModel()
 }
 
-func (sp *SearchProvider) Suggest(query string) {
-	// TODO: Implement this...
-	/*
-		Add popular post titles to the corpus, then see if I can have the model
-		suggest entire titles.
-		It is unlikely though...
-		The best thing to do is probably spell correct the search, then perform
-		a tiny search on the database and return the results live.
-	*/
+func (sp *SearchProvider) spellCheck(query string) string {
+	scanner := bufio.NewScanner(strings.NewReader(query))
+	scanner.Split(bufio.ScanWords)
+
+	newQuery := bytes.Buffer{}
+
+	for scanner.Scan() {
+		newQuery.WriteString(sp.model.SpellCheck(scanner.Text()))
+		newQuery.WriteString(" ")
+	}
+
+	// Remove the space at the end
+	newQuery.Truncate(newQuery.Len() - 1)
+
+	eturn newQuery.String()
+}
+
+func (sp *SearchProvider) Suggest(db *Database, query string) ([]string, error) {
+	checked, err := db.Suggest(fmt.Sprintf("%s%%", sp.spellCheck(query)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	nonChecked, err := db.Suggest(fmt.Sprintf("%s%%", query))
+	if err != nil {
+		return nil, err
+	}
+
+	return append(checked, nonChecked...), nil
 }
 
 func (sp *SearchProvider) Search(db *Database, query string, page int) ([]*Post, error) {
-	// TODO: Spell correct query, then search with the corrected version.
-	results, err := db.Search(query, page)
+	results, err := db.Search(sp.spellCheck(query), page, 25)
 
 	return results, err
 }

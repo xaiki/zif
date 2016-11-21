@@ -215,12 +215,10 @@ func (db *Database) QueryPopular(page int) ([]*Post, error) {
 
 // Perform a query on the FTS table. The results returned are used to pull actual
 // results out of the post table, and these are returned.
-func (db *Database) Search(query string, page int) ([]*Post, error) {
-	page_size := 25 // TODO: Configure this elsewhere
-
-	posts := make([]*Post, 0, page_size)
-	rows, err := db.conn.Query(sql_search_post, query, page*page_size,
-		page_size)
+func (db *Database) Search(query string, page, pageSize int) ([]*Post, error) {
+	posts := make([]*Post, 0, pageSize)
+	rows, err := db.conn.Query(sql_search_post, query, page*pageSize,
+		pageSize)
 
 	if err != nil {
 		return nil, err
@@ -385,6 +383,32 @@ func (db *Database) GetMeta(pid int, key string) (string, error) {
 	}
 
 	return value, nil
+}
+
+func (db *Database) Suggest(query string) ([]string, error) {
+	suggest_size := 5
+
+	ret := make([]string, 0, suggest_size)
+	rows, err := db.conn.Query(sql_suggest_posts, query, suggest_size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+
+		var result string
+
+		err = rows.Scan(&result)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, result)
+	}
+
+	return ret, nil
 }
 
 // Close the database connection.

@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
 import request from "superagent"
 import async from "async";
+import util from "../util"
 
 import TextField from 'material-ui/TextField';
+import AutoComplete from 'material-ui/AutoComplete';
 
 class Search extends Component
 {
@@ -13,18 +15,20 @@ class Search extends Component
 		this.state = {
 			focus: false,
 			searchValue: "",
-			focuedWidth: this.props.focusedWidth
+			focuedWidth: this.props.focusedWidth,
+			dataSource: []
 		};
 
 
-		this.toggleFocus = this.toggleFocus.bind(this);
-		this.onChange = this.onChange.bind(this);
+		this.onUpdateInput= this.onUpdateInput.bind(this);
 		this.onSubmit = this.onSubmit.bind(this);
 
 		// How many search results we need before they are displayed (and sorted)
 		this.searchTotal = 1 + this.props.Subscriptions.length;
 
 		this.results = [];
+
+		this.lastEntered = "";
 	}
 
 	static get defaultProps()
@@ -45,18 +49,27 @@ class Search extends Component
 		return window.innerWidth - 446;
 	}
 
-	toggleFocus(){ this.setState({ focus: !this.state.focus })} 
-
-	onChange(e)
+	onUpdateInput(e)
 	{
-		this.setState({ searchValue: e.target.value });
+		if (e.length < 3 || e.length < this.lastEntered.length)
+		{ 
+			this.lastEntered = e;
+			return;
+		}
+
+		console.log(e)
+
+		// get completions
+		request.post("http://127.0.0.1:8080/self/suggest/")
+			.type("form")
+			.send({query: e})
+			.end((err, res) => {
+				this.setState({ dataSource: util.uniq(res.body.value) });
+			});
 	}
 
-	onSubmit(e)
+	onSubmit(req, i)
 	{
-		// stops the page refreshing
-		e.preventDefault();
-
 		var functions = [];
 
 		// Append local search
@@ -64,7 +77,7 @@ class Search extends Component
 			
 			request.post("http://127.0.0.1:8080/self/search/")
 					.type("form")
-					.send({ query: this.state.searchValue, page:0 })
+					.send({ query: req, page:0 })
 					.end(cb)
 		});
 
@@ -74,7 +87,7 @@ class Search extends Component
 				return ((cb) => {
 					request.post("http://127.0.0.1:8080/peer/" + this.props.Subscriptions[i] + "/search/")
 							.type("form")
-							.send({ query: this.state.searchValue, page:0 })
+							.send({ query: req, page:0 })
 							.end(cb);
 				}).bind(this)
 			})(i);
@@ -82,7 +95,7 @@ class Search extends Component
 			functions.push(fn);
 		}
 
-		async.series(functions, (err, res) => {
+		async.parallel(functions, (err, res) => {
 			this.props.onResults(res);
 		});
 
@@ -94,8 +107,6 @@ class Search extends Component
 	
 	render()
 	{
-		this.state.focusedWidth = window.innerWidth - 444;
-
 		var style = {
 			backgroundColor: "white",
 			paddingLeft: "5px",
@@ -103,21 +114,22 @@ class Search extends Component
 			marginRight: "210px",
 			marginTop: "8px",
 			transition: this.props.transitionTime,
-			width: this.state.focus && this.props.growOnFocus ? 
-						this.state.focusedWidth : this.props.unfocusedWidth
+			width: window.innerWidth - 444
 		};
 
 		return (
-			<form onSubmit={this.onSubmit}>
-				<TextField
-					style={style}
-					onFocus={this.toggleFocus}
-					onBlur={this.toggleFocus}
-					underlineShow={this.props.underlineShow}
-					hintText={this.props.hintText}
-					onChange={this.onChange}
-				/>
-			</form>
+				<div>
+			<AutoComplete
+				style={style}
+				dataSource={this.state.dataSource}
+				underlineShow={this.props.underlineShow}
+				hintText={this.props.hintText}
+				onUpdateInput={util.throttle(this.onUpdateInput, 100, this)}
+				filter={AutoComplete.fuzzyFilter}
+				fullWidth={true}
+				onNewRequest={this.onSubmit}
+			/>
+			</div>
 		)
 	}
 }

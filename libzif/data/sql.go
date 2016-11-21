@@ -88,4 +88,12 @@ const sql_search_post string = `SELECT docid FROM fts_post
 									ORDER BY ((seeders * 1.1) + leechers) DESC
 									LIMIT ?,?`
 
+const sql_suggest_posts string = `SELECT title FROM (
+										SELECT * FROM post
+										ORDER BY upload_date DESC
+										LIMIT 100000
+									)
+									WHERE title LIKE ?
+									LIMIT 0,?`
+
 const sql_count_post = `SELECT MAX(id) FROM post`

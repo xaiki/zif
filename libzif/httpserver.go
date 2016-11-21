@@ -73,22 +73,27 @@ func http_error_check(w http.ResponseWriter, errCode int, err error) bool {
 
 func http_write_error(w http.ResponseWriter, errCode int, err error) {
 	w.WriteHeader(errCode)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Write([]byte("{ \"status\": \"err\", \"err\": \"" + err.Error() + "\"}"))
 }
 
 func http_write_ok(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Write([]byte("{\"status\": \"ok\" }"))
 }
 
 // writes a single string value (eg, for metadata gets)
 func http_write_string(w http.ResponseWriter, val string) {
 	w.WriteHeader(http.StatusOK)
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Write([]byte("{\"status\": \"ok\", \"value\":\"" + val + "\" }"))
 }
 
 func http_write_data(w http.ResponseWriter, val string) {
 	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Write([]byte("{\"status\": \"ok\", \"value\":" + val + " }"))
 }
 
@@ -464,19 +469,33 @@ func (hs *HTTPServer) SelfSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HTTPServer) SelfSuggest(w http.ResponseWriter, r *http.Request) {
-	log.Info("HTTP: Self Autocomplete request")
+	log.Info("HTTP: Self Suggest request")
 
 	query := r.FormValue("query")
+	log.Debug("Suggesting completions for ", query)
 
-	completions := hs.LocalPeer.SearchProvider.Suggest(query)
-
-	data, err := json.Marshal(completions)
+	completions, err := hs.LocalPeer.SearchProvider.Suggest(hs.LocalPeer.Database, query)
 
 	if http_error_check(w, http.StatusInternalServerError, err) {
 		return
 	}
 
-	http_write_string(w, string(data))
+	newCompletions := make([]string, 0, len(completions))
+
+	for _, i := range completions {
+		newCompletions = append(newCompletions, SanitiseForAuto(i))
+	}
+
+	data, err := json.Marshal(newCompletions)
+
+	log.Debug(string(data))
+
+	if http_error_check(w, http.StatusInternalServerError, err) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	http_write_data(w, string(data))
 }
 
 func (hs *HTTPServer) SelfRecent(w http.ResponseWriter, r *http.Request) {
@@ -497,6 +516,7 @@ func (hs *HTTPServer) SelfRecent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	http_write_posts(w, posts)
 }
 
