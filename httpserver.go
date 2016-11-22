@@ -3,6 +3,7 @@
 package zif
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -57,9 +58,9 @@ func (hs *HttpServer) ListenHttp(addr string) {
 func write_http_response(w http.ResponseWriter, cr CommandResult) {
 	var err int
 	if cr.IsOK {
-		err = 200
+		err = http.StatusOK
 	} else {
-		err = 500
+		err = http.StatusInternalServerError
 	}
 
 	w.WriteHeader(err)
@@ -163,43 +164,109 @@ func (hs *HttpServer) PeerFtsIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hs *HttpServer) AddPost(w http.ResponseWriter, r *http.Request) {
+	pj := r.FormValue("data")
 
+	var post CommandAddPost
+	err := json.Unmarshal([]byte(pj), &post)
+	if err != nil {
+		write_http_response(w, CommandResult{false,nil,err})
+		return
+	}
+
+	write_http_response(w, hs.CommandServer.AddPost(post))
 }
 func (hs *HttpServer) FtsIndex(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 
+	since, err := strconv.Atoi(vars["since"])
+	if err != nil {
+		write_http_response(w, CommandResult{false,nil,err})
+		return
+	}
+
+	write_http_response(w, hs.CommandServer.SelfIndex(
+		CommandSelfIndex{since}))
 }
 func (hs *HttpServer) Resolve(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 
+	write_http_response(w, hs.CommandServer.Resolve(CommandResolve{vars["address"]}))
 }
 func (hs *HttpServer) Bootstrap(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 
+	write_http_response(w, hs.CommandServer.Bootstrap(CommandBootstrap{vars["address"]}))
 }
 func (hs *HttpServer) SelfSearch(w http.ResponseWriter, r *http.Request) {
+	query := r.FormValue("query")
+	page  := r.FormValue("page" )
 
+	pagei, err := strconv.Atoi(page)
+	if err != nil {
+		write_http_response(w, CommandResult{false,nil,err})
+		return
+	}
+
+	write_http_response(w, hs.CommandServer.SelfSearch(CommandSelfSearch{query,pagei}))
 }
+// TODO: SelfSuggest after merge
 func (hs *HttpServer) SelfRecent(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 
+	page, err := strconv.Atoi(vars["page"])
+	if err != nil {
+		write_http_response(w, CommandResult{false,nil,err})
+		return
+	}
+
+	write_http_response(w, hs.CommandServer.SelfRecent(CommandSelfRecent{page}))
 }
 func (hs *HttpServer) SelfPopular(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 
+	page, err := strconv.Atoi(vars["page"])
+	if err != nil {
+		write_http_response(w, CommandResult{false,nil,err})
+		return
+	}
+
+	write_http_response(w, hs.CommandServer.SelfPopular(CommandSelfPopular{page}))
 }
 func (hs *HttpServer) AddMeta(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 
+	pid, err := strconv.Atoi(vars["pid"])
+	if err != nil {
+		write_http_response(w, CommandResult{false,nil,err})
+		return
+	}
+
+	write_http_response(w, hs.CommandServer.AddMeta(
+		CommandAddMeta{CommandMeta{pid,vars["key"]},vars["value"]}))
 }
 func (hs *HttpServer) GetMeta(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 
+	pid, err := strconv.Atoi(vars["pid"])
+	if err != nil {
+		write_http_response(w, CommandResult{false,nil,err})
+		return
+	}
+
+	write_http_response(w, hs.CommandServer.GetMeta(
+		CommandGetMeta{pid,vars["key"]}))
 }
 func (hs *HttpServer) SaveCollection(w http.ResponseWriter, r *http.Request) {
-
+	write_http_response(w, hs.CommandServer.SaveCollection(nil))
 }
 func (hs *HttpServer) RebuildCollection(w http.ResponseWriter, r *http.Request) {
-
+	write_http_response(w, hs.CommandServer.RebuildCollection(nil))
 }
 func (hs *HttpServer) Peers(w http.ResponseWriter, r *http.Request) {
-
+	write_http_response(w, hs.CommandServer.Peers(nil))
 }
 func (hs *HttpServer) SaveRoutingTable(w http.ResponseWriter, r *http.Request) {
-
+	write_http_response(w, hs.CommandServer.SaveRoutingTable(nil))
 }
 
 func (hs *HttpServer) IndexHandler(w http.ResponseWriter, r *http.Request) {

@@ -293,7 +293,14 @@ func (cs *CommandServer) SelfIndex(ci CommandSelfIndex) CommandResult {
 
 	err := cs.LocalPeer.Database.GenerateFts(ci.Since)
 
-	return CommandResult{err == nil, nil, err}
+	return CommandResult{err == nil,nil,err}
+}
+func (cs *CommandServer) Resolve(cr CommandResolve) CommandResult {
+    log.Info("Command: Resolve request")
+
+    entry, err := cs.LocalPeer.Resolve(cr.Address)
+
+    return CommandResult{err == nil,entry,err}
 }
 func (cs *CommandServer) Bootstrap(cb CommandBootstrap) CommandResult {
 	log.Info("Command: Bootstrap request")
@@ -368,7 +375,7 @@ func (cs *CommandServer) RebuildCollection(crc CommandRebuildCollection) Command
 	log.Info("Command: Rebuild Collection request")
 
 	cs.LocalPeer.Collection, err = CreateCollection(cs.LocalPeer.Database, 0, PieceSize)
-	return CommandResult{err != nil,nil,err}
+	return CommandResult{err == nil,nil,err}
 }
 func (cs *CommandServer) Peers(cp CommandPeers) CommandResult {
 	log.Info("Command: Peers request")
@@ -391,6 +398,6 @@ func (cs *CommandServer) SaveRoutingTable(csrt CommandSaveRoutingTable) CommandR
 	// TODO: make this configurable
 	err := cs.LocalPeer.RoutingTable.Save("dht")
 
-	return CommandResult{err != nil,nil,err}
+	return CommandResult{err == nil,nil,err}
 }
 
