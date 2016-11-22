@@ -483,7 +483,7 @@ func (hs *HTTPServer) SelfSuggest(w http.ResponseWriter, r *http.Request) {
 	newCompletions := make([]string, 0, len(completions))
 
 	for _, i := range completions {
-		newCompletions = append(newCompletions, SanitiseForAuto(i))
+		newCompletions = append(newCompletions, i)
 	}
 
 	data, err := json.Marshal(newCompletions)

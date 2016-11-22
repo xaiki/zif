@@ -2,14 +2,12 @@ package libzif
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
-	"unicode"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -117,17 +115,4 @@ func ValidateEntry(entry *Entry) error {
 	}
 
 	return nil
-}
-
-// Takes a string, makes it look "nice" for an autocomplete cue.
-func SanitiseForAuto(in string) string {
-	buffer := bytes.Buffer{}
-
-	for _, i := range in {
-		if unicode.IsLetter(i) || unicode.IsNumber(i) || unicode.IsSpace(i) {
-			buffer.WriteRune(i)
-		}
-	}
-
-	return buffer.String()
 }
