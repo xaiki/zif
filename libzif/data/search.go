@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/sajari/fuzzy"
 	log "github.com/sirupsen/logrus"
@@ -113,6 +114,33 @@ func (sp *SearchProvider) spellCheck(query string) string {
 	return newQuery.String()
 }
 
+func IsAlnumWord(word string) bool {
+	for _, i := range word {
+		if !unicode.IsLetter(i) && !unicode.IsNumber(i) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Takes a string, makes it look "nice" for an autocomplete cue.
+func SanitiseForAuto(in string) string {
+	buffer := bytes.Buffer{}
+
+	scanner := bufio.NewScanner(strings.NewReader(in))
+	scanner.Split(bufio.ScanWords)
+
+	for scanner.Scan() {
+		if IsAlnumWord(scanner.Text()) {
+			buffer.WriteString(scanner.Text())
+			buffer.WriteString(" ")
+		}
+	}
+
+	return buffer.String()
+}
+
 func (sp *SearchProvider) Suggest(db *Database, query string) ([]string, error) {
 	checked, err := db.Suggest(fmt.Sprintf("%s%%", sp.spellCheck(query)))
 
@@ -125,7 +153,17 @@ func (sp *SearchProvider) Suggest(db *Database, query string) ([]string, error) 
 		return nil, err
 	}
 
-	return append(checked, nonChecked...), nil
+	ret := make([]string, 0, len(checked)+len(nonChecked))
+
+	for _, i := range checked {
+		ret = append(ret, SanitiseForAuto(i))
+	}
+
+	for _, i := range nonChecked {
+		ret = append(ret, SanitiseForAuto(i))
+	}
+
+	return ret, nil
 }
 
 func (sp *SearchProvider) Search(db *Database, query string, page int) ([]*Post, error) {

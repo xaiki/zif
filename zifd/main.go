@@ -89,9 +89,11 @@ func main() {
 
 	log.Info("My address: ", lp.ZifAddress.Encode())
 
-	var httpServer zif.HTTPServer
-	httpServer.LocalPeer = lp
-	go httpServer.ListenHTTP(*http)
+	var commandServer zif.CommandServer
+	commandServer.LocalPeer = lp
+	var httpServer zif.HttpServer
+	httpServer.CommandServer = &commandServer
+	go httpServer.ListenHttp(*http)
 
 	// Listen for SIGINT
 	sigchan := make(chan os.Signal, 1)
