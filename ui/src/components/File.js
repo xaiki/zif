@@ -40,6 +40,12 @@ class StreamFile extends Component
 		}
 
 		console.log(this.props.File);
+
+		this.props.File.appendTo(target, 
+				(err, elem) => {
+					this.elem = elem;
+					this.elem.style.width = "100%";
+				});
 	}
 
 	render() {

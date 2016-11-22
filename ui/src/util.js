@@ -84,7 +84,7 @@ function bytes_to_size(bytes)
    var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
 
    if (bytes == 0) 
-   	   return '0 Bytes';
+	   return '0 Bytes';
 
    var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
 
@@ -104,6 +104,43 @@ function saveConfig(obj)
 	fs.writeFile("./config.json", json, (err) => {console.log(err);});
 }
 
+function uniq(a) {
+    var prims = {"boolean":{}, "number":{}, "string":{}}, objs = [];
+
+    return a.filter(function(item) {
+        var type = typeof item;
+        if(type in prims)
+            return prims[type].hasOwnProperty(item) ? false : (prims[type][item] = true);
+        else
+            return objs.indexOf(item) >= 0 ? false : objs.push(item);
+    });
+}
+
+function throttle(fn, threshhold, scope) {
+	threshhold || (threshhold = 250);
+	var last,
+	    deferTimer;
+	return function () {
+		var context = scope || this;
+
+		var now = +new Date,
+		args = arguments;
+
+		if (last && now < last + threshhold) {
+			// hold on to it
+			clearTimeout(deferTimer);
+			deferTimer = setTimeout(function () {
+				last = now;
+				fn.apply(context, args);
+			}, threshhold);
+
+		} else {
+			last = now;
+			fn.apply(context, args);
+		}
+	};
+}
+
 module.exports = {
 	make_magnet: make_magnet,
 	chunk: chunk,
@@ -113,5 +150,7 @@ module.exports = {
 		alphanum: alphanum
 	},
 	loadConfig: loadConfig,
-	saveConfig: saveConfig
+	saveConfig: saveConfig,
+	uniq: uniq,
+	throttle: throttle
 }
