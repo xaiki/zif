@@ -135,7 +135,13 @@ func (s *Server) Handshake(conn net.Conn) {
 
 	header, err := handshake(cl, s.localPeer)
 	addr := Address{}
-	addr.Generate(header)
+
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	_, err = addr.Generate(header)
 
 	if err != nil {
 		log.Error(err.Error())

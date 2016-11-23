@@ -167,7 +167,9 @@ func (sp *SearchProvider) Suggest(db *Database, query string) ([]string, error) 
 }
 
 func (sp *SearchProvider) Search(db *Database, query string, page int) ([]*Post, error) {
-	results, err := db.Search(sp.spellCheck(query), page, 25)
+	// TODO: Instead of searching for spell-corrected versions, suggest an
+	// alternate search.
+	results, err := db.Search(query, page, 25)
 
 	return results, err
 }

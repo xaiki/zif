@@ -94,6 +94,7 @@ const sql_suggest_posts string = `SELECT title FROM (
 										LIMIT 100000
 									)
 									WHERE title LIKE ?
+									ORDER BY (seeders * 1.1) + leechers DESC
 									LIMIT 0,?`
 
 const sql_count_post = `SELECT MAX(id) FROM post`

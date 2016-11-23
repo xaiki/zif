@@ -133,7 +133,7 @@ func (sm *StreamManager) ConnectClient() (*yamux.Session, error) {
 	client, err := yamux.Client(sm.connection.cl.conn, nil)
 
 	if err != nil {
-		return client, err
+		return nil, err
 	}
 
 	sm.client = client
@@ -154,7 +154,7 @@ func (sm *StreamManager) ConnectServer() (*yamux.Session, error) {
 	server, err := yamux.Server(sm.connection.cl.conn, nil)
 
 	if err != nil {
-		return server, err
+		return nil, err
 	}
 
 	sm.server = server
