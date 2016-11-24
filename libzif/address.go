@@ -44,11 +44,11 @@ func DecodeAddress(value string) Address {
 // Generate a Zif address from a public key.
 // This process involves one SHA3-256 iteration, followed by RIPEMD160. This is
 // similar to bitcoin, and the RIPEMD160 makes the resulting address a bit shorted.
-func (a *Address) Generate(key []byte) string {
+func (a *Address) Generate(key []byte) (string, error) {
 	ripemd := ripemd160.New()
 
 	if len(key) != 32 {
-		panic(errors.New("Local peer public key is not 32 bytes"))
+		return "", (errors.New("Public key is not 32 bytes"))
 	}
 
 	// Why hash and not just use the pub key?
@@ -62,7 +62,7 @@ func (a *Address) Generate(key []byte) string {
 
 	a.Bytes = secondHash
 
-	return a.Encode()
+	return a.Encode(), nil
 }
 
 func (a *Address) Less(other *Address) bool {

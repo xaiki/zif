@@ -5,12 +5,14 @@ import AppBar from 'material-ui/AppBar';
 import Drawer from 'material-ui/Drawer';
 import MenuItem from 'material-ui/MenuItem';
 import TextField from 'material-ui/TextField';
+import Dialog from 'material-ui/Dialog';
 import {grey100, grey50} from 'material-ui/styles/colors';
 
 import Home from './Home';
 import Search from "./Search"
 import SearchResults from "./SearchResults"
 import Stream from "./Stream"
+import Welcome from "./WelcomeDialog"
 
 import util from "../util"
 
@@ -28,15 +30,11 @@ class App extends Component
 	{
 		super(props);
 
-		this.state = {
-			drawerOpen : true,
-
+		this.state = { drawerOpen : true, 
 			search: {
 				focus: false
 			}
 		};
-
-		this.loadConfig();
 
 		this.handleToggle = this.handleToggle.bind(this);
 		this.onResults = this.onResults.bind(this);
@@ -44,10 +42,6 @@ class App extends Component
 		this.config = util.loadConfig();
 
 		window.downloadClient = new WebTorrent();
-	}
-
-	loadConfig()
-	{ 
 	}
 
 	handleToggle(){ this.setState({ drawerOpen: !this.state.drawerOpen }) }
@@ -110,6 +104,8 @@ class App extends Component
 					</div>
 
 				</Drawer>
+
+				<Welcome config={this.config}/>
 
 				<div style={style.router}>
 					<Router history={hashHistory} routes={routes}>

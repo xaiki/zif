@@ -88,7 +88,13 @@ class Search extends Component
 					request.post("http://127.0.0.1:8080/peer/" + this.props.Subscriptions[i] + "/search/")
 							.type("form")
 							.send({ query: req, page:0 })
-							.end(cb);
+
+							// Pass null for the error.
+							// Weird, I know...
+							// This means that even if a peer cannot be connected
+							// to, then we still get results from the others.
+							// Otherwise an error stops any more results.
+							.end((err, res)=>cb(null, res));
 				}).bind(this)
 			})(i);
 
@@ -96,6 +102,8 @@ class Search extends Component
 		}
 
 		async.parallel(functions, (err, res) => {
+			if (err) return console.log(err);
+			console.log(res)
 			this.props.onResults(res);
 		});
 
