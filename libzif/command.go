@@ -38,8 +38,7 @@ type CommandPeerIndex struct {
 }
 
 type CommandMeta struct {
-	PId int    `json:"pid"`
-	Key string `json:"key"`
+	PId int `json:"pid"`
 }
 
 type CommandAddPost data.Post
@@ -361,16 +360,9 @@ func (cs *CommandServer) SelfPopular(cp CommandSelfPopular) CommandResult {
 func (cs *CommandServer) AddMeta(cam CommandAddMeta) CommandResult {
 	log.Info("Command: Add Meta request")
 
-	err := cs.LocalPeer.Database.AddMeta(cam.CommandMeta.PId, cam.CommandMeta.Key, cam.Value)
+	err := cs.LocalPeer.Database.AddMeta(cam.CommandMeta.PId, cam.Value)
 
 	return CommandResult{err == nil, nil, err}
-}
-func (cs *CommandServer) GetMeta(cgm CommandGetMeta) CommandResult {
-	log.Info("Command: Get Meta request")
-
-	val, err := cs.LocalPeer.Database.GetMeta(cgm.PId, cgm.Key)
-
-	return CommandResult{err == nil, val, err}
 }
 func (cs *CommandServer) SaveCollection(csc CommandSaveCollection) CommandResult {
 	log.Info("Command: Save Collection request")

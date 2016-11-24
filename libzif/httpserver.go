@@ -40,8 +40,7 @@ func (hs *HttpServer) ListenHttp(addr string) {
 	router.HandleFunc("/self/suggest/", hs.SelfSuggest).Methods("POST")
 	router.HandleFunc("/self/recent/{page}/", hs.SelfRecent)
 	router.HandleFunc("/self/popular/{page}/", hs.SelfPopular)
-	router.HandleFunc("/self/addmeta/{pid}/{key}/{value}/", hs.AddMeta)
-	router.HandleFunc("/self/getmeta/{pid}/{key}/", hs.GetMeta)
+	router.HandleFunc("/self/addmeta/{pid}/", hs.AddMeta).Methods("POST")
 	router.HandleFunc("/self/savecollection/", hs.SaveCollection)
 	router.HandleFunc("/self/rebuildcollection/", hs.RebuildCollection)
 	router.HandleFunc("/self/peers/", hs.Peers)
@@ -246,25 +245,15 @@ func (hs *HttpServer) AddMeta(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	pid, err := strconv.Atoi(vars["pid"])
+	meta := r.FormValue("meta")
+
 	if err != nil {
 		write_http_response(w, CommandResult{false, nil, err})
 		return
 	}
 
 	write_http_response(w, hs.CommandServer.AddMeta(
-		CommandAddMeta{CommandMeta{pid, vars["key"]}, vars["value"]}))
-}
-func (hs *HttpServer) GetMeta(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	pid, err := strconv.Atoi(vars["pid"])
-	if err != nil {
-		write_http_response(w, CommandResult{false, nil, err})
-		return
-	}
-
-	write_http_response(w, hs.CommandServer.GetMeta(
-		CommandGetMeta{pid, vars["key"]}))
+		CommandAddMeta{CommandMeta{pid}, meta}))
 }
 func (hs *HttpServer) SaveCollection(w http.ResponseWriter, r *http.Request) {
 	write_http_response(w, hs.CommandServer.SaveCollection(nil))

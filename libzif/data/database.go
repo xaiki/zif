@@ -39,11 +39,6 @@ func (db *Database) Connect() error {
 		return err
 	}
 
-	_, err = db.conn.Exec(sql_create_meta_table)
-	if err != nil {
-		return err
-	}
-
 	_, err = db.conn.Exec(sql_create_fts_post)
 	if err != nil {
 		return err
@@ -349,40 +344,21 @@ func (db *Database) PostCount() uint {
 }
 
 // Add a metadata key/value.
-func (db *Database) AddMeta(pid int, key, value string) error {
+func (db *Database) AddMeta(pid int, value string) error {
 
-	stmt, err := db.conn.Prepare(sql_insert_meta)
+	stmt, err := db.conn.Prepare(sql_attach_meta)
+
 	if err != nil {
 		return err
 	}
 
-	_, err = stmt.Exec(pid, key, value)
+	_, err = stmt.Exec(value, pid)
 
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// Get a metadata key/value.
-func (db *Database) GetMeta(pid int, key string) (string, error) {
-	var value string
-
-	rows, err := db.conn.Query(sql_query_meta, pid, key)
-
-	if err != nil {
-		return "", err
-	}
-
-	rows.Next()
-	err = rows.Scan(&value)
-
-	if err != nil {
-		return "", err
-	}
-
-	return value, nil
 }
 
 func (db *Database) Suggest(query string) ([]string, error) {
