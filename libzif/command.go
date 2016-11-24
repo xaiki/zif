@@ -141,7 +141,7 @@ func (cs *CommandServer) Announce(a CommandAnnounce) CommandResult {
 
 	err = peer.Announce(cs.LocalPeer)
 
-	return CommandResult{err != nil, nil, err}
+	return CommandResult{err == nil, nil, err}
 }
 func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 	var err error
