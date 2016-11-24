@@ -134,7 +134,6 @@ func (cs *CommandServer) Announce(a CommandAnnounce) CommandResult {
 		}
 	}
 
-	_, err = peer.ConnectClient(cs.LocalPeer)
 	if err != nil {
 		return CommandResult{false, nil, err}
 	}
