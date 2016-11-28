@@ -310,6 +310,36 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 	return nil
 }
 
+func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
+	// The AddPeer message contains the address of the peer that the client
+	// wishes to be registered for.
+
+	var peerFor string
+	msg.Decode(&peerFor)
+
+	log.Info("Handling add peer request for ", peerFor)
+
+	// First up, we need the address in binary form
+	address := DecodeAddress(peerFor)
+
+	if len(address.Bytes) != AddressBinarySize {
+		return errors.New("Invalid binary address size")
+	}
+
+	// then we need to see if we have the entry for that address
+	results := lp.RoutingTable.FindClosest(address, 1)
+
+	if len(results) != 1 {
+		return errors.New("Could not resolve address")
+	} else if !results[0].ZifAddress.Equals(&address) {
+		return errors.New("Not a peer")
+	}
+
+	results[0].Peers = append(results[0].Peers, address.Bytes)
+
+	return nil
+}
+
 func (lp *LocalPeer) ListenStream(peer *Peer) {
 	lp.Server.ListenStream(peer)
 }

@@ -142,7 +142,7 @@ func (db *Database) InsertPost(post Post) error {
 	}
 
 	_, err = stmt.Exec(post.InfoHash, post.Title, post.Size, post.FileCount, post.Seeders,
-		post.Leechers, post.UploadDate, post.Tags)
+		post.Leechers, post.UploadDate, post.Tags, post.Meta)
 
 	if err != nil {
 		return err
@@ -184,7 +184,7 @@ func (db *Database) PaginatedQuery(query string, page int) ([]*Post, error) {
 
 		err := rows.Scan(&post.Id, &post.InfoHash, &post.Title, &post.Size,
 			&post.FileCount, &post.Seeders, &post.Leechers, &post.UploadDate,
-			&post.Tags)
+			&post.Tags, &post.Meta)
 
 		if err != nil {
 			return nil, err
@@ -254,7 +254,7 @@ func (db *Database) QueryPostId(id uint) (Post, error) {
 
 		err := rows.Scan(&post.Id, &post.InfoHash, &post.Title, &post.Size,
 			&post.FileCount, &post.Seeders, &post.Leechers, &post.UploadDate,
-			&post.Tags)
+			&post.Tags, &post.Meta)
 
 		if err != nil {
 			return post, err
@@ -284,7 +284,7 @@ func (db *Database) QueryPiece(id int, store bool) (*Piece, error) {
 
 		err := rows.Scan(&post.Id, &post.InfoHash, &post.Title, &post.Size,
 			&post.FileCount, &post.Seeders, &post.Leechers, &post.UploadDate,
-			&post.Tags)
+			&post.Tags, &post.Meta)
 
 		if err != nil {
 			return nil, err
@@ -319,7 +319,7 @@ func (db *Database) QueryPiecePosts(start, length int, store bool) chan *Post {
 
 			err := rows.Scan(&post.Id, &post.InfoHash, &post.Title, &post.Size,
 				&post.FileCount, &post.Seeders, &post.Leechers, &post.UploadDate,
-				&post.Tags)
+				&post.Tags, &post.Meta)
 
 			if err != nil {
 				log.Error(err)

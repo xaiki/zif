@@ -17,6 +17,19 @@ type Entry struct {
 	Signature []byte
 	Port      int
 
+	// Essentially just a list of other peers who have this entry in their table.
+	// They may or may not actually have pieces, so mirror/piece requests may go
+	// awry.
+	// This is... weird. It is not signed. It is not verified.
+	// While the idea of doing the above irks me somewhat, as potentially bad
+	// actors can make themselves become seeds - they will fail with piece
+	// requests. Hashes of pieces will not match.
+	// Removing the requirement for this to be both signed and verified means
+	// that any peer can become a seed without that much work at all. Again,
+	// seed lists can then be updated *without* the requirement that the origin
+	// peer actually be online in the first place.
+	Peers [][]byte
+
 	// Used in the FindClosest function, for sorting.
 	distance Address
 }

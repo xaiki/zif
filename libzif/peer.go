@@ -292,3 +292,13 @@ func (p *Peer) Mirror(db *data.Database) (*Client, error) {
 
 	return &stream, err
 }
+
+func (p *Peer) RequestAddPeer(addr string) (*Client, error) {
+	stream, err := p.OpenStream()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &stream, stream.RequestAddPeer(addr)
+}

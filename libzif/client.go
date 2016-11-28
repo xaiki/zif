@@ -452,3 +452,23 @@ func (c *Client) Pieces(address Address, id, length int) chan *data.Piece {
 
 	return ret
 }
+
+func (c *Client) RequestAddPeer(addr string) error {
+	msg := &Message{
+		Header:  ProtoRequestAddPeer,
+		Content: []byte(addr),
+	}
+
+	c.WriteMessage(msg)
+	rep, err := c.ReadMessage()
+
+	if err != nil {
+		return err
+	}
+
+	if !rep.Ok() {
+		return errors.New("Peer add request failed")
+	}
+
+	return nil
+}

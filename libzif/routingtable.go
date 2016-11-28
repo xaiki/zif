@@ -91,13 +91,15 @@ func LoadRoutingTable(path string, addr Address) (*RoutingTable, error) {
 	data, err := ioutil.ReadFile(path)
 
 	if err != nil {
-		return nil, err
+		log.Info("An error occured, creating new routing table")
+		return &ret, nil
 	}
 
 	err = json.Unmarshal(data, &save)
 
 	if err != nil {
-		return nil, err
+		log.Info("An error occured, creating new routing table")
+		return &ret, nil
 	}
 
 	for n, i := range save.Buckets {

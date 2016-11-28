@@ -24,14 +24,9 @@ class Post extends Component
 						actAsExpander={true}
 						showExpandableButton={true}>
 
-						<div style={{display: "flex", flexWrap: "wrap"}}>
-							<Chip>{this.props.Seeders} Seeders</Chip>
-							<Chip>{this.props.Leechers} Leechers</Chip>
-						</div>
 
 					</CardHeader>
-					<CardText expandable={true}>
-						{this.props.Description}
+					<CardText>
 					</CardText>
 
 					<CardActions>

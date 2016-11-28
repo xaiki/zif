@@ -1,108 +1,14 @@
 package libzif
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 	data "github.com/wjh/zif/libzif/data"
 )
-
-// Command input types
-
-type CommandPeer struct {
-	Address string `json:"address"`
-}
-
-type CommandPing CommandPeer
-type CommandAnnounce CommandPeer
-type CommandRSearch struct {
-	CommandPeer
-	Query string `json:"query"`
-	Page  int    `json:"page"`
-}
-type CommandPeerSearch CommandRSearch
-type CommandPeerRecent struct {
-	CommandPeer
-	Page int `json:"page"`
-}
-type CommandPeerPopular CommandPeerRecent
-type CommandMirror CommandPeer
-type CommandPeerIndex struct {
-	CommandPeer
-	Since int `json:"since"`
-}
-
-type CommandMeta struct {
-	PId int `json:"pid"`
-}
-
-type CommandAddPost data.Post
-type CommandSelfIndex struct {
-	Since int `json:"since"`
-}
-type CommandResolve CommandPeer
-type CommandBootstrap CommandPeer
-
-type CommandSuggest struct {
-	Query string `json:"query"`
-}
-
-type CommandSelfSearch struct {
-	CommandSuggest
-	Page int `json:"page"`
-}
-type CommandSelfRecent struct {
-	Page int `json:"page"`
-}
-type CommandSelfPopular CommandSelfRecent
-type CommandAddMeta struct {
-	CommandMeta
-	Value string `json:"value"`
-}
-type CommandGetMeta CommandMeta
-type CommandSaveCollection interface{}
-type CommandRebuildCollection interface{}
-type CommandPeers interface{}
-type CommandSaveRoutingTable interface{}
-
-// Command output types
-
-type CommandResult struct {
-	IsOK   bool        `json:"status"`
-	Result interface{} `json:"value"`
-	Error  error       `json:"err"`
-}
-
-func (cr *CommandResult) WriteJSON(w io.Writer) {
-	e := json.NewEncoder(w)
-
-	if cr.IsOK {
-		if cr.Result == nil {
-			e.Encode(struct {
-				Status string `json:"status"`
-			}{"ok"})
-		} else {
-			e.Encode(struct {
-				Status string      `json:"status"`
-				Value  interface{} `json:"value"`
-			}{"ok", cr.Result})
-		}
-	} else {
-		if cr.Error == nil {
-			cr.Error = errors.New("Something bad happened, but we don't know bad, which makes the fact much worse.")
-		}
-
-		e.Encode(struct {
-			Status string `json:"status"`
-			Error  string `json:"err"`
-		}{"err", cr.Error.Error()})
-	}
-}
 
 // Command server type
 
@@ -280,13 +186,11 @@ func (cs *CommandServer) PeerIndex(ci CommandPeerIndex) CommandResult {
 	return CommandResult{err == nil, nil, err}
 }
 
-// self
-
 func (cs *CommandServer) AddPost(ap CommandAddPost) CommandResult {
 	log.Info("Command: Add Post request")
 
 	cs.LocalPeer.AddPost(
-		data.Post{ap.Id, ap.InfoHash, ap.Title, ap.Size, ap.FileCount, ap.Seeders, ap.Leechers, ap.UploadDate, ap.Tags},
+		data.Post{ap.Id, ap.InfoHash, ap.Title, ap.Size, ap.FileCount, ap.Seeders, ap.Leechers, ap.UploadDate, ap.Tags, ap.Meta},
 		false)
 
 	return CommandResult{true, nil, nil}
@@ -400,6 +304,20 @@ func (cs *CommandServer) SaveRoutingTable(csrt CommandSaveRoutingTable) CommandR
 
 	// TODO: make this configurable
 	err := cs.LocalPeer.RoutingTable.Save("dht")
+
+	return CommandResult{err == nil, nil, err}
+}
+
+func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResult {
+	log.Info("Command: Request Add Peer request")
+
+	peer, err := cs.LocalPeer.ConnectPeer(crap.Remote)
+
+	if err != nil {
+		return CommandResult{true, nil, err}
+	}
+
+	_, err = peer.RequestAddPeer(crap.Peer)
 
 	return CommandResult{err == nil, nil, err}
 }

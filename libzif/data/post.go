@@ -18,6 +18,7 @@ type Post struct {
 	Leechers   int
 	UploadDate int
 	Tags       string
+	Meta       string
 }
 
 func (p Post) Json() ([]byte, error) {

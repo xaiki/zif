@@ -118,6 +118,8 @@ func (s *Server) RouteMessage(msg *Message) {
 		err = s.localPeer.HandleHashList(msg)
 	case ProtoRequestPiece:
 		err = s.localPeer.HandlePiece(msg)
+	case ProtoRequestAddPeer:
+		err = s.localPeer.HandleAddPeer(msg)
 
 	default:
 		log.Error("Unknown message type")

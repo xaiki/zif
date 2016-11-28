@@ -34,8 +34,9 @@ const sql_insert_post string = `INSERT OR IGNORE INTO post(
 									seeders,
 									leechers,
 									upload_date,
-									tags
-								) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
+									tags,
+									meta
+								) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 const sql_attach_meta string = `UPDATE POST
 								SET meta=?

@@ -45,6 +45,7 @@ func (hs *HttpServer) ListenHttp(addr string) {
 	router.HandleFunc("/self/rebuildcollection/", hs.RebuildCollection)
 	router.HandleFunc("/self/peers/", hs.Peers)
 	router.HandleFunc("/self/saveroutingtable/", hs.SaveRoutingTable)
+	router.HandleFunc("/self/requestaddpeer/{remote}/{peer}/", hs.RequestAddPeer)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -266,6 +267,16 @@ func (hs *HttpServer) Peers(w http.ResponseWriter, r *http.Request) {
 }
 func (hs *HttpServer) SaveRoutingTable(w http.ResponseWriter, r *http.Request) {
 	write_http_response(w, hs.CommandServer.SaveRoutingTable(nil))
+}
+
+func (hs *HttpServer) RequestAddPeer(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	log.Info(vars["peer"])
+
+	write_http_response(w, hs.CommandServer.RequestAddPeer(CommandRequestAddPeer{
+		vars["remote"], vars["peer"],
+	}))
 }
 
 func (hs *HttpServer) IndexHandler(w http.ResponseWriter, r *http.Request) {

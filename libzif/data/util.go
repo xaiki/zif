@@ -38,33 +38,7 @@ func WritePost(p *Post, sep, term string, w io.Writer) {
 	w.Write([]byte(sep))
 	w.Write([]byte(p.Tags))
 	w.Write([]byte(sep))
+	w.Write([]byte(p.Meta))
+	w.Write([]byte(sep))
 	w.Write([]byte(term))
-
-	/*
-		The above seems to be a little faster, though mildly more awkward code.
-		I suppose because it avoids allocating a buffer every write?
-
-		bw := bufio.NewWriter(w)
-
-		bw.WriteString(strconv.Itoa(p.Id))
-		bw.WriteString(sep)
-		bw.WriteString(p.InfoHash)
-		bw.WriteString(sep)
-		bw.WriteString(p.Title)
-		bw.WriteString(sep)
-		bw.WriteString(strconv.Itoa(p.Size))
-		bw.WriteString(sep)
-		bw.WriteString(strconv.Itoa(p.FileCount))
-		bw.WriteString(sep)
-		bw.WriteString(strconv.Itoa(p.Seeders))
-		bw.WriteString(sep)
-		bw.WriteString(strconv.Itoa(p.Leechers))
-		bw.WriteString(sep)
-		bw.WriteString(strconv.Itoa(p.UploadDate))
-		bw.WriteString(sep)
-		bw.WriteString(p.Tags)
-		bw.WriteString(sep)
-		bw.WriteString(term)
-
-		bw.Flush()*/
 }
