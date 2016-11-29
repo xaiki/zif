@@ -21,8 +21,15 @@ type CommandServer struct {
 func (cs *CommandServer) Ping(p CommandPing) CommandResult {
 	log.Info("Command: Ping request")
 
-	// TODO: implement
-	return CommandResult{true, nil, nil}
+	peer, err := cs.LocalPeer.ConnectPeer(p.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	time, err := peer.Ping()
+
+	return CommandResult{err == nil, time.Seconds(), err}
 }
 func (cs *CommandServer) Announce(a CommandAnnounce) CommandResult {
 	var err error

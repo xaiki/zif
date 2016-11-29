@@ -11,6 +11,7 @@ type Message struct {
 
 	From   *Peer
 	Stream net.Conn
+	Client *Client
 }
 
 func (m *Message) Json() ([]byte, error) {

@@ -58,6 +58,7 @@ func (hs *HttpServer) ListenHttp(addr string) {
 
 func write_http_response(w http.ResponseWriter, cr CommandResult) {
 	var err int
+
 	if cr.IsOK {
 		err = http.StatusOK
 	} else {
@@ -71,8 +72,9 @@ func write_http_response(w http.ResponseWriter, cr CommandResult) {
 }
 
 func (hs *HttpServer) Ping(w http.ResponseWriter, r *http.Request) {
-	// TODO
-	write_http_response(w, CommandResult{true, nil, nil})
+	vars := mux.Vars(r)
+
+	write_http_response(w, hs.CommandServer.Ping(CommandPing{vars["address"]}))
 }
 func (hs *HttpServer) Announce(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)

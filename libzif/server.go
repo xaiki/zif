@@ -89,6 +89,7 @@ func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 			return
 		}
 		msg.From = peer
+		msg.Client = &cl
 
 		select {
 		case s.localPeer.MsgChan <- *msg:
@@ -120,6 +121,8 @@ func (s *Server) RouteMessage(msg *Message) {
 		err = s.localPeer.HandlePiece(msg)
 	case ProtoRequestAddPeer:
 		err = s.localPeer.HandleAddPeer(msg)
+	case ProtoPing:
+		err = s.localPeer.HandlePing(msg)
 
 	default:
 		log.Error("Unknown message type")

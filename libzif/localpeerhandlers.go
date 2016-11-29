@@ -168,7 +168,7 @@ func (lp *LocalPeer) HandleSearch(msg *Message) error {
 		Content: json,
 	}
 
-	NewClient(msg.Stream).WriteMessage(post_msg)
+	msg.Client.WriteMessage(post_msg)
 
 	return nil
 }
@@ -199,7 +199,7 @@ func (lp *LocalPeer) HandleRecent(msg *Message) error {
 		Content: recent_json,
 	}
 
-	NewClient(msg.Stream).WriteMessage(resp)
+	msg.Client.WriteMessage(resp)
 
 	return nil
 }
@@ -230,13 +230,12 @@ func (lp *LocalPeer) HandlePopular(msg *Message) error {
 		Content: recent_json,
 	}
 
-	NewClient(msg.Stream).WriteMessage(resp)
+	msg.Client.WriteMessage(resp)
 
 	return nil
 }
 
 func (lp *LocalPeer) HandleHashList(msg *Message) error {
-	cl := NewClient(msg.Stream)
 	address := Address{msg.Content}
 
 	log.WithField("address", address.Encode()).Info("Collection request recieved")
@@ -255,13 +254,12 @@ func (lp *LocalPeer) HandleHashList(msg *Message) error {
 		Content: data,
 	}
 
-	cl.WriteMessage(resp)
+	msg.Client.WriteMessage(resp)
 
 	return nil
 }
 
 func (lp *LocalPeer) HandlePiece(msg *Message) error {
-	cl := NewClient(msg.Stream)
 
 	mrp := MessageRequestPiece{}
 	err := msg.Decode(&mrp)
@@ -294,7 +292,7 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 	// I'm guessing the latter allows for gzip to maybe run a little faster?
 	// The former may allow for database reads to occur a little faster though.
 	// buffer both?
-	bw := bufio.NewWriter(cl.conn)
+	bw := bufio.NewWriter(msg.Stream)
 	gzw := gzip.NewWriter(bw)
 
 	for i := range posts {
@@ -311,7 +309,6 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 }
 
 func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
-	cl := NewClient(msg.Stream)
 	// The AddPeer message contains the address of the peer that the client
 	// wishes to be registered for.
 
@@ -323,7 +320,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
 	address := DecodeAddress(peerFor)
 
 	if len(address.Bytes) != AddressBinarySize {
-		cl.WriteMessage(&Message{Header: ProtoNo})
+		msg.Client.WriteMessage(&Message{Header: ProtoNo})
 		return errors.New("Invalid binary address size")
 	}
 
@@ -347,19 +344,25 @@ func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
 		results := lp.RoutingTable.FindClosest(address, 1)
 
 		if len(results) != 1 {
-			cl.WriteMessage(&Message{Header: ProtoNo})
+			msg.Client.WriteMessage(&Message{Header: ProtoNo})
 			return errors.New("Could not resolve address")
 		} else if !results[0].ZifAddress.Equals(&address) {
-			cl.WriteMessage(&Message{Header: ProtoNo})
+			msg.Client.WriteMessage(&Message{Header: ProtoNo})
 			return errors.New("Not a peer")
 		}
 
 		results[0].Peers = append(results[0].Peers, address.Bytes)
 	}
 
-	cl.WriteMessage(&Message{Header: ProtoOk})
+	msg.Client.WriteMessage(&Message{Header: ProtoOk})
 
 	return nil
+}
+
+func (lp *LocalPeer) HandlePing(msg *Message) error {
+	log.WithField("peer", msg.From.ZifAddress.Encode()).Info("Ping")
+
+	return msg.Client.WriteMessage(&Message{Header: ProtoPong})
 }
 
 func (lp *LocalPeer) ListenStream(peer *Peer) {

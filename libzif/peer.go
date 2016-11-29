@@ -156,7 +156,8 @@ func (p *Peer) Entry() (*Entry, error) {
 	return &entries[0], nil
 }
 
-func (p *Peer) Ping() bool {
+func (p *Peer) Ping() (time.Duration, error) {
+
 	stream, err := p.OpenStream()
 	defer stream.Close()
 
@@ -165,10 +166,8 @@ func (p *Peer) Ping() bool {
 	}
 
 	log.Info("Pinging ", p.ZifAddress.Encode())
-	ret := stream.Ping(time.Second * 3)
 
-	return ret
-
+	return stream.Ping(time.Second * 10)
 }
 
 func (p *Peer) Bootstrap(rt *RoutingTable) (*Client, error) {

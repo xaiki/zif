@@ -74,25 +74,29 @@ func (c *Client) ReadMessage() (*Message, error) {
 
 // Pings a client with a specified timeout, returns true/false depending on
 // if it recieves a reply.
-func (c *Client) Ping(timeout time.Duration) bool {
-	/*c.conn.Write(proto_ping)
+func (c *Client) Ping(timeout time.Duration) (time.Duration, error) {
+	start := time.Now()
+
+	c.WriteMessage(&Message{Header: ProtoPing})
 
 	tchan := make(chan bool)
 
 	go func() {
-		buf := make([]byte, 2)
-		net_recvall(buf, c.conn)
+		rep, err := c.ReadMessage()
+
+		if err != nil || rep.Header != ProtoPong {
+			tchan <- false
+		}
 
 		tchan <- true
 	}()
 
 	select {
 	case <-tchan:
-		return true
+		return time.Since(start), nil
 	case <-time.After(timeout):
-		return false
-	}*/
-	return true
+		return time.Since(start), errors.New("Ping timeout")
+	}
 }
 
 // Replies to a Ping request.
@@ -421,6 +425,7 @@ func (c *Client) Pieces(address Address, id, length int) chan *data.Piece {
 				leechers := convert(errReader.ReadString('|'))
 				uploaddate := convert(errReader.ReadString('|'))
 				tags := errReader.ReadString('|')
+				meta := errReader.ReadString('|')
 
 				if errReader.err != nil {
 					log.Error("Failed to read post: ", errReader.err.Error())
@@ -441,6 +446,7 @@ func (c *Client) Pieces(address Address, id, length int) chan *data.Piece {
 					Leechers:   leechers,
 					UploadDate: uploaddate,
 					Tags:       tags,
+					Meta:       meta,
 				}
 
 				piece.Add(post, true)
