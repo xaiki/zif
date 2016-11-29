@@ -28,6 +28,8 @@ type Entry struct {
 	// that any peer can become a seed without that much work at all. Again,
 	// seed lists can then be updated *without* the requirement that the origin
 	// peer actually be online in the first place.
+	// TODO: Switch this to be a struct containing the last time this peer was
+	// announced as a peer, then the list can be periodically culled.
 	Peers [][]byte
 
 	// Used in the FindClosest function, for sorting.

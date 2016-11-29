@@ -272,8 +272,6 @@ func (hs *HttpServer) SaveRoutingTable(w http.ResponseWriter, r *http.Request) {
 func (hs *HttpServer) RequestAddPeer(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	log.Info(vars["peer"])
-
 	write_http_response(w, hs.CommandServer.RequestAddPeer(CommandRequestAddPeer{
 		vars["remote"], vars["peer"],
 	}))

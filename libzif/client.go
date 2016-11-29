@@ -470,5 +470,7 @@ func (c *Client) RequestAddPeer(addr string) error {
 		return errors.New("Peer add request failed")
 	}
 
+	log.Info("Registered as seed peer")
+
 	return nil
 }

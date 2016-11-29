@@ -311,11 +311,11 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 }
 
 func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
+	cl := NewClient(msg.Stream)
 	// The AddPeer message contains the address of the peer that the client
 	// wishes to be registered for.
 
-	var peerFor string
-	msg.Decode(&peerFor)
+	peerFor := string(msg.Content)
 
 	log.Info("Handling add peer request for ", peerFor)
 
@@ -323,19 +323,41 @@ func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
 	address := DecodeAddress(peerFor)
 
 	if len(address.Bytes) != AddressBinarySize {
+		cl.WriteMessage(&Message{Header: ProtoNo})
 		return errors.New("Invalid binary address size")
 	}
 
-	// then we need to see if we have the entry for that address
-	results := lp.RoutingTable.FindClosest(address, 1)
+	if address.Equals(&lp.ZifAddress) {
+		log.WithField("peer", address.Encode()).Info("New seed peer")
 
-	if len(results) != 1 {
-		return errors.New("Could not resolve address")
-	} else if !results[0].ZifAddress.Equals(&address) {
-		return errors.New("Not a peer")
+		add := true
+
+		for _, i := range lp.Entry.Peers {
+			if address.Equals(&Address{i}) {
+				add = false
+			}
+		}
+
+		if add {
+			lp.Entry.Peers = append(lp.Entry.Peers, address.Bytes)
+		}
+
+	} else {
+		// then we need to see if we have the entry for that address
+		results := lp.RoutingTable.FindClosest(address, 1)
+
+		if len(results) != 1 {
+			cl.WriteMessage(&Message{Header: ProtoNo})
+			return errors.New("Could not resolve address")
+		} else if !results[0].ZifAddress.Equals(&address) {
+			cl.WriteMessage(&Message{Header: ProtoNo})
+			return errors.New("Not a peer")
+		}
+
+		results[0].Peers = append(results[0].Peers, address.Bytes)
 	}
 
-	results[0].Peers = append(results[0].Peers, address.Bytes)
+	cl.WriteMessage(&Message{Header: ProtoOk})
 
 	return nil
 }
