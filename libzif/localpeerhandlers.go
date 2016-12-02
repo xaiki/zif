@@ -240,9 +240,15 @@ func (lp *LocalPeer) HandleHashList(msg *Message) error {
 
 	log.WithField("address", address.Encode()).Info("Collection request recieved")
 
-	sig := lp.Sign(lp.Collection.HashList())
+	var sig []byte
 
-	mhl := MessageCollection{lp.Collection.Hash(), lp.Collection.HashList(), len(lp.Collection.HashList()) / 32, sig}
+	if address.Equals(&lp.ZifAddress) {
+		sig := lp.Sign(lp.Collection.HashList)
+	} else {
+
+	}
+
+	mhl := MessageCollection{lp.Collection.Hash(), lp.Collection.HashList, len(lp.Collection.HashList) / 32, sig}
 	data, err := mhl.Encode()
 
 	if err != nil {
@@ -329,14 +335,14 @@ func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
 
 		add := true
 
-		for _, i := range lp.Entry.Peers {
+		for _, i := range lp.Entry.Seeds {
 			if address.Equals(&Address{i}) {
 				add = false
 			}
 		}
 
 		if add {
-			lp.Entry.Peers = append(lp.Entry.Peers, address.Bytes)
+			lp.Entry.Seeds = append(lp.Entry.Seeds, address.Bytes)
 		}
 
 	} else {
@@ -351,7 +357,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
 			return errors.New("Not a peer")
 		}
 
-		results[0].Peers = append(results[0].Peers, address.Bytes)
+		results[0].Seeds = append(results[0].Seeds, address.Bytes)
 	}
 
 	msg.Client.WriteMessage(&Message{Header: ProtoOk})

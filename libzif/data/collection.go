@@ -15,17 +15,17 @@ import (
 // this is essentially a hash list.
 type Collection struct {
 	Pieces   []*Piece
-	hashlist []byte
-	hash     hash.Hash
+	HashList []byte
+	RootHash hash.Hash
 }
 
 // Create a new collection, set all it's members to the correct default values.
 func NewCollection() *Collection {
 	col := &Collection{}
 
-	col.hash = sha3.New256()
+	col.RootHash = sha3.New256()
 	col.Pieces = make([]*Piece, 0, 2)
-	col.hashlist = make([]byte, 0)
+	col.HashList = make([]byte, 0)
 
 	return col
 }
@@ -70,7 +70,7 @@ func LoadCollection(path string) (col *Collection, err error) {
 		return
 	}
 
-	col.hashlist = data
+	col.HashList = data
 	col.Rehash()
 
 	return
@@ -78,16 +78,16 @@ func LoadCollection(path string) (col *Collection, err error) {
 
 // Save the collection hash list to the given path, with permissions 0777.
 func (c *Collection) Save(path string) {
-	ioutil.WriteFile(path, c.hashlist, 0777)
+	ioutil.WriteFile(path, c.HashList, 0777)
 }
 
 // Add a piece to the collection, storing it in c.Pieces and appending it's hash
 // to the hash list.
 func (c *Collection) Add(piece *Piece) {
 	c.Pieces = append(c.Pieces, piece)
-	c.hashlist = append(c.hashlist, piece.Hash()...)
+	c.HashList = append(c.HashList, piece.Hash()...)
 
-	c.hash.Write(piece.Hash())
+	c.RootHash.Write(piece.Hash())
 }
 
 // Add a post to the collection. Automatically assigns to the correct piece,
@@ -99,14 +99,14 @@ func (c *Collection) AddPost(post Post, store bool) {
 		piece.Setup()
 		c.Add(piece)
 
-		c.hashlist = append(c.hashlist, piece.Hash()...)
+		c.HashList = append(c.HashList, piece.Hash()...)
 	}
 
 	lastIndex := len(c.Pieces) - 1
 	last := c.Pieces[lastIndex]
 	last.Add(post, store)
 
-	copy(c.hashlist[lastIndex*32:lastIndex*32+32], last.Hash())
+	copy(c.HashList[lastIndex*32:lastIndex*32+32], last.Hash())
 }
 
 // Return the hash of the hash list, which can then go on to be signed by the
@@ -115,21 +115,16 @@ func (c *Collection) AddPost(post Post, store bool) {
 func (c *Collection) Hash() []byte {
 	var ret []byte
 
-	ret = c.hash.Sum(nil)
+	ret = c.RootHash.Sum(nil)
 
 	return ret
 }
 
 // Regenerates the root hash from the hash list we have.
 func (c *Collection) Rehash() {
-	c.hash = sha3.New256()
+	c.RootHash = sha3.New256()
 
-	for i := 0; i < len(c.hashlist)/32; i++ {
-		c.hash.Write(c.hashlist[i*32 : i*32+32])
+	for i := 0; i < len(c.HashList)/32; i++ {
+		c.RootHash.Write(c.HashList[i*32 : i*32+32])
 	}
-}
-
-// Simply return the hash list.
-func (c *Collection) HashList() []byte {
-	return c.hashlist
 }

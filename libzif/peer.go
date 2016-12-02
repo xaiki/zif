@@ -8,6 +8,7 @@ package libzif
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"net"
 	"time"
 
@@ -27,6 +28,10 @@ type Peer struct {
 	limiter *PeerLimiter
 
 	entry *Entry
+
+	// If this peer is acting as a seed for another
+	seed    bool
+	seedFor *Entry
 }
 
 func (p *Peer) Streams() *StreamManager {
@@ -252,13 +257,21 @@ func (p *Peer) Mirror(db *data.Database) (*Client, error) {
 		return nil, err
 	}
 
-	entry, err := p.Entry()
+	var entry *Entry
+	if p.seed {
+		entry = p.seedFor
+	} else {
+		entry, err = p.Entry()
+	}
 
 	if err != nil {
 		return nil, err
 	}
 
 	mcol, err := stream.Collection(entry.ZifAddress, entry.PublicKey)
+
+	collection := data.Collection{HashList: mcol.HashList}
+	collection.Save(fmt.Sprintf("./data/%s/collection.dat", entry.ZifAddress.Encode()))
 
 	if err != nil {
 		return nil, err
@@ -288,6 +301,8 @@ func (p *Peer) Mirror(db *data.Database) (*Client, error) {
 
 	bar.Finish()
 	log.Info("Mirror complete")
+
+	p.RequestAddPeer(p.ZifAddress.Encode())
 
 	return &stream, err
 }

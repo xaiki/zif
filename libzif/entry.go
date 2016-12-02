@@ -30,7 +30,7 @@ type Entry struct {
 	// peer actually be online in the first place.
 	// TODO: Switch this to be a struct containing the last time this peer was
 	// announced as a peer, then the list can be periodically culled.
-	Peers [][]byte
+	Seeds [][]byte
 
 	// Used in the FindClosest function, for sorting.
 	distance Address

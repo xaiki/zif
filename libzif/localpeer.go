@@ -28,7 +28,9 @@ type LocalPeer struct {
 	Database      *data.Database
 	PublicAddress string
 	// These are the databases of all of the peers that we have mirrored.
-	Databases      cmap.ConcurrentMap
+	Databases   cmap.ConcurrentMap
+	Collections cmap.ConcurrentMap
+
 	SearchProvider *data.SearchProvider
 
 	// a map of currently connected peers
@@ -50,6 +52,7 @@ func (lp *LocalPeer) Setup() {
 	lp.Entry.Signature = make([]byte, ed25519.SignatureSize)
 
 	lp.Databases = cmap.New()
+	lp.Collections = cmap.New()
 	lp.Peers = cmap.New()
 	lp.PublicToZif = cmap.New()
 
@@ -160,29 +163,55 @@ func (lp *LocalPeer) GetPeer(addr string) *Peer {
 
 // Resolved a Zif address into an entry, connects to the peer at the
 // PublicAddress in the Entry, then return it. The peer is also stored in a map.
-func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
+func (lp *LocalPeer) ConnectPeer(addr string, seed bool) (*Peer, bool, error) {
 	var peer *Peer
 
 	entry, err := lp.Resolve(addr)
 
 	if err != nil {
 		log.Error(err.Error())
-		return nil, err
+		return nil, false, err
 	}
 
 	if entry == nil {
-		return nil, AddressResolutionError{addr}
+		return nil, false, AddressResolutionError{addr}
 	}
 
 	// now should have an entry for the peer, connect to it!
 	log.Debug("Connecting to ", entry.ZifAddress.Encode())
+
 	peer, err = lp.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
 
+	// If it errors, then a connection has failed to occur. Woop. Woop.
+	// Not too bad. We can pick a seed, if it has any! If not, sad times.
 	if err != nil {
-		return nil, err
+		log.WithField("peer", addr).Info("Failed to connect")
+
+		if seed {
+			for _, i := range entry.Seeds {
+				log.WithField("address", i).Info("Attempting connection to seed")
+
+				sEntry, err := lp.Resolve((&Address{i}).Encode())
+
+				if err != nil {
+					log.Error(err.Error())
+					return nil, false, err
+				}
+
+				peer, err = lp.ConnectPeerDirect(sEntry.PublicAddress + ":" + strconv.Itoa(sEntry.Port))
+
+				if err != nil {
+					peer.seed = true
+					peer.seedFor = entry
+					return peer, true, nil
+				}
+			}
+		}
+
+		return nil, false, err
 	}
 
-	return peer, nil
+	return peer, false, nil
 }
 
 func (lp *LocalPeer) SignEntry() {
