@@ -1,9 +1,11 @@
 package libzif
 
+import "github.com/wjh/zif/libzif/dht"
+
 // This is an entry into the DHT. It is used to connect to a peer given just
 // it's Zif address.
 type Entry struct {
-	ZifAddress    Address
+	Address       dht.Address
 	Name          string
 	Desc          string
 	PublicAddress string
@@ -15,7 +17,10 @@ type Entry struct {
 	// key by generating an address from it - if the address is not the peers,
 	// then Mallory is just using someone elses entry for their own address.
 	Signature []byte
-	Port      int
+	// Signature of the root hash of a hash list representing all of the posts
+	// a peer has.
+	CollectionSig []byte
+	Port          int
 
 	// Essentially just a list of other peers who have this entry in their table.
 	// They may or may not actually have pieces, so mirror/piece requests may go
@@ -33,11 +38,11 @@ type Entry struct {
 	Seeds [][]byte
 
 	// Used in the FindClosest function, for sorting.
-	distance Address
+	distance dht.Address
 }
 
 func (e *Entry) SetLocalPeer(lp *LocalPeer) {
-	e.ZifAddress = lp.ZifAddress
+	e.Address = lp.Address
 	e.PublicKey = lp.PublicKey
 }
 

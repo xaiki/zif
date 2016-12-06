@@ -53,11 +53,11 @@ func PostsToJson(posts []*data.Post) ([]byte, error) {
 	return data, err
 }
 
-func JsonToEntry(data []byte) (Entry, error) {
+func JsonToEntry(data []byte) (*Entry, error) {
 	var e Entry
 	err := json.Unmarshal(data, &e)
 
-	return e, err
+	return &e, err
 }
 
 // This is signed, *not* the JSON. This is needed because otherwise the order of
@@ -71,7 +71,7 @@ func EntryToBytes(e *Entry) []byte {
 	str += string(e.PublicKey)
 	str += string(e.Port)
 	str += string(e.PublicAddress)
-	str += string(e.ZifAddress.Encode())
+	str += string(e.Address.Encode())
 	str += string(e.PostCount)
 
 	return []byte(str)

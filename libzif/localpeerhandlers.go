@@ -2,6 +2,7 @@ package libzif
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	data "github.com/wjh/zif/libzif/data"
+	"github.com/wjh/zif/libzif/dht"
 )
 
 const MaxSearchLength = 256
@@ -27,7 +29,7 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 
 	//msg.From.limiter.queryLimiter.Wait()
 
-	address := DecodeAddress(string(msg.Content))
+	address := dht.DecodeAddress(string(msg.Content))
 	log.WithField("target", address.Encode()).Info("Recieved query")
 
 	ok := &Message{Header: ProtoOk}
@@ -37,19 +39,22 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 		return err
 	}
 
-	var closest []*Entry
+	closest_json := bytes.Buffer{}
+	encoder := json.NewEncoder(&closest_json)
 
-	if address.Equals(&lp.ZifAddress) {
+	if address.Equals(&lp.Address) {
 		log.Debug("Query for local peer")
-		closest = make([]*Entry, 1)
-		closest[0] = &lp.Entry
+		encoder.Encode(lp.Entry)
 	} else {
 		log.Debug("Querying routing table")
-		closest = lp.RoutingTable.FindClosest(address, MaxBucketSize)
+		results := lp.RoutingTable.FindClosest(address, dht.MaxBucketSize)
+
+		for _, i := range results {
+			closest_json.Write(i.Value)
+		}
 	}
 
-	closest_json, err := json.Marshal(closest)
-	log.Debug("Query results: ", string(closest_json))
+	log.Debug("Query results: ", string(closest_json.String()))
 
 	if err != nil {
 		return errors.New("Failed to encode closest peers to json")
@@ -57,7 +62,7 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 
 	results := &Message{
 		Header:  ProtoEntry,
-		Content: closest_json,
+		Content: closest_json.Bytes(),
 	}
 
 	err = cl.WriteMessage(results)
@@ -74,17 +79,18 @@ func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 	entry := Entry{}
 	err := msg.Decode(&entry)
 
-	log.WithField("address", entry.ZifAddress.Encode()).Info("Announce")
+	log.WithField("address", entry.Address.Encode()).Info("Announce")
 
 	if err != nil {
 		return err
 	}
 
-	saved := lp.RoutingTable.Update(entry)
+	json := EntryToBytes(&entry)
+	saved := lp.RoutingTable.Update(dht.NewKeyValue(entry.Address, json))
 
 	if saved {
 		cl.WriteMessage(&Message{Header: ProtoOk})
-		log.WithField("peer", entry.ZifAddress.Encode()).Info("Saved new peer")
+		log.WithField("peer", entry.Address.Encode()).Info("Saved new peer")
 
 	} else {
 		cl.WriteMessage(&Message{Header: ProtoNo})
@@ -92,21 +98,27 @@ func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 	}
 
 	// next up, tell other people!
-	closest := lp.RoutingTable.FindClosest(entry.ZifAddress, MaxBucketSize)
+	closest := lp.RoutingTable.FindClosest(entry.Address, dht.MaxBucketSize)
 
 	// TODO: Parallize this
 	for _, i := range closest {
-		if i.ZifAddress.Equals(&entry.ZifAddress) || i.ZifAddress.Equals(&msg.From.ZifAddress) {
+		if i.Key.Equals(&entry.Address) || i.Key.Equals(&msg.From.Address) {
 			continue
 		}
 
-		peer := lp.GetPeer(entry.ZifAddress.Encode())
+		peer := lp.GetPeer(entry.Address.Encode())
 
 		if peer == nil {
 			log.Debug("Connecting to new peer")
 
+			decoded, err := JsonToEntry(i.Value)
+
+			if err != nil {
+				return err
+			}
+
 			var p Peer
-			err = p.Connect(i.PublicAddress+":"+strconv.Itoa(i.Port), lp)
+			err = p.Connect(decoded.PublicAddress+":"+strconv.Itoa(decoded.Port), lp)
 
 			if err != nil {
 				log.Warn("Failed to connect to peer: ", err.Error())
@@ -236,16 +248,17 @@ func (lp *LocalPeer) HandlePopular(msg *Message) error {
 }
 
 func (lp *LocalPeer) HandleHashList(msg *Message) error {
-	address := Address{msg.Content}
+	address := dht.Address{msg.Content}
 
 	log.WithField("address", address.Encode()).Info("Collection request recieved")
 
 	var sig []byte
 
-	if address.Equals(&lp.ZifAddress) {
-		sig := lp.Sign(lp.Collection.HashList)
+	if address.Equals(&lp.Address) {
+		sig = lp.Sign(lp.Collection.HashList)
 	} else {
-
+		// this means that the hash list wanted does not belong to this peer
+		// TODO: sort out getting a hash list for a peer that has been mirrored
 	}
 
 	mhl := MessageCollection{lp.Collection.Hash(), lp.Collection.HashList, len(lp.Collection.HashList) / 32, sig}
@@ -281,7 +294,7 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 
 	var posts chan *data.Post
 
-	if mrp.Address == lp.Entry.ZifAddress.Encode() {
+	if mrp.Address == lp.Entry.Address.Encode() {
 		posts = lp.Database.QueryPiecePosts(mrp.Id, mrp.Length, true)
 
 	} else if lp.Databases.Has(mrp.Address) {
@@ -323,20 +336,20 @@ func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
 	log.Info("Handling add peer request for ", peerFor)
 
 	// First up, we need the address in binary form
-	address := DecodeAddress(peerFor)
+	address := dht.DecodeAddress(peerFor)
 
-	if len(address.Bytes) != AddressBinarySize {
+	if len(address.Bytes) != dht.AddressBinarySize {
 		msg.Client.WriteMessage(&Message{Header: ProtoNo})
 		return errors.New("Invalid binary address size")
 	}
 
-	if address.Equals(&lp.ZifAddress) {
+	if address.Equals(&lp.Address) {
 		log.WithField("peer", address.Encode()).Info("New seed peer")
 
 		add := true
 
 		for _, i := range lp.Entry.Seeds {
-			if address.Equals(&Address{i}) {
+			if address.Equals(&dht.Address{i}) {
 				add = false
 			}
 		}
@@ -347,17 +360,24 @@ func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
 
 	} else {
 		// then we need to see if we have the entry for that address
-		results := lp.RoutingTable.FindClosest(address, 1)
+		results := lp.RoutingTable.FindClosest(address, dht.MaxBucketSize)
 
-		if len(results) != 1 {
+		if len(results) == 0 {
 			msg.Client.WriteMessage(&Message{Header: ProtoNo})
 			return errors.New("Could not resolve address")
-		} else if !results[0].ZifAddress.Equals(&address) {
-			msg.Client.WriteMessage(&Message{Header: ProtoNo})
-			return errors.New("Not a peer")
 		}
 
-		results[0].Seeds = append(results[0].Seeds, address.Bytes)
+		decoded, err := JsonToEntry(results[0].Value)
+
+		if err != nil {
+			return err
+		}
+
+		// if the routing table contains the address we are looking for,
+		// register a new seed.
+		if decoded.Address.Equals(&address) {
+			decoded.Seeds = append(decoded.Seeds, address.Bytes)
+		}
 	}
 
 	msg.Client.WriteMessage(&Message{Header: ProtoOk})
@@ -366,7 +386,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
 }
 
 func (lp *LocalPeer) HandlePing(msg *Message) error {
-	log.WithField("peer", msg.From.ZifAddress.Encode()).Info("Ping")
+	log.WithField("peer", msg.From.Address.Encode()).Info("Ping")
 
 	return msg.Client.WriteMessage(&Message{Header: ProtoPong})
 }

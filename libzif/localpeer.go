@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streamrail/concurrent-map"
 	data "github.com/wjh/zif/libzif/data"
+	"github.com/wjh/zif/libzif/dht"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -22,7 +23,7 @@ const ResolveListSize = 1
 type LocalPeer struct {
 	Peer
 	Entry         Entry
-	RoutingTable  *RoutingTable
+	RoutingTable  *dht.RoutingTable
 	Server        Server
 	Collection    *data.Collection
 	Database      *data.Database
@@ -56,13 +57,13 @@ func (lp *LocalPeer) Setup() {
 	lp.Peers = cmap.New()
 	lp.PublicToZif = cmap.New()
 
-	lp.ZifAddress.Generate(lp.PublicKey)
+	lp.Address.Generate(lp.PublicKey)
 
 	lp.Server.localPeer = lp
 
 	lp.MsgChan = make(chan Message)
 
-	lp.RoutingTable, err = LoadRoutingTable("dht", lp.ZifAddress)
+	lp.RoutingTable, err = dht.LoadRoutingTable("dht", lp.Address)
 
 	if err != nil {
 		panic(err)
@@ -145,8 +146,8 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 
 	peer.ConnectClient(lp)
 
-	lp.Peers.Set(peer.ZifAddress.Encode(), peer)
-	lp.PublicToZif.Set(addr, peer.ZifAddress.Encode())
+	lp.Peers.Set(peer.Address.Encode(), peer)
+	lp.PublicToZif.Set(addr, peer.Address.Encode())
 
 	return peer, nil
 }
@@ -178,7 +179,7 @@ func (lp *LocalPeer) ConnectPeer(addr string, seed bool) (*Peer, bool, error) {
 	}
 
 	// now should have an entry for the peer, connect to it!
-	log.Debug("Connecting to ", entry.ZifAddress.Encode())
+	log.Debug("Connecting to ", entry.Address.Encode())
 
 	peer, err = lp.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
 
@@ -191,7 +192,7 @@ func (lp *LocalPeer) ConnectPeer(addr string, seed bool) (*Peer, bool, error) {
 			for _, i := range entry.Seeds {
 				log.WithField("address", i).Info("Attempting connection to seed")
 
-				sEntry, err := lp.Resolve((&Address{i}).Encode())
+				sEntry, err := lp.Resolve((&dht.Address{i}).Encode())
 
 				if err != nil {
 					log.Error(err.Error())
@@ -281,11 +282,11 @@ func (lp *LocalPeer) ReadKey() error {
 func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	log.Debug("Resolving ", addr)
 
-	if addr == lp.ZifAddress.Encode() {
+	if addr == lp.Address.Encode() {
 		return &lp.Entry, nil
 	}
 
-	address := DecodeAddress(addr)
+	address := dht.DecodeAddress(addr)
 
 	// First, find the closest peers in our routing table.
 	// Satisfying if we already have the address :D
@@ -296,16 +297,24 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		return nil, errors.New("Routing table is empty")
 	}
 
-	closest = closest_returned[0]
+	closest, err := JsonToEntry(closest_returned[0].Value)
 
-	log.Info(len(closest_returned))
+	if err != nil {
+		return nil, err
+	}
 
 	iterations := 0
 
 	defer func() {
 		// If the peer was not in our routing table, add them!
 		if iterations > 0 {
-			lp.RoutingTable.Update(*closest)
+			dat, err := EntryToJson(closest)
+
+			if err != nil {
+				return
+			}
+
+			lp.RoutingTable.Update(dht.NewKeyValue(closest.Address, dat))
 		}
 	}()
 
@@ -316,8 +325,8 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 			return nil, errors.New("Address could not be resolved")
 			// The first in the slice is the closest, if we have this entry in our table
 			// then this will be it.
-		} else if closest.ZifAddress.Equals(&address) {
-			log.Debug("Found ", closest.ZifAddress.Encode())
+		} else if closest.Address.Equals(&address) {
+			log.Debug("Found ", closest.Address.Encode())
 			return closest, nil
 		}
 

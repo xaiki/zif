@@ -6,6 +6,7 @@ import (
 	"golang.org/x/crypto/ed25519"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/wjh/zif/libzif/dht"
 )
 
 // Perform a handshake operation given a peer. server.go does the other end of this.
@@ -60,7 +61,7 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 		return nil, err
 	}
 
-	address := Address{}
+	address := dht.Address{}
 	address.Generate(header.Content)
 
 	log.WithFields(log.Fields{"peer": address.Encode()}).Info("Incoming connection")

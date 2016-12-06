@@ -88,7 +88,7 @@ func main() {
 
 	lp.Listen(*addr)
 
-	log.Info("My address: ", lp.ZifAddress.Encode())
+	log.Info("My address: ", lp.Address.Encode())
 
 	var commandServer zif.CommandServer
 	commandServer.LocalPeer = lp

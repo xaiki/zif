@@ -9,6 +9,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/wjh/zif/libzif/dht"
 )
 
 type Server struct {
@@ -53,7 +54,7 @@ func (s *Server) ListenStream(peer *Peer) {
 		if err != nil {
 			if err == io.EOF {
 				log.Info("Peer closed connection")
-				s.localPeer.Peers.Remove(peer.ZifAddress.Encode())
+				s.localPeer.Peers.Remove(peer.Address.Encode())
 
 				if peer.entry == nil {
 					return
@@ -139,7 +140,7 @@ func (s *Server) Handshake(conn net.Conn) {
 	cl := Client{conn, nil, nil}
 
 	header, err := handshake(cl, s.localPeer)
-	addr := Address{}
+	addr := dht.Address{}
 
 	if err != nil {
 		log.Error(err.Error())
@@ -162,7 +163,7 @@ func (s *Server) Handshake(conn net.Conn) {
 		return
 	}
 
-	s.localPeer.Peers.Set(peer.ZifAddress.Encode(), peer)
+	s.localPeer.Peers.Set(peer.Address.Encode(), peer)
 
 	go s.ListenStream(peer)
 }

@@ -18,12 +18,13 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 
 	data "github.com/wjh/zif/libzif/data"
+	"github.com/wjh/zif/libzif/dht"
 )
 
 type Peer struct {
-	ZifAddress Address
-	PublicKey  ed25519.PublicKey
-	streams    StreamManager
+	Address   dht.Address
+	PublicKey ed25519.PublicKey
+	streams   StreamManager
 
 	limiter *PeerLimiter
 
@@ -39,7 +40,7 @@ func (p *Peer) Streams() *StreamManager {
 }
 
 func (p *Peer) Announce(lp *LocalPeer) error {
-	log.Debug("Sending announce to ", p.ZifAddress.Encode())
+	log.Debug("Sending announce to ", p.Address.Encode())
 
 	if lp.Entry.PublicAddress == "" {
 		log.Debug("Local peer public address is nil, attempting to fetch")
@@ -71,7 +72,7 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 	}
 
 	p.PublicKey = pair.pk
-	p.ZifAddress = NewAddress(pair.pk)
+	p.Address = dht.NewAddress(pair.pk)
 
 	p.limiter = &PeerLimiter{}
 	p.limiter.Setup()
@@ -83,7 +84,7 @@ func (p *Peer) SetTCP(pair ConnHeader) {
 	p.streams.connection = pair
 
 	p.PublicKey = pair.pk
-	p.ZifAddress = NewAddress(pair.pk)
+	p.Address = dht.NewAddress(pair.pk)
 
 	p.limiter = &PeerLimiter{}
 	p.limiter.Setup()
@@ -145,7 +146,7 @@ func (p *Peer) Entry() (*Entry, error) {
 		return p.entry, nil
 	}
 
-	client, entries, err := p.Query(p.ZifAddress.Encode())
+	client, entries, err := p.Query(p.Address.Encode())
 	defer client.Close()
 
 	if err != nil {
@@ -170,12 +171,12 @@ func (p *Peer) Ping() (time.Duration, error) {
 		log.Error(err.Error())
 	}
 
-	log.Info("Pinging ", p.ZifAddress.Encode())
+	log.Info("Pinging ", p.Address.Encode())
 
 	return stream.Ping(time.Second * 10)
 }
 
-func (p *Peer) Bootstrap(rt *RoutingTable) (*Client, error) {
+func (p *Peer) Bootstrap(rt *dht.RoutingTable) (*Client, error) {
 	log.Info("Bootstrapping from ", p.streams.connection.cl.conn.RemoteAddr())
 
 	initial, err := p.Entry()
@@ -183,7 +184,10 @@ func (p *Peer) Bootstrap(rt *RoutingTable) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	rt.Update(*initial)
+
+	dat := EntryToBytes(initial)
+
+	rt.Update(dht.NewKeyValue(initial.Address, dat))
 	log.Info(rt.NumPeers())
 
 	stream, _ := p.OpenStream()
@@ -201,7 +205,7 @@ func (p *Peer) Query(address string) (*Client, []Entry, error) {
 
 // asks a peer to query its database and return the results
 func (p *Peer) Search(search string, page int) ([]*data.Post, *Client, error) {
-	log.Info("Searching ", p.ZifAddress.Encode())
+	log.Info("Searching ", p.Address.Encode())
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -249,7 +253,7 @@ func (p *Peer) Mirror(db *data.Database) (*Client, error) {
 
 	go db.InsertPieces(pieces, true)
 
-	log.WithField("peer", p.ZifAddress.Encode()).Info("Mirroring")
+	log.WithField("peer", p.Address.Encode()).Info("Mirroring")
 
 	stream, err := p.OpenStream()
 
@@ -268,10 +272,10 @@ func (p *Peer) Mirror(db *data.Database) (*Client, error) {
 		return nil, err
 	}
 
-	mcol, err := stream.Collection(entry.ZifAddress, entry.PublicKey)
+	mcol, err := stream.Collection(entry.Address, entry.PublicKey)
 
 	collection := data.Collection{HashList: mcol.HashList}
-	collection.Save(fmt.Sprintf("./data/%s/collection.dat", entry.ZifAddress.Encode()))
+	collection.Save(fmt.Sprintf("./data/%s/collection.dat", entry.Address.Encode()))
 
 	if err != nil {
 		return nil, err
@@ -281,7 +285,7 @@ func (p *Peer) Mirror(db *data.Database) (*Client, error) {
 	bar := pb.StartNew(mcol.Size)
 	bar.ShowSpeed = true
 
-	piece_stream := stream.Pieces(entry.ZifAddress, 0, mcol.Size)
+	piece_stream := stream.Pieces(entry.Address, 0, mcol.Size)
 
 	i := 0
 	for piece := range piece_stream {
@@ -302,7 +306,7 @@ func (p *Peer) Mirror(db *data.Database) (*Client, error) {
 	bar.Finish()
 	log.Info("Mirror complete")
 
-	p.RequestAddPeer(p.ZifAddress.Encode())
+	p.RequestAddPeer(p.Address.Encode())
 
 	return &stream, err
 }

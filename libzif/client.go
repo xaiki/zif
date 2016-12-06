@@ -12,6 +12,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	data "github.com/wjh/zif/libzif/data"
+	"github.com/wjh/zif/libzif/dht"
 )
 
 const (
@@ -198,7 +199,7 @@ func (c *Client) Query(address string) ([]Entry, error) {
 // Adds the initial entries into the given routing table. Essentially queries for
 // both it's own and the peers address, storing the result. This means that after
 // a bootstrap, it should be possible to connect to *any* peer!
-func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
+func (c *Client) Bootstrap(rt *dht.RoutingTable, address dht.Address) error {
 	peers, err := c.Query(address.Encode())
 
 	if err != nil {
@@ -207,10 +208,18 @@ func (c *Client) Bootstrap(rt *RoutingTable, address Address) error {
 
 	// add them all to our routing table! :D
 	for _, e := range peers {
-		if len(e.ZifAddress.Bytes) != AddressBinarySize {
+		if len(e.Address.Bytes) != dht.AddressBinarySize {
 			continue
 		}
-		rt.Update(e)
+
+		dat, err := EntryToJson(&e)
+
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		rt.Update(dht.NewKeyValue(address, dat))
 	}
 
 	if len(peers) > 1 {
@@ -319,7 +328,7 @@ func (c *Client) Popular(page int) ([]*data.Post, error) {
 
 // Download a hash list for a peer. Expects said hash list to be valid and
 // signed.
-func (c *Client) Collection(address Address, pk ed25519.PublicKey) (*MessageCollection, error) {
+func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*MessageCollection, error) {
 	log.WithField("for", address.Encode()).Info("Sending request for a collection")
 
 	msg := &Message{
@@ -354,7 +363,7 @@ func (c *Client) Collection(address Address, pk ed25519.PublicKey) (*MessageColl
 }
 
 // Download a piece from a peer, given the address and id of the piece we want.
-func (c *Client) Pieces(address Address, id, length int) chan *data.Piece {
+func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 	log.WithFields(log.Fields{
 		"address": address.Encode(),
 		"id":      id,
