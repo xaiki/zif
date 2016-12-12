@@ -21,7 +21,7 @@ type CommandServer struct {
 func (cs *CommandServer) Ping(p CommandPing) CommandResult {
 	log.Info("Command: Ping request")
 
-	peer, _, err := cs.LocalPeer.ConnectPeer(p.Address, false)
+	peer, err := cs.LocalPeer.ConnectPeer(p.Address)
 
 	if err != nil {
 		return CommandResult{false, nil, err}
@@ -33,21 +33,13 @@ func (cs *CommandServer) Ping(p CommandPing) CommandResult {
 }
 func (cs *CommandServer) Announce(a CommandAnnounce) CommandResult {
 	var err error
-	var seed bool
 
 	log.Info("Command: Announce request")
 
 	peer := cs.LocalPeer.GetPeer(a.Address)
 
 	if peer == nil {
-		peer, seed, err = cs.LocalPeer.ConnectPeer(a.Address, true)
-
-		if seed {
-			log.WithFields(log.Fields{
-				"peer": a.Address,
-				"seed": peer.Address.Encode(),
-			}).Info("Could not announce to peer, announcing to seed")
-		}
+		peer, err = cs.LocalPeer.ConnectPeer(a.Address)
 
 		if err != nil {
 			return CommandResult{false, nil, err}
@@ -72,7 +64,7 @@ func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 	if peer == nil {
 		// Remote searching is not allowed to be done on seeds, it has no
 		// verification so can be falsified easily. Mirror people, mirror!
-		peer, _, err = cs.LocalPeer.ConnectPeer(rs.CommandPeer.Address, false)
+		peer, err = cs.LocalPeer.ConnectPeer(rs.CommandPeer.Address)
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
@@ -115,7 +107,7 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 
 	peer := cs.LocalPeer.GetPeer(pr.CommandPeer.Address)
 	if peer == nil {
-		peer, _, err = cs.LocalPeer.ConnectPeer(pr.CommandPeer.Address, false)
+		peer, err = cs.LocalPeer.ConnectPeer(pr.CommandPeer.Address)
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
@@ -143,7 +135,7 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 
 	peer := cs.LocalPeer.GetPeer(pp.CommandPeer.Address)
 	if peer == nil {
-		peer, _, err = cs.LocalPeer.ConnectPeer(pp.CommandPeer.Address, false)
+		peer, err = cs.LocalPeer.ConnectPeer(pp.CommandPeer.Address)
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
@@ -165,7 +157,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	peer := cs.LocalPeer.GetPeer(cm.Address)
 
 	if peer == nil {
-		peer, _, err = cs.LocalPeer.ConnectPeer(cm.Address, true)
+		peer, err = cs.LocalPeer.ConnectPeer(cm.Address)
 
 		if err != nil {
 			return CommandResult{false, nil, err}
@@ -330,7 +322,7 @@ func (cs *CommandServer) SaveRoutingTable(csrt CommandSaveRoutingTable) CommandR
 func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResult {
 	log.Info("Command: Request Add Peer request")
 
-	peer, _, err := cs.LocalPeer.ConnectPeer(crap.Remote, true)
+	peer, err := cs.LocalPeer.ConnectPeer(crap.Remote)
 
 	if err != nil {
 		return CommandResult{true, nil, err}

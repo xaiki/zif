@@ -164,18 +164,18 @@ func (lp *LocalPeer) GetPeer(addr string) *Peer {
 
 // Resolved a Zif address into an entry, connects to the peer at the
 // PublicAddress in the Entry, then return it. The peer is also stored in a map.
-func (lp *LocalPeer) ConnectPeer(addr string, seed bool) (*Peer, bool, error) {
+func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 	var peer *Peer
 
 	entry, err := lp.Resolve(addr)
 
 	if err != nil {
 		log.Error(err.Error())
-		return nil, false, err
+		return nil, err
 	}
 
 	if entry == nil {
-		return nil, false, AddressResolutionError{addr}
+		return nil, AddressResolutionError{addr}
 	}
 
 	// now should have an entry for the peer, connect to it!
@@ -183,36 +183,15 @@ func (lp *LocalPeer) ConnectPeer(addr string, seed bool) (*Peer, bool, error) {
 
 	peer, err = lp.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
 
-	// If it errors, then a connection has failed to occur. Woop. Woop.
-	// Not too bad. We can pick a seed, if it has any! If not, sad times.
+	// Caller can go on to choose a seed to connect to, not quite the end of the
+	// world :P
 	if err != nil {
 		log.WithField("peer", addr).Info("Failed to connect")
 
-		if seed {
-			for _, i := range entry.Seeds {
-				log.WithField("address", i).Info("Attempting connection to seed")
-
-				sEntry, err := lp.Resolve((&dht.Address{i}).Encode())
-
-				if err != nil {
-					log.Error(err.Error())
-					return nil, false, err
-				}
-
-				peer, err = lp.ConnectPeerDirect(sEntry.PublicAddress + ":" + strconv.Itoa(sEntry.Port))
-
-				if err != nil {
-					peer.seed = true
-					peer.seedFor = entry
-					return peer, true, nil
-				}
-			}
-		}
-
-		return nil, false, err
+		return nil, err
 	}
 
-	return peer, false, nil
+	return peer, nil
 }
 
 func (lp *LocalPeer) SignEntry() {
