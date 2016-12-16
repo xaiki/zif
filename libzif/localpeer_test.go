@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/wjh/zif"
 )
 
 func CreateLocalPeer(name string, port int) zif.LocalPeer {

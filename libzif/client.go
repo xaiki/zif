@@ -1,10 +1,13 @@
 package libzif
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"io"
 	"net"
+	"sort"
 	"strconv"
 	"time"
 
@@ -156,8 +159,9 @@ func (c *Client) Announce(e *Entry) error {
 
 // Given a Zif address, attempts to resolve it for a DHT entry. Returns the k
 // closest peers to the address. It only returns the closest entries that the
-// peer knows about, so more Queries may well be needed.
-func (c *Client) Query(address string) ([]Entry, error) {
+// peer knows about, so more Queries may well be needed. Lists are also
+// de-duplicated.
+func (c *Client) Query(address string) (dht.Pairs, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -189,11 +193,38 @@ func (c *Client) Query(address string) ([]Entry, error) {
 		return nil, err
 	}
 
-	var entries []Entry
-	err = closest.Decode(&entries)
+	entries := make(dht.Pairs, 0)
+	decoder := json.NewDecoder(bytes.NewReader(closest.Content))
 
-	log.WithField("entries", len(entries)).Info("Query complete")
-	return entries, err
+	for {
+		e := dht.KeyValue{}
+		err := decoder.Decode(&e)
+
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Error(err.Error())
+			break
+		}
+
+		entries = append(entries, &e)
+	}
+
+	sort.Sort(&entries)
+
+	// de-dupe the list by sorting, then adding unique values to a new list
+	new := make(dht.Pairs, 0, len(entries))
+
+	for n, i := range entries {
+		if n != 0 && new[len(new)-1].Key.Equals(&i.Key) {
+			continue
+		}
+
+		new = append(new, i)
+	}
+
+	log.WithField("entries", len(new)).Info("Query complete")
+	return new, err
 }
 
 // Adds the initial entries into the given routing table. Essentially queries for
@@ -208,18 +239,11 @@ func (c *Client) Bootstrap(rt *dht.RoutingTable, address dht.Address) error {
 
 	// add them all to our routing table! :D
 	for _, e := range peers {
-		if len(e.Address.Bytes) != dht.AddressBinarySize {
+		if len(e.Key.Bytes) != dht.AddressBinarySize {
 			continue
 		}
 
-		dat, err := EntryToJson(&e)
-
-		if err != nil {
-			log.Error(err.Error())
-			continue
-		}
-
-		rt.Update(dht.NewKeyValue(address, dat))
+		rt.Update(e)
 	}
 
 	if len(peers) > 1 {

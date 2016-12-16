@@ -12,6 +12,7 @@ func NewKeyValue(key Address, value []byte) *KeyValue {
 	ret := &KeyValue{}
 
 	ret.Key = key
+	ret.Value = make([]byte, len(value))
 	copy(ret.Value, value)
 
 	return ret

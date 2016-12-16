@@ -43,14 +43,21 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 	encoder := json.NewEncoder(&closest_json)
 
 	if address.Equals(&lp.Address) {
-		log.Debug("Query for local peer")
-		encoder.Encode(lp.Entry)
+		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
+
+		json, err := EntryToJson(&lp.Entry)
+
+		if err != nil {
+			return err
+		}
+		kv := dht.NewKeyValue(lp.Entry.Address, json)
+
+		encoder.Encode(kv)
 	} else {
 		log.Debug("Querying routing table")
-		results := lp.RoutingTable.FindClosest(address, dht.MaxBucketSize)
 
-		for _, i := range results {
-			closest_json.Write(i.Value)
+		for _, i := range lp.RoutingTable.FindClosest(address, dht.MaxBucketSize) {
+			encoder.Encode(i)
 		}
 	}
 

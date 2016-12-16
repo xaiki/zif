@@ -147,19 +147,30 @@ func (p *Peer) Entry() (*Entry, error) {
 	}
 
 	client, entries, err := p.Query(p.Address.Encode())
-	defer client.Close()
 
 	if err != nil {
 		return nil, err
 	}
 
+	defer client.Close()
+
 	if len(entries) < 1 {
 		return nil, errors.New("Query did not return an entry")
 	}
 
-	p.entry = &entries[0]
+	entry, err := JsonToEntry(entries[0].Value)
 
-	return &entries[0], nil
+	if err != nil {
+		return nil, err
+	}
+
+	if !entry.Address.Equals(&p.Address) {
+		return nil, errors.New("Failed to fetch entry")
+	}
+
+	p.entry = entry
+
+	return p.entry, nil
 }
 
 func (p *Peer) Ping() (time.Duration, error) {
@@ -195,7 +206,7 @@ func (p *Peer) Bootstrap(rt *dht.RoutingTable) (*Client, error) {
 	return &stream, stream.Bootstrap(rt, rt.LocalAddress)
 }
 
-func (p *Peer) Query(address string) (*Client, []Entry, error) {
+func (p *Peer) Query(address string) (*Client, dht.Pairs, error) {
 	log.WithField("target", address).Info("Querying")
 
 	stream, _ := p.OpenStream()
