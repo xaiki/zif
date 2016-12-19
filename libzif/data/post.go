@@ -39,7 +39,7 @@ func (p Post) Json() ([]byte, error) {
 func (p *Post) Bytes(sep, term []byte) []byte {
 	buf := bytes.Buffer{}
 
-	p.WritePost(sep, term, &buf)
+	p.Write(string(sep), string(term), &buf)
 
 	return buf.Bytes()
 }
@@ -48,7 +48,7 @@ func (p *Post) String(sep, term string) string {
 	return string(p.Bytes([]byte(sep), []byte(term)))
 }
 
-func (p *Post) WritePost(sep, term []byte, w io.Writer) {
+func (p *Post) Write(sep, term string, w io.Writer) {
 	w.Write([]byte(strconv.Itoa(p.Id)))
 	w.Write([]byte(sep))
 	w.Write([]byte(p.InfoHash))

@@ -53,7 +53,7 @@ func (s *Server) ListenStream(peer NetworkPeer, handler ProtocolHandler) {
 		if err != nil {
 			if err == io.EOF {
 				log.Info("Peer closed connection")
-				handler.HandleCloseConnection(peer.Address().Bytes())
+				handler.HandleCloseConnection(peer.Address())
 
 			} else {
 				log.Error(err.Error())
@@ -83,6 +83,7 @@ func (s *Server) HandleStream(peer NetworkPeer, handler ProtocolHandler, stream 
 			return
 		}
 		msg.Client = &cl
+		msg.From = peer.Address()
 
 		s.RouteMessage(msg, handler)
 	}
@@ -141,7 +142,12 @@ func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler) {
 		return
 	}
 
-	peer := lp.HandleHandshake(ConnHeader{cl, header})
+	peer, err := lp.HandleHandshake(ConnHeader{cl, header})
+
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
 
 	go s.ListenStream(peer, lp)
 }

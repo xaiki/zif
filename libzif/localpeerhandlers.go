@@ -26,14 +26,14 @@ const MaxSearchLength = 256
 // The top peer may well be the one that is being queried for :)
 func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	log.Info("Handling query")
-	cl := Client{msg.Stream, nil, nil}
+	cl := proto.NewClient(msg.Stream)
 
 	//msg.From.limiter.queryLimiter.Wait()
 
 	address := dht.DecodeAddress(string(msg.Content))
-	log.WithField("target", address.Encode()).Info("Recieved query")
+	log.WithField("target", address.String()).Info("Recieved query")
 
-	ok := &Message{Header: ProtoOk}
+	ok := &proto.Message{Header: proto.ProtoOk}
 	err := cl.WriteMessage(ok)
 
 	if err != nil {
@@ -43,10 +43,10 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	closest_json := bytes.Buffer{}
 	encoder := json.NewEncoder(&closest_json)
 
-	if address.Equals(&lp.Address) {
+	if address.Equals(lp.Address()) {
 		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
 
-		json, err := EntryToJson(&lp.Entry)
+		json, err := lp.Entry.Json()
 
 		if err != nil {
 			return err
@@ -68,8 +68,8 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 		return errors.New("Failed to encode closest peers to json")
 	}
 
-	results := &Message{
-		Header:  ProtoEntry,
+	results := &proto.Message{
+		Header:  proto.ProtoEntry,
 		Content: closest_json.Bytes(),
 	}
 
@@ -79,29 +79,28 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 }
 
 func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
-	cl := Client{msg.Stream, nil, nil}
-	msg.From.limiter.announceLimiter.Wait()
+	cl := proto.NewClient(msg.Stream)
 
 	defer msg.Stream.Close()
 
 	entry := Entry{}
 	err := msg.Decode(&entry)
 
-	log.WithField("address", entry.Address.Encode()).Info("Announce")
+	log.WithField("address", entry.Address.String()).Info("Announce")
 
 	if err != nil {
 		return err
 	}
 
-	json := EntryToBytes(&entry)
+	json, _ := entry.Bytes()
 	saved := lp.RoutingTable.Update(dht.NewKeyValue(entry.Address, json))
 
 	if saved {
-		cl.WriteMessage(&Message{Header: ProtoOk})
-		log.WithField("peer", entry.Address.Encode()).Info("Saved new peer")
+		cl.WriteMessage(&proto.Message{Header: proto.ProtoOk})
+		log.WithField("peer", entry.Address.String()).Info("Saved new peer")
 
 	} else {
-		cl.WriteMessage(&Message{Header: ProtoNo})
+		cl.WriteMessage(&proto.Message{Header: proto.ProtoNo})
 		return errors.New("Failed to save entry")
 	}
 
@@ -110,11 +109,11 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 
 	// TODO: Parallize this
 	for _, i := range closest {
-		if i.Key.Equals(&entry.Address) || i.Key.Equals(&msg.From.Address) {
+		if i.Key.Equals(&entry.Address) || i.Key.Equals(msg.From) {
 			continue
 		}
 
-		peer := lp.GetPeer(entry.Address.Encode())
+		peer := lp.GetPeer(entry.Address.String())
 
 		if peer == nil {
 			log.Debug("Connecting to new peer")
@@ -146,8 +145,8 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 			continue
 		}
 
-		peer_announce := &Message{
-			Header:  ProtoDhtAnnounce,
+		peer_announce := &proto.Message{
+			Header:  proto.ProtoDhtAnnounce,
 			Content: msg.Content,
 		}
 		peer_stream.WriteMessage(peer_announce)
@@ -161,7 +160,7 @@ func (lp *LocalPeer) HandleSearch(msg *proto.Message) error {
 		return errors.New("Search query too long")
 	}
 
-	sq := MessageSearchQuery{}
+	sq := proto.MessageSearchQuery{}
 	err := msg.Decode(&sq)
 
 	if err != nil {
@@ -177,14 +176,14 @@ func (lp *LocalPeer) HandleSearch(msg *proto.Message) error {
 	}
 	log.Info("Posts loaded")
 
-	json, err := PostsToJson(posts)
+	json, err := json.Marshal(posts)
 
 	if err != nil {
 		return err
 	}
 
-	post_msg := &Message{
-		Header:  ProtoPosts,
+	post_msg := &proto.Message{
+		Header:  proto.ProtoPosts,
 		Content: json,
 	}
 
@@ -208,14 +207,14 @@ func (lp *LocalPeer) HandleRecent(msg *proto.Message) error {
 		return err
 	}
 
-	recent_json, err := PostsToJson(recent)
+	recent_json, err := json.Marshal(recent)
 
 	if err != nil {
 		return err
 	}
 
-	resp := &Message{
-		Header:  ProtoPosts,
+	resp := &proto.Message{
+		Header:  proto.ProtoPosts,
 		Content: recent_json,
 	}
 
@@ -239,14 +238,14 @@ func (lp *LocalPeer) HandlePopular(msg *proto.Message) error {
 		return err
 	}
 
-	recent_json, err := PostsToJson(recent)
+	recent_json, err := json.Marshal(recent)
 
 	if err != nil {
 		return err
 	}
 
-	resp := &Message{
-		Header:  ProtoPosts,
+	resp := &proto.Message{
+		Header:  proto.ProtoPosts,
 		Content: recent_json,
 	}
 
@@ -258,26 +257,26 @@ func (lp *LocalPeer) HandlePopular(msg *proto.Message) error {
 func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 	address := dht.Address{msg.Content}
 
-	log.WithField("address", address.Encode()).Info("Collection request recieved")
+	log.WithField("address", address.String()).Info("Collection request recieved")
 
 	var sig []byte
 
-	if address.Equals(&lp.Address) {
+	if address.Equals(lp.Address()) {
 		sig = lp.Sign(lp.Collection.HashList)
 	} else {
 		// this means that the hash list wanted does not belong to this peer
 		// TODO: sort out getting a hash list for a peer that has been mirrored
 	}
 
-	mhl := MessageCollection{lp.Collection.Hash(), lp.Collection.HashList, len(lp.Collection.HashList) / 32, sig}
+	mhl := proto.MessageCollection{lp.Collection.Hash(), lp.Collection.HashList, len(lp.Collection.HashList) / 32, sig}
 	data, err := mhl.Encode()
 
 	if err != nil {
 		return err
 	}
 
-	resp := &Message{
-		Header:  ProtoHashList,
+	resp := &proto.Message{
+		Header:  proto.ProtoHashList,
 		Content: data,
 	}
 
@@ -288,7 +287,7 @@ func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 
 func (lp *LocalPeer) HandlePiece(msg *proto.Message) error {
 
-	mrp := MessageRequestPiece{}
+	mrp := proto.MessageRequestPiece{}
 	err := msg.Decode(&mrp)
 
 	log.WithFields(log.Fields{
@@ -302,7 +301,7 @@ func (lp *LocalPeer) HandlePiece(msg *proto.Message) error {
 
 	var posts chan *data.Post
 
-	if mrp.Address == lp.Entry.Address.Encode() {
+	if mrp.Address == lp.Entry.Address.String() {
 		posts = lp.Database.QueryPiecePosts(mrp.Id, mrp.Length, true)
 
 	} else if lp.Databases.Has(mrp.Address) {
@@ -323,9 +322,10 @@ func (lp *LocalPeer) HandlePiece(msg *proto.Message) error {
 	gzw := gzip.NewWriter(bw)
 
 	for i := range posts {
-		data.WritePost(i, "|", "", gzw)
+		i.Write("|", "", gzw)
 	}
-	data.WritePost(&data.Post{Id: -1}, "|", "", gzw)
+
+	(&data.Post{Id: -1}).Write("|", "", gzw)
 
 	gzw.Flush()
 	bw.Flush()
@@ -346,13 +346,13 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 	// First up, we need the address in binary form
 	address := dht.DecodeAddress(peerFor)
 
-	if len(address.Bytes) != dht.AddressBinarySize {
-		msg.Client.WriteMessage(&Message{Header: ProtoNo})
+	if len(address.Raw) != dht.AddressBinarySize {
+		msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoNo})
 		return errors.New("Invalid binary address size")
 	}
 
-	if address.Equals(&lp.Address) {
-		log.WithField("peer", address.Encode()).Info("New seed peer")
+	if address.Equals(lp.Address()) {
+		log.WithField("peer", address.String()).Info("New seed peer")
 
 		add := true
 
@@ -363,7 +363,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 		}
 
 		if add {
-			lp.Entry.Seeds = append(lp.Entry.Seeds, address.Bytes)
+			lp.Entry.Seeds = append(lp.Entry.Seeds, address.Bytes())
 		}
 
 	} else {
@@ -371,7 +371,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 		results := lp.RoutingTable.FindClosest(address, dht.MaxBucketSize)
 
 		if len(results) == 0 {
-			msg.Client.WriteMessage(&Message{Header: ProtoNo})
+			msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoNo})
 			return errors.New("Could not resolve address")
 		}
 
@@ -384,21 +384,39 @@ func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 		// if the routing table contains the address we are looking for,
 		// register a new seed.
 		if decoded.Address.Equals(&address) {
-			decoded.Seeds = append(decoded.Seeds, address.Bytes)
+			decoded.Seeds = append(decoded.Seeds, address.Bytes())
 		}
 	}
 
-	msg.Client.WriteMessage(&Message{Header: ProtoOk})
+	msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoOk})
 
 	return nil
 }
 
 func (lp *LocalPeer) HandlePing(msg *proto.Message) error {
-	log.WithField("peer", msg.From.Address.Encode()).Info("Ping")
+	log.WithField("peer", msg.From.String()).Info("Ping")
 
-	return msg.Client.WriteMessage(&Message{Header: ProtoPong})
+	return msg.Client.WriteMessage(&proto.Message{Header: proto.ProtoPong})
+}
+
+func (lp *LocalPeer) HandleCloseConnection(addr *dht.Address) {
+	lp.Peers.Remove(addr.String())
+}
+
+func (lp *LocalPeer) HandleHandshake(header proto.ConnHeader) (proto.NetworkPeer, error) {
+	peer := &Peer{}
+	peer.SetTCP(header)
+	_, err := peer.ConnectServer()
+
+	if err != nil {
+		return nil, err
+	}
+
+	lp.Peers.Set(peer.Address().String(), peer)
+
+	return peer, nil
 }
 
 func (lp *LocalPeer) ListenStream(peer *Peer) {
-	lp.Server.ListenStream(peer)
+	lp.Server.ListenStream(peer, lp)
 }

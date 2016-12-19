@@ -48,14 +48,26 @@ type Entry struct {
 	distance dht.Address
 }
 
+func JsonToEntry(j []byte) (*Entry, error) {
+	e := &Entry{}
+	err := json.Unmarshal(j, e)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return e, nil
+}
+
 // This is signed, *not* the JSON. This is needed because otherwise the order of
 // the posts encoded is not actually guaranteed, which can lead to invalid
 // signatures. Plus we can only sign data that is actually needed.
-func (e *Entry) Bytes() []byte {
-	return []byte(e.String())
+func (e Entry) Bytes() ([]byte, error) {
+	ret, err := e.String()
+	return []byte(ret), err
 }
 
-func (e *Entry) String() string {
+func (e Entry) String() (string, error) {
 	var str string
 
 	str += e.Name
@@ -66,14 +78,14 @@ func (e *Entry) String() string {
 	str += string(e.Address.String())
 	str += string(e.PostCount)
 
-	return str
+	return str, nil
 }
 
-func (e *Entry) Json() ([]byte, error) {
+func (e Entry) Json() ([]byte, error) {
 	return json.Marshal(e)
 }
 
-func (e *Entry) JsonString() (string, error) {
+func (e Entry) JsonString() (string, error) {
 	json, err := json.Marshal(e)
 
 	if err != nil {
@@ -84,8 +96,11 @@ func (e *Entry) JsonString() (string, error) {
 }
 
 func (e *Entry) SetLocalPeer(lp *LocalPeer) {
-	e.Address = lp.Address
-	e.PublicKey = lp.PublicKey
+	e.Address = *lp.Address()
+
+	e.PublicKey = make([]byte, len(lp.PublicKey()))
+	copy(e.PublicKey, lp.PublicKey())
+	e.PublicKey = lp.PublicKey()
 }
 
 type Entries []*Entry
@@ -114,7 +129,8 @@ func (entry *Entry) Validate() error {
 		return errors.New("Signature too small")
 	}
 
-	verified := ed25519.Verify(entry.PublicKey, entry.Bytes(), entry.Signature[:])
+	data, _ := entry.Bytes()
+	verified := ed25519.Verify(entry.PublicKey, data, entry.Signature[:])
 
 	if !verified {
 		return errors.New("Failed to verify signature")

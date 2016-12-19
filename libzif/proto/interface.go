@@ -21,8 +21,8 @@ type ProtocolHandler interface {
 	HandleAddPeer(*Message) error
 	HandlePing(*Message) error
 
-	HandleHandshake(ConnHeader) NetworkPeer
-	HandleCloseConnection([]byte)
+	HandleHandshake(ConnHeader) (NetworkPeer, error)
+	HandleCloseConnection(*dht.Address)
 }
 
 // Allows the protocol stuff to work with Peers, while libzif/peer can interface
@@ -32,8 +32,4 @@ type NetworkPeer interface {
 	AddStream(net.Conn)
 
 	Address() *dht.Address
-	PublicAddress() string
-	Port() int
-
-	HasEntry() bool
 }

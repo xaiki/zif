@@ -24,8 +24,9 @@ import (
 )
 
 type Peer struct {
-	Address   dht.Address
-	PublicKey ed25519.PublicKey
+	address dht.Address
+
+	publicKey ed25519.PublicKey
 	streams   proto.StreamManager
 
 	limiter *util.PeerLimiter
@@ -37,12 +38,20 @@ type Peer struct {
 	seedFor *Entry
 }
 
+func (p *Peer) Address() *dht.Address {
+	return &p.address
+}
+
+func (p *Peer) PublicKey() []byte {
+	return p.publicKey
+}
+
 func (p *Peer) Streams() *proto.StreamManager {
 	return &p.streams
 }
 
 func (p *Peer) Announce(lp *LocalPeer) error {
-	log.Debug("Sending announce to ", p.Address.Encode())
+	log.Debug("Sending announce to ", p.Address().String())
 
 	if lp.Entry.PublicAddress == "" {
 		log.Debug("Local peer public address is nil, attempting to fetch")
@@ -60,7 +69,7 @@ func (p *Peer) Announce(lp *LocalPeer) error {
 
 	defer stream.Close()
 
-	err = stream.Announce(&lp.Entry)
+	err = stream.Announce(lp.Entry)
 
 	return err
 }
@@ -73,22 +82,22 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 		return err
 	}
 
-	p.PublicKey = pair.pk
-	p.Address = dht.NewAddress(pair.pk)
+	p.publicKey = pair.PublicKey
+	p.address = dht.NewAddress(pair.PublicKey)
 
-	p.limiter = &PeerLimiter{}
+	p.limiter = &util.PeerLimiter{}
 	p.limiter.Setup()
 
 	return nil
 }
 
 func (p *Peer) SetTCP(header proto.ConnHeader) {
-	p.streams.connection = pair
+	p.streams.SetConnection(header)
 
-	p.PublicKey = pair.pk
-	p.Address = dht.NewAddress(pair.pk)
+	p.publicKey = header.PublicKey
+	p.address = dht.NewAddress(header.PublicKey)
 
-	p.limiter = &PeerLimiter{}
+	p.limiter = &util.PeerLimiter{}
 	p.limiter.Setup()
 }
 
@@ -108,7 +117,7 @@ func (p *Peer) ConnectClient(lp *LocalPeer) (*yamux.Session, error) {
 	return client, err
 }
 
-func (p *Peer) GetSession() *yamux.Session {
+func (p *Peer) Session() *yamux.Session {
 	return p.streams.GetSession()
 }
 
@@ -116,13 +125,13 @@ func (p *Peer) Terminate() {
 	p.streams.Close()
 }
 
-func (p *Peer) OpenStream() (Client, error) {
-	if p.GetSession() == nil {
-		return Client{}, errors.New("Peer session nil")
+func (p *Peer) OpenStream() (proto.Client, error) {
+	if p.Session() == nil {
+		return proto.Client{}, errors.New("Peer session nil")
 	}
 
-	if p.GetSession().IsClosed() {
-		return Client{}, errors.New("Peer session closed")
+	if p.Session().IsClosed() {
+		return proto.Client{}, errors.New("Peer session closed")
 	}
 	return p.streams.OpenStream()
 }
@@ -135,7 +144,7 @@ func (p *Peer) RemoveStream(conn net.Conn) {
 	p.streams.RemoveStream(conn)
 }
 
-func (p *Peer) GetStream(conn net.Conn) *Client {
+func (p *Peer) GetStream(conn net.Conn) *proto.Client {
 	return p.streams.GetStream(conn)
 }
 
@@ -148,7 +157,7 @@ func (p *Peer) Entry() (*Entry, error) {
 		return p.entry, nil
 	}
 
-	client, entries, err := p.Query(p.Address.Encode())
+	client, entries, err := p.Query(p.Address().String())
 
 	if err != nil {
 		return nil, err
@@ -166,7 +175,7 @@ func (p *Peer) Entry() (*Entry, error) {
 		return nil, err
 	}
 
-	if !entry.Address.Equals(&p.Address) {
+	if !entry.Address.Equals(p.Address()) {
 		return nil, errors.New("Failed to fetch entry")
 	}
 
@@ -184,21 +193,19 @@ func (p *Peer) Ping() (time.Duration, error) {
 		log.Error(err.Error())
 	}
 
-	log.Info("Pinging ", p.Address.Encode())
+	log.Info("Pinging ", p.Address().String())
 
 	return stream.Ping(time.Second * 10)
 }
 
-func (p *Peer) Bootstrap(rt *dht.RoutingTable) (*Client, error) {
-	log.Info("Bootstrapping from ", p.streams.connection.cl.conn.RemoteAddr())
-
+func (p *Peer) Bootstrap(rt *dht.RoutingTable) (*proto.Client, error) {
 	initial, err := p.Entry()
 
 	if err != nil {
 		return nil, err
 	}
 
-	dat := EntryToBytes(initial)
+	dat, _ := initial.Bytes()
 
 	rt.Update(dht.NewKeyValue(initial.Address, dat))
 	log.Info(rt.NumPeers())
@@ -208,7 +215,7 @@ func (p *Peer) Bootstrap(rt *dht.RoutingTable) (*Client, error) {
 	return &stream, stream.Bootstrap(rt, rt.LocalAddress)
 }
 
-func (p *Peer) Query(address string) (*Client, dht.Pairs, error) {
+func (p *Peer) Query(address string) (*proto.Client, dht.Pairs, error) {
 	log.WithField("target", address).Info("Querying")
 
 	stream, _ := p.OpenStream()

@@ -57,9 +57,9 @@ func (lp *LocalPeer) Setup() {
 	lp.Peers = cmap.New()
 	lp.PublicToZif = cmap.New()
 
-	lp.Address.Generate(lp.PublicKey)
+	lp.Address().Generate(lp.PublicKey())
 
-	lp.RoutingTable, err = dht.LoadRoutingTable("dht", lp.Address)
+	lp.RoutingTable, err = dht.LoadRoutingTable("dht", *lp.Address())
 
 	if err != nil {
 		panic(err)
@@ -142,8 +142,8 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 
 	peer.ConnectClient(lp)
 
-	lp.Peers.Set(peer.Address.String(), peer)
-	lp.PublicToZif.Set(addr, peer.Address.String())
+	lp.Peers.Set(peer.Address().String(), peer)
+	lp.PublicToZif.Set(addr, peer.Address().String())
 
 	return peer, nil
 }
@@ -191,7 +191,8 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 }
 
 func (lp *LocalPeer) SignEntry() {
-	copy(lp.Entry.Signature, ed25519.Sign(lp.privateKey, lp.Entry.Bytes()))
+	data, _ := lp.Entry.Bytes()
+	copy(lp.Entry.Signature, ed25519.Sign(lp.privateKey, data))
 }
 
 // Sign any bytes.
@@ -208,7 +209,7 @@ func (lp *LocalPeer) Listen(addr string) {
 func (lp *LocalPeer) GenerateKey() {
 	var err error
 
-	lp.PublicKey, lp.privateKey, err = ed25519.GenerateKey(nil)
+	lp.publicKey, lp.privateKey, err = ed25519.GenerateKey(nil)
 
 	if err != nil {
 		panic(err)
@@ -239,7 +240,7 @@ func (lp *LocalPeer) ReadKey() error {
 	}
 
 	lp.privateKey = pk
-	lp.PublicKey = lp.privateKey.Public().(ed25519.PublicKey)
+	lp.publicKey = lp.privateKey.Public().(ed25519.PublicKey)
 
 	return nil
 }
@@ -247,7 +248,7 @@ func (lp *LocalPeer) ReadKey() error {
 func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	log.Debug("Resolving ", addr)
 
-	if addr == lp.Address.Encode() {
+	if addr == lp.Address().String() {
 		return &lp.Entry, nil
 	}
 
@@ -267,7 +268,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 			return entry, nil
 		}
 
-		current[i.Key.Encode()] = true
+		current[i.Key.String()] = true
 	}
 
 	if len(closest) < 1 {
@@ -306,7 +307,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	for i := range results {
 		for _, j := range i {
 			// If this is a new address we have not yet seen
-			if _, ok := current[j.Key.Encode()]; !ok {
+			if _, ok := current[j.Key.String()]; !ok {
 				entry, err := JsonToEntry(j.Value)
 
 				if err != nil {
@@ -320,7 +321,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 				addresses <- fmt.Sprintf("%s:%s", entry.PublicAddress, entry.Port)
 
 				closest = append(closest, j)
-				current[j.Key.Encode()] = true
+				current[j.Key.String()] = true
 			}
 		}
 	}

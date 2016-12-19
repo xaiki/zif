@@ -165,12 +165,12 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	}
 
 	// TODO: make this configurable
-	d := fmt.Sprintf("./data/%s", peer.Address.String())
+	d := fmt.Sprintf("./data/%s", peer.Address().String())
 	os.Mkdir(fmt.Sprintf("./data/%s", d), 0777)
 	db := data.NewDatabase(d)
 	db.Connect()
 
-	cs.LocalPeer.Databases.Set(peer.Address.String(), db)
+	cs.LocalPeer.Databases.Set(peer.Address().String(), db)
 
 	_, err = peer.Mirror(db)
 	if err != nil {
@@ -178,7 +178,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	}
 
 	// TODO: wjh: is this needed? -poro
-	cs.LocalPeer.Databases.Set(peer.Address.String(), db)
+	cs.LocalPeer.Databases.Set(peer.Address().String(), db)
 
 	return CommandResult{true, nil, nil}
 }

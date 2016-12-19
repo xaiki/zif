@@ -3,6 +3,8 @@ package proto
 import (
 	"encoding/json"
 	"net"
+
+	"github.com/wjh/zif/libzif/dht"
 )
 
 type Message struct {
@@ -11,6 +13,7 @@ type Message struct {
 
 	Stream net.Conn
 	Client *Client
+	From   *dht.Address
 }
 
 func (m *Message) Json() ([]byte, error) {
