@@ -1,23 +1,22 @@
-package libzif
+package proto
 
 // tcp server
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/wjh/zif/libzif/dht"
+	"github.com/wjh/zif/libzif/util"
 )
 
 type Server struct {
-	listener  net.Listener
-	localPeer *LocalPeer
+	listener net.Listener
 }
 
-func (s *Server) Listen(addr string) {
+func (s *Server) Listen(addr string, handler ProtocolHandler) {
 	var err error
 
 	s.listener, err = net.Listen("tcp", addr)
@@ -36,16 +35,16 @@ func (s *Server) Listen(addr string) {
 		}
 
 		log.Debug("Handshaking new connection")
-		go s.Handshake(conn)
+		go s.Handshake(conn, handler)
 	}
 }
 
-func (s *Server) ListenStream(peer *Peer) {
+func (s *Server) ListenStream(peer NetworkPeer, handler ProtocolHandler) {
 	// Allowed to open 4 streams per second, bursting to three.
-	limiter := NewLimiter(time.Second/4, 3, true)
+	limiter := util.NewLimiter(time.Second/4, 3, true)
 	defer limiter.Stop()
 
-	session := peer.GetSession()
+	session := peer.Session()
 
 	for {
 		stream, err := session.Accept()
@@ -54,14 +53,8 @@ func (s *Server) ListenStream(peer *Peer) {
 		if err != nil {
 			if err == io.EOF {
 				log.Info("Peer closed connection")
-				s.localPeer.Peers.Remove(peer.Address.Encode())
+				handler.HandleCloseConnection(peer.Address().Bytes())
 
-				if peer.entry == nil {
-					return
-				}
-
-				s.localPeer.Peers.Remove(fmt.Sprintf("%s:%d",
-					peer.entry.PublicAddress, peer.entry.Port))
 			} else {
 				log.Error(err.Error())
 			}
@@ -73,11 +66,11 @@ func (s *Server) ListenStream(peer *Peer) {
 
 		peer.AddStream(stream)
 
-		go s.HandleStream(peer, stream)
+		go s.HandleStream(peer, handler, stream)
 	}
 }
 
-func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
+func (s *Server) HandleStream(peer NetworkPeer, handler ProtocolHandler, stream net.Conn) {
 	log.Debug("Handling stream")
 
 	cl := Client{stream, nil, nil}
@@ -89,41 +82,35 @@ func (s *Server) HandleStream(peer *Peer, stream net.Conn) {
 			log.Error(err.Error())
 			return
 		}
-		msg.From = peer
 		msg.Client = &cl
 
-		select {
-		case s.localPeer.MsgChan <- *msg:
-		default:
-		}
-
-		s.RouteMessage(msg)
+		s.RouteMessage(msg, handler)
 	}
 }
 
-func (s *Server) RouteMessage(msg *Message) {
+func (s *Server) RouteMessage(msg *Message, handler ProtocolHandler) {
 	var err error
 
 	switch msg.Header {
 
 	case ProtoDhtAnnounce:
-		err = s.localPeer.HandleAnnounce(msg)
+		err = handler.HandleAnnounce(msg)
 	case ProtoDhtQuery:
-		err = s.localPeer.HandleQuery(msg)
+		err = handler.HandleQuery(msg)
 	case ProtoSearch:
-		err = s.localPeer.HandleSearch(msg)
+		err = handler.HandleSearch(msg)
 	case ProtoRecent:
-		err = s.localPeer.HandleRecent(msg)
+		err = handler.HandleRecent(msg)
 	case ProtoPopular:
-		err = s.localPeer.HandlePopular(msg)
+		err = handler.HandlePopular(msg)
 	case ProtoRequestHashList:
-		err = s.localPeer.HandleHashList(msg)
+		err = handler.HandleHashList(msg)
 	case ProtoRequestPiece:
-		err = s.localPeer.HandlePiece(msg)
+		err = handler.HandlePiece(msg)
 	case ProtoRequestAddPeer:
-		err = s.localPeer.HandleAddPeer(msg)
+		err = handler.HandleAddPeer(msg)
 	case ProtoPing:
-		err = s.localPeer.HandlePing(msg)
+		err = handler.HandlePing(msg)
 
 	default:
 		log.Error("Unknown message type")
@@ -136,10 +123,10 @@ func (s *Server) RouteMessage(msg *Message) {
 
 }
 
-func (s *Server) Handshake(conn net.Conn) {
+func (s *Server) Handshake(conn net.Conn, lp ProtocolHandler) {
 	cl := Client{conn, nil, nil}
 
-	header, err := handshake(cl, s.localPeer)
+	header, err := handshake(cl, lp)
 	addr := dht.Address{}
 
 	if err != nil {
@@ -154,18 +141,9 @@ func (s *Server) Handshake(conn net.Conn) {
 		return
 	}
 
-	peer := &Peer{}
-	peer.SetTCP(ConnHeader{cl, header})
-	_, err = peer.ConnectServer()
+	peer := lp.HandleHandshake(ConnHeader{cl, header})
 
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-
-	s.localPeer.Peers.Set(peer.Address.Encode(), peer)
-
-	go s.ListenStream(peer)
+	go s.ListenStream(peer, lp)
 }
 
 func (s *Server) Close() {

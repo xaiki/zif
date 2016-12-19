@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	data "github.com/wjh/zif/libzif/data"
 	"github.com/wjh/zif/libzif/dht"
+	"github.com/wjh/zif/libzif/proto"
 )
 
 const MaxSearchLength = 256
@@ -23,7 +24,7 @@ const MaxSearchLength = 256
 // Querying peer sends a Zif address
 // This peer will respond with a list of the k closest peers, ordered by distance.
 // The top peer may well be the one that is being queried for :)
-func (lp *LocalPeer) HandleQuery(msg *Message) error {
+func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	log.Info("Handling query")
 	cl := Client{msg.Stream, nil, nil}
 
@@ -77,7 +78,7 @@ func (lp *LocalPeer) HandleQuery(msg *Message) error {
 	return err
 }
 
-func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
+func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 	cl := Client{msg.Stream, nil, nil}
 	msg.From.limiter.announceLimiter.Wait()
 
@@ -155,7 +156,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *Message) error {
 
 }
 
-func (lp *LocalPeer) HandleSearch(msg *Message) error {
+func (lp *LocalPeer) HandleSearch(msg *proto.Message) error {
 	if len(msg.Content) > MaxSearchLength {
 		return errors.New("Search query too long")
 	}
@@ -192,7 +193,7 @@ func (lp *LocalPeer) HandleSearch(msg *Message) error {
 	return nil
 }
 
-func (lp *LocalPeer) HandleRecent(msg *Message) error {
+func (lp *LocalPeer) HandleRecent(msg *proto.Message) error {
 	log.Info("Recieved query for recent posts")
 
 	page, err := strconv.Atoi(string(msg.Content))
@@ -223,7 +224,7 @@ func (lp *LocalPeer) HandleRecent(msg *Message) error {
 	return nil
 }
 
-func (lp *LocalPeer) HandlePopular(msg *Message) error {
+func (lp *LocalPeer) HandlePopular(msg *proto.Message) error {
 	log.Info("Recieved query for popular posts")
 
 	page, err := strconv.Atoi(string(msg.Content))
@@ -254,7 +255,7 @@ func (lp *LocalPeer) HandlePopular(msg *Message) error {
 	return nil
 }
 
-func (lp *LocalPeer) HandleHashList(msg *Message) error {
+func (lp *LocalPeer) HandleHashList(msg *proto.Message) error {
 	address := dht.Address{msg.Content}
 
 	log.WithField("address", address.Encode()).Info("Collection request recieved")
@@ -285,7 +286,7 @@ func (lp *LocalPeer) HandleHashList(msg *Message) error {
 	return nil
 }
 
-func (lp *LocalPeer) HandlePiece(msg *Message) error {
+func (lp *LocalPeer) HandlePiece(msg *proto.Message) error {
 
 	mrp := MessageRequestPiece{}
 	err := msg.Decode(&mrp)
@@ -334,7 +335,7 @@ func (lp *LocalPeer) HandlePiece(msg *Message) error {
 	return nil
 }
 
-func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
+func (lp *LocalPeer) HandleAddPeer(msg *proto.Message) error {
 	// The AddPeer message contains the address of the peer that the client
 	// wishes to be registered for.
 
@@ -392,7 +393,7 @@ func (lp *LocalPeer) HandleAddPeer(msg *Message) error {
 	return nil
 }
 
-func (lp *LocalPeer) HandlePing(msg *Message) error {
+func (lp *LocalPeer) HandlePing(msg *proto.Message) error {
 	log.WithField("peer", msg.From.Address.Encode()).Info("Ping")
 
 	return msg.Client.WriteMessage(&Message{Header: ProtoPong})

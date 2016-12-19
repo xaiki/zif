@@ -1,4 +1,4 @@
-package libzif
+package proto
 
 import (
 	"encoding/json"
@@ -9,7 +9,6 @@ type Message struct {
 	Header  int
 	Content []byte
 
-	From   *Peer
 	Stream net.Conn
 	Client *Client
 }

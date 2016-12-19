@@ -1,4 +1,4 @@
-package libzif
+package proto
 
 import (
 	"errors"
@@ -6,11 +6,12 @@ import (
 	"golang.org/x/crypto/ed25519"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/wjh/zif/libzif/data"
 	"github.com/wjh/zif/libzif/dht"
 )
 
 // Perform a handshake operation given a peer. server.go does the other end of this.
-func handshake(cl Client, lp *LocalPeer) (ed25519.PublicKey, error) {
+func handshake(cl Client, lp data.Signer) (ed25519.PublicKey, error) {
 	header, err := handshake_recieve(cl)
 
 	if err != nil {
@@ -64,12 +65,12 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	address := dht.Address{}
 	address.Generate(header.Content)
 
-	log.WithFields(log.Fields{"peer": address.Encode()}).Info("Incoming connection")
+	log.WithFields(log.Fields{"peer": address.String()}).Info("Incoming connection")
 
 	// Send the client a cookie for them to sign, this proves they have the
 	// private key, and it is highly unlikely an attacker has a signed cookie
 	// cached.
-	cookie, err := CryptoRandBytes(20)
+	cookie, err := data.CryptoRandBytes(20)
 
 	if check(err) {
 		return nil, err
@@ -90,7 +91,7 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	verified := ed25519.Verify(header.Content, cookie, sig.Content)
 
 	if !verified {
-		log.Error("Failed to verify peer ", address.Encode())
+		log.Error("Failed to verify peer ", address.String())
 		cl.WriteMessage(Message{Header: ProtoNo})
 		cl.Close()
 		return nil, errors.New("Signature not verified")
@@ -98,18 +99,18 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 
 	cl.WriteMessage(Message{Header: ProtoOk})
 
-	log.WithFields(log.Fields{"peer": address.Encode()}).Info("Verified")
+	log.WithFields(log.Fields{"peer": address.String()}).Info("Verified")
 
 	return header.Content, nil
 }
 
 // Sends a handshake to a peer.
-func handshake_send(cl Client, lp *LocalPeer) error {
+func handshake_send(cl Client, lp data.Signer) error {
 	log.Debug("Handshaking with ", cl.conn.RemoteAddr().String())
 
 	header := Message{
 		Header:  ProtoHeader,
-		Content: lp.PublicKey,
+		Content: lp.PublicKey(),
 	}
 
 	err := cl.WriteMessage(header)

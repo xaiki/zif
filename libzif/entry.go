@@ -1,6 +1,13 @@
 package libzif
 
-import "github.com/wjh/zif/libzif/dht"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+
+	"github.com/wjh/zif/libzif/dht"
+	"golang.org/x/crypto/ed25519"
+)
 
 // This is an entry into the DHT. It is used to connect to a peer given just
 // it's Zif address.
@@ -41,6 +48,41 @@ type Entry struct {
 	distance dht.Address
 }
 
+// This is signed, *not* the JSON. This is needed because otherwise the order of
+// the posts encoded is not actually guaranteed, which can lead to invalid
+// signatures. Plus we can only sign data that is actually needed.
+func (e *Entry) Bytes() []byte {
+	return []byte(e.String())
+}
+
+func (e *Entry) String() string {
+	var str string
+
+	str += e.Name
+	str += e.Desc
+	str += string(e.PublicKey)
+	str += string(e.Port)
+	str += string(e.PublicAddress)
+	str += string(e.Address.String())
+	str += string(e.PostCount)
+
+	return str
+}
+
+func (e *Entry) Json() ([]byte, error) {
+	return json.Marshal(e)
+}
+
+func (e *Entry) JsonString() (string, error) {
+	json, err := json.Marshal(e)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(json), err
+}
+
 func (e *Entry) SetLocalPeer(lp *LocalPeer) {
 	e.Address = lp.Address
 	e.PublicKey = lp.PublicKey
@@ -58,4 +100,38 @@ func (e Entries) Swap(i, j int) {
 
 func (e Entries) Less(i, j int) bool {
 	return e[i].distance.Less(&e[j].distance)
+}
+
+// Ensures that all the members of an entry struct fit the requirements for the
+// Zif libzifcol. If an entry passes this, then we should be able to perform
+// most operations on it.
+func (entry *Entry) Validate() error {
+	if len(entry.PublicKey) < ed25519.PublicKeySize {
+		return errors.New(fmt.Sprintf("Public key too small: %d", len(entry.PublicKey)))
+	}
+
+	if len(entry.Signature) < ed25519.SignatureSize {
+		return errors.New("Signature too small")
+	}
+
+	verified := ed25519.Verify(entry.PublicKey, entry.Bytes(), entry.Signature[:])
+
+	if !verified {
+		return errors.New("Failed to verify signature")
+	}
+
+	if len(entry.PublicAddress) == 0 {
+		return errors.New("Public address must be set")
+	}
+
+	// 253 is the maximum length of a domain name
+	if len(entry.PublicAddress) >= 253 {
+		return errors.New("Public address is too large (253 char max)")
+	}
+
+	if entry.Port > 65535 {
+		return errors.New("Port too large (" + string(entry.Port) + ")")
+	}
+
+	return nil
 }

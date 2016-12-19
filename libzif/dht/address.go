@@ -16,7 +16,7 @@ import (
 const AddressBinarySize = 20
 
 type Address struct {
-	Bytes []byte
+	Raw []byte
 }
 
 // Generates an Address from a PublicKey.
@@ -29,14 +29,18 @@ func NewAddress(key []byte) (addr Address) {
 
 // Returns Address.Bytes Base58 encoded and prepended with a Z.
 // Base58 removes ambiguous characters, reducing the chances of address confusion.
-func (a *Address) Encode() string {
-	return base58check.Encode("51", a.Bytes)
+func (a *Address) String() string {
+	return base58check.Encode("51", a.Bytes())
+}
+
+func (a *Address) Bytes() []byte {
+	return a.Raw
 }
 
 // Decodes a string address into address bytes.
 func DecodeAddress(value string) Address {
 	var addr Address
-	addr.Bytes = base58check.Decode(value)
+	addr.Raw = base58check.Decode(value)
 
 	return addr
 }
@@ -60,16 +64,16 @@ func (a *Address) Generate(key []byte) (string, error) {
 
 	secondHash := ripemd.Sum(nil)
 
-	a.Bytes = secondHash
+	a.Raw = secondHash
 
-	return a.Encode(), nil
+	return a.String(), nil
 }
 
 func (a *Address) Less(other *Address) bool {
 
-	for i := 0; i < len(a.Bytes); i++ {
-		if a.Bytes[i] != other.Bytes[i] {
-			return a.Bytes[i] < other.Bytes[i]
+	for i := 0; i < len(a.Raw); i++ {
+		if a.Raw[i] != other.Raw[i] {
+			return a.Raw[i] < other.Raw[i]
 		}
 	}
 
@@ -78,10 +82,10 @@ func (a *Address) Less(other *Address) bool {
 
 func (a *Address) Xor(other *Address) *Address {
 	var ret Address
-	ret.Bytes = make([]byte, len(a.Bytes))
+	ret.Raw = make([]byte, len(a.Raw))
 
-	for i := 0; i < len(a.Bytes); i++ {
-		ret.Bytes[i] = a.Bytes[i] ^ other.Bytes[i]
+	for i := 0; i < len(a.Raw); i++ {
+		ret.Raw[i] = a.Raw[i] ^ other.Raw[i]
 	}
 
 	return &ret
@@ -92,17 +96,17 @@ func (a *Address) Xor(other *Address) *Address {
 // This shows the k-bucket that this address should go into.
 func (a *Address) LeadingZeroes() int {
 
-	for i := 0; i < len(a.Bytes); i++ {
+	for i := 0; i < len(a.Raw); i++ {
 		for j := 0; j < 8; j++ {
-			if (a.Bytes[i]>>uint8(7-j))&0x1 != 0 {
+			if (a.Raw[i]>>uint8(7-j))&0x1 != 0 {
 				return i*8 + j
 			}
 		}
 	}
 
-	return len(a.Bytes)*8 - 1
+	return len(a.Raw)*8 - 1
 }
 
 func (a *Address) Equals(other *Address) bool {
-	return bytes.Equal(a.Bytes, other.Bytes)
+	return bytes.Equal(a.Raw, other.Raw)
 }

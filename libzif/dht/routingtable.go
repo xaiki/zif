@@ -33,10 +33,10 @@ type RoutingTable struct {
 func (rt *RoutingTable) Setup(addr Address) {
 	rt.LocalAddress = addr
 
-	rt.Buckets = make([]*list.List, len(rt.LocalAddress.Bytes)*8)
-	rt.LongBuckets = make([]*list.List, len(rt.LocalAddress.Bytes)*8)
+	rt.Buckets = make([]*list.List, len(rt.LocalAddress.Raw)*8)
+	rt.LongBuckets = make([]*list.List, len(rt.LocalAddress.Raw)*8)
 
-	for i := 0; i < len(rt.LocalAddress.Bytes)*8; i++ {
+	for i := 0; i < len(rt.LocalAddress.Raw)*8; i++ {
 		rt.Buckets[i] = list.New()
 		rt.LongBuckets[i] = list.New()
 	}
@@ -44,8 +44,8 @@ func (rt *RoutingTable) Setup(addr Address) {
 
 func (rt *RoutingTable) Save(filename string) error {
 	save := DHTSave{
-		make([][]*KeyValue, len(rt.LocalAddress.Bytes)*8),
-		make([][]*KeyValue, len(rt.LocalAddress.Bytes)*8),
+		make([][]*KeyValue, len(rt.LocalAddress.Raw)*8),
+		make([][]*KeyValue, len(rt.LocalAddress.Raw)*8),
 	}
 
 	for n, b := range rt.Buckets {
@@ -134,7 +134,7 @@ func BucketSize(bucket []*list.List) int {
 }
 
 func (rt *RoutingTable) UpdateBucket(buckets []*list.List, kv *KeyValue) bool {
-	if len(kv.Key.Bytes) < AddressBinarySize {
+	if len(kv.Key.Raw) < AddressBinarySize {
 		return false
 	}
 
@@ -206,7 +206,7 @@ func copyToEntrySlice(slice *Pairs, begin *list.Element, count int) {
 }
 
 func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Address, count int) Pairs {
-	if len(target.Bytes) != AddressBinarySize {
+	if len(target.Raw) != AddressBinarySize {
 		return nil
 	}
 
@@ -218,7 +218,7 @@ func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Addres
 	copyToEntrySlice(&ret, bucket.Front(), count)
 
 	// If the bucket is not filled, look the the buckets either side.
-	for i := 1; (bucket_num-i >= 0 || bucket_num+i <= len(target.Bytes)*8) &&
+	for i := 1; (bucket_num-i >= 0 || bucket_num+i <= len(target.Raw)*8) &&
 		len(ret) < count; i++ {
 
 		if bucket_num-i >= 0 {
@@ -226,7 +226,7 @@ func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Addres
 			copyToEntrySlice(&ret, bucket.Front(), count)
 		}
 
-		if bucket_num+i < len(target.Bytes)*8 {
+		if bucket_num+i < len(target.Raw)*8 {
 			bucket = buckets[bucket_num+i]
 			copyToEntrySlice(&ret, bucket.Front(), count)
 		}

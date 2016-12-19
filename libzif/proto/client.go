@@ -1,20 +1,17 @@
-package libzif
+package proto
 
 import (
-	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"errors"
-	"io"
 	"net"
-	"sort"
 	"strconv"
 	"time"
 
 	"golang.org/x/crypto/ed25519"
 
 	log "github.com/sirupsen/logrus"
-	data "github.com/wjh/zif/libzif/data"
+	"github.com/wjh/zif/libzif/data"
 	"github.com/wjh/zif/libzif/dht"
 )
 
@@ -109,8 +106,8 @@ func (c *Client) Pong() {
 }
 
 // Sends a DHT entry to a peer.
-func (c *Client) SendEntry(e *Entry) error {
-	json, err := EntryToJson(e)
+func (c *Client) SendStruct(e data.Encodable) error {
+	json, err := e.Bytes()
 	msg := Message{Header: ProtoEntry, Content: json}
 
 	if err != nil {
@@ -125,8 +122,8 @@ func (c *Client) SendEntry(e *Entry) error {
 
 // Announce the given DHT entry to a peer, passes on this peers details,
 // meaning that it can be reached by other peers on the network.
-func (c *Client) Announce(e *Entry) error {
-	json, err := EntryToJson(e)
+func (c *Client) Announce(e data.Encodable) error {
+	json, err := e.Bytes()
 
 	if err != nil {
 		c.conn.Close()
@@ -159,9 +156,8 @@ func (c *Client) Announce(e *Entry) error {
 
 // Given a Zif address, attempts to resolve it for a DHT entry. Returns the k
 // closest peers to the address. It only returns the closest entries that the
-// peer knows about, so more Queries may well be needed. Lists are also
-// de-duplicated.
-func (c *Client) Query(address string) (dht.Pairs, error) {
+// peer knows about, so more Queries may well be needed.
+func (c *Client) Query(address string) ([]dht.KeyValue, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -193,45 +189,18 @@ func (c *Client) Query(address string) (dht.Pairs, error) {
 		return nil, err
 	}
 
-	entries := make(dht.Pairs, 0)
-	decoder := json.NewDecoder(bytes.NewReader(closest.Content))
+	var entries []dht.KeyValue
+	err = closest.Decode(&entries)
 
-	for {
-		e := dht.KeyValue{}
-		err := decoder.Decode(&e)
-
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			log.Error(err.Error())
-			break
-		}
-
-		entries = append(entries, &e)
-	}
-
-	sort.Sort(&entries)
-
-	// de-dupe the list by sorting, then adding unique values to a new list
-	new := make(dht.Pairs, 0, len(entries))
-
-	for n, i := range entries {
-		if n != 0 && new[len(new)-1].Key.Equals(&i.Key) {
-			continue
-		}
-
-		new = append(new, i)
-	}
-
-	log.WithField("entries", len(new)).Info("Query complete")
-	return new, err
+	log.WithField("entries", len(entries)).Info("Query complete")
+	return entries, err
 }
 
 // Adds the initial entries into the given routing table. Essentially queries for
 // both it's own and the peers address, storing the result. This means that after
 // a bootstrap, it should be possible to connect to *any* peer!
 func (c *Client) Bootstrap(rt *dht.RoutingTable, address dht.Address) error {
-	peers, err := c.Query(address.Encode())
+	peers, err := c.Query(address.String())
 
 	if err != nil {
 		return err
@@ -239,11 +208,11 @@ func (c *Client) Bootstrap(rt *dht.RoutingTable, address dht.Address) error {
 
 	// add them all to our routing table! :D
 	for _, e := range peers {
-		if len(e.Key.Bytes) != dht.AddressBinarySize {
+		if len(e.Key.Raw) != dht.AddressBinarySize {
 			continue
 		}
 
-		rt.Update(e)
+		rt.Update(&e)
 	}
 
 	if len(peers) > 1 {
@@ -353,11 +322,11 @@ func (c *Client) Popular(page int) ([]*data.Post, error) {
 // Download a hash list for a peer. Expects said hash list to be valid and
 // signed.
 func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*MessageCollection, error) {
-	log.WithField("for", address.Encode()).Info("Sending request for a collection")
+	log.WithField("for", address.String()).Info("Sending request for a collection")
 
 	msg := &Message{
 		Header:  ProtoRequestHashList,
-		Content: address.Bytes,
+		Content: address.Bytes(),
 	}
 
 	c.WriteMessage(msg)
@@ -389,14 +358,14 @@ func (c *Client) Collection(address dht.Address, pk ed25519.PublicKey) (*Message
 // Download a piece from a peer, given the address and id of the piece we want.
 func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 	log.WithFields(log.Fields{
-		"address": address.Encode(),
+		"address": address.String(),
 		"id":      id,
 		"length":  length,
 	}).Info("Sending request for piece")
 
 	ret := make(chan *data.Piece, 100)
 
-	mrp := MessageRequestPiece{address.Encode(), id, length}
+	mrp := MessageRequestPiece{address.String(), id, length}
 	dat, err := mrp.Encode()
 
 	if err != nil {
@@ -432,7 +401,7 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 			return
 		}
 
-		errReader := NewErrorReader(gzr)
+		errReader := data.NewErrorReader(gzr)
 
 		for i := 0; i < length; i++ {
 			piece := data.Piece{}
@@ -460,8 +429,8 @@ func (c *Client) Pieces(address dht.Address, id, length int) chan *data.Piece {
 				tags := errReader.ReadString('|')
 				meta := errReader.ReadString('|')
 
-				if errReader.err != nil {
-					log.Error("Failed to read post: ", errReader.err.Error())
+				if errReader.Err != nil {
+					log.Error("Failed to read post: ", errReader.Err.Error())
 					break
 				}
 

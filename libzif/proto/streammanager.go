@@ -1,6 +1,6 @@
 // Keeps track of open TCP connections, as well as yamux sessions
 
-package libzif
+package proto
 
 import (
 	"errors"
@@ -29,13 +29,13 @@ type StreamManager struct {
 	torDialer proxy.Dialer
 }
 
-func (sm *StreamManager) Setup(lp *LocalPeer) {
+func (sm *StreamManager) Setup() {
 	sm.server = nil
 	sm.client = nil
 	sm.clients = make([]Client, 0, 10)
 }
 
-func (sm *StreamManager) OpenTor(addr string, lp *LocalPeer) (*ConnHeader, error) {
+func (sm *StreamManager) OpenTor(addr string, lp ProtocolHandler) (*ConnHeader, error) {
 	if sm.torDialer == nil {
 		dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:9050", nil, proxy.Direct)
 
@@ -64,7 +64,7 @@ func (sm *StreamManager) OpenTor(addr string, lp *LocalPeer) (*ConnHeader, error
 	return &pair, nil
 }
 
-func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (*ConnHeader, error) {
+func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler) (*ConnHeader, error) {
 	if sm.Tor {
 		return sm.OpenTor(addr, lp)
 	}
@@ -91,7 +91,7 @@ func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (*ConnHeader, error
 	return &pair, nil
 }
 
-func (sm *StreamManager) Handshake(conn net.Conn, lp *LocalPeer) (ed25519.PublicKey, error) {
+func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler) (ed25519.PublicKey, error) {
 	cl := NewClient(conn)
 	log.Debug("Sending handshake")
 	err := handshake_send(*cl, lp)

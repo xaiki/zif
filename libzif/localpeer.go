@@ -16,6 +16,7 @@ import (
 	"github.com/streamrail/concurrent-map"
 	data "github.com/wjh/zif/libzif/data"
 	"github.com/wjh/zif/libzif/dht"
+	"github.com/wjh/zif/libzif/proto"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -25,7 +26,7 @@ type LocalPeer struct {
 	Peer
 	Entry         Entry
 	RoutingTable  *dht.RoutingTable
-	Server        Server
+	Server        proto.Server
 	Collection    *data.Collection
 	Database      *data.Database
 	PublicAddress string
@@ -43,8 +44,6 @@ type LocalPeer struct {
 
 	privateKey ed25519.PrivateKey
 
-	MsgChan chan Message
-
 	Tor bool
 }
 
@@ -59,10 +58,6 @@ func (lp *LocalPeer) Setup() {
 	lp.PublicToZif = cmap.New()
 
 	lp.Address.Generate(lp.PublicKey)
-
-	lp.Server.localPeer = lp
-
-	lp.MsgChan = make(chan Message)
 
 	lp.RoutingTable, err = dht.LoadRoutingTable("dht", lp.Address)
 
@@ -147,8 +142,8 @@ func (lp *LocalPeer) ConnectPeerDirect(addr string) (*Peer, error) {
 
 	peer.ConnectClient(lp)
 
-	lp.Peers.Set(peer.Address.Encode(), peer)
-	lp.PublicToZif.Set(addr, peer.Address.Encode())
+	lp.Peers.Set(peer.Address.String(), peer)
+	lp.PublicToZif.Set(addr, peer.Address.String())
 
 	return peer, nil
 }
@@ -176,11 +171,11 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 	}
 
 	if entry == nil {
-		return nil, AddressResolutionError{addr}
+		return nil, data.AddressResolutionError{addr}
 	}
 
 	// now should have an entry for the peer, connect to it!
-	log.Debug("Connecting to ", entry.Address.Encode())
+	log.Debug("Connecting to ", entry.Address.String())
 
 	peer, err = lp.ConnectPeerDirect(entry.PublicAddress + ":" + strconv.Itoa(entry.Port))
 
@@ -196,7 +191,7 @@ func (lp *LocalPeer) ConnectPeer(addr string) (*Peer, error) {
 }
 
 func (lp *LocalPeer) SignEntry() {
-	copy(lp.Entry.Signature, ed25519.Sign(lp.privateKey, EntryToBytes(&lp.Entry)))
+	copy(lp.Entry.Signature, ed25519.Sign(lp.privateKey, lp.Entry.Bytes()))
 }
 
 // Sign any bytes.
@@ -206,7 +201,7 @@ func (lp *LocalPeer) Sign(msg []byte) []byte {
 
 // Pass the address to listen on. This is for the Zif connection.
 func (lp *LocalPeer) Listen(addr string) {
-	go lp.Server.Listen(addr)
+	go lp.Server.Listen(addr, lp)
 }
 
 // Generate a ed25519 keypair.

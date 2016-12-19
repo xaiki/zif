@@ -99,7 +99,7 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 
 	log.Info("Command: Peer Recent request")
 
-	if pr.CommandPeer.Address == cs.LocalPeer.Entry.Address.Encode() {
+	if pr.CommandPeer.Address == cs.LocalPeer.Entry.Address.String() {
 		posts, err = cs.LocalPeer.Database.QueryRecent(pr.Page)
 
 		return CommandResult{err != nil, posts, err}
@@ -127,7 +127,7 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 
 	log.Info("Command: Peer Popular request")
 
-	if pp.CommandPeer.Address == cs.LocalPeer.Entry.Address.Encode() {
+	if pp.CommandPeer.Address == cs.LocalPeer.Entry.Address.String() {
 		posts, err = cs.LocalPeer.Database.QueryPopular(pp.Page)
 
 		return CommandResult{err == nil, posts, err}
@@ -165,12 +165,12 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	}
 
 	// TODO: make this configurable
-	d := fmt.Sprintf("./data/%s", peer.Address.Encode())
+	d := fmt.Sprintf("./data/%s", peer.Address.String())
 	os.Mkdir(fmt.Sprintf("./data/%s", d), 0777)
 	db := data.NewDatabase(d)
 	db.Connect()
 
-	cs.LocalPeer.Databases.Set(peer.Address.Encode(), db)
+	cs.LocalPeer.Databases.Set(peer.Address.String(), db)
 
 	_, err = peer.Mirror(db)
 	if err != nil {
@@ -178,7 +178,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	}
 
 	// TODO: wjh: is this needed? -poro
-	cs.LocalPeer.Databases.Set(peer.Address.Encode(), db)
+	cs.LocalPeer.Databases.Set(peer.Address.String(), db)
 
 	return CommandResult{true, nil, nil}
 }

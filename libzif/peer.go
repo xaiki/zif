@@ -19,14 +19,16 @@ import (
 
 	data "github.com/wjh/zif/libzif/data"
 	"github.com/wjh/zif/libzif/dht"
+	"github.com/wjh/zif/libzif/proto"
+	"github.com/wjh/zif/libzif/util"
 )
 
 type Peer struct {
 	Address   dht.Address
 	PublicKey ed25519.PublicKey
-	streams   StreamManager
+	streams   proto.StreamManager
 
-	limiter *PeerLimiter
+	limiter *util.PeerLimiter
 
 	entry *Entry
 
@@ -35,7 +37,7 @@ type Peer struct {
 	seedFor *Entry
 }
 
-func (p *Peer) Streams() *StreamManager {
+func (p *Peer) Streams() *proto.StreamManager {
 	return &p.streams
 }
 
@@ -80,7 +82,7 @@ func (p *Peer) Connect(addr string, lp *LocalPeer) error {
 	return nil
 }
 
-func (p *Peer) SetTCP(pair ConnHeader) {
+func (p *Peer) SetTCP(header proto.ConnHeader) {
 	p.streams.connection = pair
 
 	p.PublicKey = pair.pk
