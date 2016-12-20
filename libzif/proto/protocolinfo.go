@@ -1,6 +1,6 @@
 // Stores things like message codes, etc.
 
-package libzif
+package proto
 
 var (
 	// Protocol header, so we know this is a zif client.
@@ -30,6 +30,11 @@ var (
 	// This is the peer we are requesting a hash list for.
 	ProtoRequestHashList = 0x0104
 	ProtoRequestPiece    = 0x0105
+	// Requests that this peer be added to the remotes Peers slice for a given
+	// entry. This must be called at least once every hour to ensure that the peer
+	// stays registered as a seed, otherwise it is culled.
+	// TODO: Look into how Bittorrent trackers keep peer lists up to date properly.
+	ProtoRequestAddPeer = 0x0106
 
 	ProtoEntry    = 0x0200 // An individual DHT entry in Content
 	ProtoPosts    = 0x0201 // A list of posts in Content

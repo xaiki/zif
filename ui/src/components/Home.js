@@ -47,21 +47,26 @@ class Home extends Component{
 		return(
 
 			<div>
-				<h3>Popular</h3>
-				{this.state.posts.map((post, index) => {
-					return (
-						<Post
-							key={post.Id}
-							Title={post.Title}
-							Source={post.Source}
-							Description="Description"
-							InfoHash={post.InfoHash}
-							Seeders={post.Seeders}
-							Leechers={post.Leechers}
-						>
-						</Post>
-					)
-				})}
+				<div style={{
+						width: "80%",
+						margin: "0 auto"
+				}}>
+					<h3>Popular</h3>
+					{this.state.posts.map((post, index) => {
+						return (
+							<Post
+								key={post.Id}
+								Title={post.Title}
+								Source={post.Source}
+								Description="Description"
+								InfoHash={post.InfoHash}
+								Seeders={post.Seeders}
+								Leechers={post.Leechers}
+							>
+							</Post>
+						)
+					})}
+				</div>
 			</div>
 		)
 	}

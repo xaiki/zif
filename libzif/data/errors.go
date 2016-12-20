@@ -1,4 +1,4 @@
-package libzif
+package data
 
 import (
 	"bufio"
@@ -7,7 +7,7 @@ import (
 
 type ErrorReader struct {
 	reader *bufio.Reader
-	err    error
+	Err    error
 }
 
 func NewErrorReader(r io.Reader) *ErrorReader {
@@ -17,9 +17,9 @@ func NewErrorReader(r io.Reader) *ErrorReader {
 func (er *ErrorReader) ReadString(delim byte) string {
 	var ret string
 
-	ret, er.err = er.reader.ReadString(delim)
+	ret, er.Err = er.reader.ReadString(delim)
 
-	if er.err != nil {
+	if er.Err != nil {
 		return ""
 	}
 
@@ -29,9 +29,9 @@ func (er *ErrorReader) ReadString(delim byte) string {
 func (er *ErrorReader) ReadByte() byte {
 	var ret byte
 
-	ret, er.err = er.reader.ReadByte()
+	ret, er.Err = er.reader.ReadByte()
 
-	if er.err != nil {
+	if er.Err != nil {
 		return 0
 	}
 
@@ -39,7 +39,7 @@ func (er *ErrorReader) ReadByte() byte {
 }
 
 type AddressResolutionError struct {
-	address string
+	Address string
 }
 
 func (a AddressResolutionError) Error() string {

@@ -1,6 +1,11 @@
 package data
 
-import "encoding/json"
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"strconv"
+)
 
 const (
 	TitleMax    = 144
@@ -18,6 +23,7 @@ type Post struct {
 	Leechers   int
 	UploadDate int
 	Tags       string
+	Meta       string
 }
 
 func (p Post) Json() ([]byte, error) {
@@ -28,4 +34,63 @@ func (p Post) Json() ([]byte, error) {
 	}
 
 	return json, nil
+}
+
+func (p *Post) Bytes(sep, term []byte) []byte {
+	buf := bytes.Buffer{}
+
+	p.Write(string(sep), string(term), &buf)
+
+	return buf.Bytes()
+}
+
+func (p *Post) String(sep, term string) string {
+	return string(p.Bytes([]byte(sep), []byte(term)))
+}
+
+func (p *Post) Write(sep, term string, w io.Writer) {
+	w.Write([]byte(strconv.Itoa(p.Id)))
+	w.Write([]byte(sep))
+	w.Write([]byte(p.InfoHash))
+	w.Write([]byte(sep))
+	w.Write([]byte(p.Title))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.Size)))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.FileCount)))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.Seeders)))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.Leechers)))
+	w.Write([]byte(sep))
+	w.Write([]byte(strconv.Itoa(p.UploadDate)))
+	w.Write([]byte(sep))
+	w.Write([]byte(p.Tags))
+	w.Write([]byte(sep))
+	w.Write([]byte(term))
+
+	/*
+		The above seems to be a little faster, though mildly more awkward code.
+		I suppose because it avoids allocating a buffer every write?
+		bw := bufio.NewWriter(w)
+		bw.WriteString(strconv.Itoa(p.Id))
+		bw.WriteString(sep)
+		bw.WriteString(p.InfoHash)
+		bw.WriteString(sep)
+		bw.WriteString(p.Title)
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.Size))
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.FileCount))
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.Seeders))
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.Leechers))
+		bw.WriteString(sep)
+		bw.WriteString(strconv.Itoa(p.UploadDate))
+		bw.WriteString(sep)
+		bw.WriteString(p.Tags)
+		bw.WriteString(sep)
+		bw.WriteString(term)
+		bw.Flush()*/
 }

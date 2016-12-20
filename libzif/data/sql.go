@@ -10,16 +10,8 @@ const sql_create_post_table string = `CREATE TABLE IF NOT EXISTS
 											seeders INTEGER NOT NULL,
 											leechers INTEGER NOT NULL,
 											upload_date INTEGER NOT NULL,
-											tags STRING
-										)`
-
-// Just a key-value store of extra data relating to a post.
-const sql_create_meta_table string = `CREATE TABLE IF NOT EXISTS 
-										meta(
-											id INTEGER PRIMARY KEY NOT NULL,
-											post_id INTEGER NOT NULL,
-											key STRING NOT NULL UNIQUE,
-											value STRING NOT NULL
+											tags STRING,
+											meta STRING
 										)`
 
 const sql_create_fts_post string = `CREATE VIRTUAL TABLE IF NOT EXISTS
@@ -42,16 +34,13 @@ const sql_insert_post string = `INSERT OR IGNORE INTO post(
 									seeders,
 									leechers,
 									upload_date,
-									tags
-								) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
+									tags,
+									meta
+								) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-const sql_insert_meta string = `INSERT OR IGNORE INTO meta(
-									post_id,
-									key,
-									value
-								) VALUES(?, ?, ?)`
-
-const sql_query_meta string = `SELECT value FROM meta WHERE (post_id = ? AND key = ?)`
+const sql_attach_meta string = `UPDATE POST
+								SET meta=?
+								WHERE id=?`
 
 const sql_generate_fts string = `INSERT OR IGNORE INTO fts_post(
 								docid,

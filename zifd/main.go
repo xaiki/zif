@@ -76,7 +76,6 @@ func main() {
 	post := data.Post{}
 	post.InfoHash = "foo"
 	post.Title = "Foo"
-	log.Info(data.PostToString(&post, "|", ""))
 
 	lp.Database = data.NewDatabase(*db_path)
 
@@ -88,7 +87,7 @@ func main() {
 
 	lp.Listen(*addr)
 
-	log.Info("My address: ", lp.ZifAddress.Encode())
+	log.Info("My address: ", lp.Address().String())
 
 	var commandServer zif.CommandServer
 	commandServer.LocalPeer = lp

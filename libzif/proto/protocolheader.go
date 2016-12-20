@@ -1,6 +1,9 @@
-package libzif
+package proto
 
-import "golang.org/x/crypto/ed25519"
+import (
+	"github.com/wjh/zif/libzif/dht"
+	"golang.org/x/crypto/ed25519"
+)
 
 const ProtocolHeaderSize = 2 + 2 + ed25519.PublicKeySize
 
@@ -17,5 +20,5 @@ type ProtocolHeader struct {
 	// Address from this, also used for verficication of other things.
 	PublicKey [ed25519.PublicKeySize]byte
 
-	zifAddress Address
+	address dht.Address
 }

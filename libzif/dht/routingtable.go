@@ -1,6 +1,6 @@
 // Kademlia
 
-package libzif
+package dht
 
 import (
 	"container/list"
@@ -16,12 +16,12 @@ const MaxBucketSize = 20
 
 type DhtFile struct {
 	entryCount int
-	entries    [][]Entry
+	kv         [][]KeyValue
 }
 
 type DHTSave struct {
-	Buckets     [][]*Entry
-	LongBuckets [][]*Entry
+	Buckets     [][]*KeyValue
+	LongBuckets [][]*KeyValue
 }
 
 type RoutingTable struct {
@@ -33,10 +33,10 @@ type RoutingTable struct {
 func (rt *RoutingTable) Setup(addr Address) {
 	rt.LocalAddress = addr
 
-	rt.Buckets = make([]*list.List, len(rt.LocalAddress.Bytes)*8)
-	rt.LongBuckets = make([]*list.List, len(rt.LocalAddress.Bytes)*8)
+	rt.Buckets = make([]*list.List, len(rt.LocalAddress.Raw)*8)
+	rt.LongBuckets = make([]*list.List, len(rt.LocalAddress.Raw)*8)
 
-	for i := 0; i < len(rt.LocalAddress.Bytes)*8; i++ {
+	for i := 0; i < len(rt.LocalAddress.Raw)*8; i++ {
 		rt.Buckets[i] = list.New()
 		rt.LongBuckets[i] = list.New()
 	}
@@ -44,19 +44,19 @@ func (rt *RoutingTable) Setup(addr Address) {
 
 func (rt *RoutingTable) Save(filename string) error {
 	save := DHTSave{
-		make([][]*Entry, len(rt.LocalAddress.Bytes)*8),
-		make([][]*Entry, len(rt.LocalAddress.Bytes)*8),
+		make([][]*KeyValue, len(rt.LocalAddress.Raw)*8),
+		make([][]*KeyValue, len(rt.LocalAddress.Raw)*8),
 	}
 
 	for n, b := range rt.Buckets {
 		for i := b.Front(); i != nil; i = i.Next() {
-			save.Buckets[n] = append(save.Buckets[n], i.Value.(*Entry))
+			save.Buckets[n] = append(save.Buckets[n], i.Value.(*KeyValue))
 		}
 	}
 
 	for n, b := range rt.LongBuckets {
 		for i := b.Front(); i != nil; i = i.Next() {
-			save.LongBuckets[n] = append(save.LongBuckets[n], i.Value.(*Entry))
+			save.LongBuckets[n] = append(save.LongBuckets[n], i.Value.(*KeyValue))
 		}
 	}
 
@@ -91,13 +91,15 @@ func LoadRoutingTable(path string, addr Address) (*RoutingTable, error) {
 	data, err := ioutil.ReadFile(path)
 
 	if err != nil {
-		return nil, err
+		log.Info("An error occured, creating new routing table")
+		return &ret, nil
 	}
 
 	err = json.Unmarshal(data, &save)
 
 	if err != nil {
-		return nil, err
+		log.Info("An error occured, creating new routing table")
+		return &ret, nil
 	}
 
 	for n, i := range save.Buckets {
@@ -131,12 +133,12 @@ func BucketSize(bucket []*list.List) int {
 	return count
 }
 
-func (rt *RoutingTable) UpdateBucket(buckets []*list.List, entry Entry) bool {
-	if len(entry.ZifAddress.Bytes) < AddressBinarySize {
+func (rt *RoutingTable) UpdateBucket(buckets []*list.List, kv *KeyValue) bool {
+	if len(kv.Key.Raw) < AddressBinarySize {
 		return false
 	}
 
-	zero_count := entry.ZifAddress.Xor(&rt.LocalAddress).LeadingZeroes()
+	zero_count := kv.Key.Xor(&rt.LocalAddress).LeadingZeroes()
 	bucket := buckets[zero_count]
 
 	// TODO: Ping peers, starting from back. If none reply, remove them.
@@ -147,56 +149,68 @@ func (rt *RoutingTable) UpdateBucket(buckets []*list.List, entry Entry) bool {
 
 	var foundEntry *list.Element = nil
 	for i := bucket.Front(); i != nil; i = i.Next() {
-		if i.Value.(*Entry).ZifAddress.Equals(&entry.ZifAddress) {
+		if i.Value.(*KeyValue).Key.Equals(&kv.Key) {
 			foundEntry = i
 		}
 	}
 
 	if foundEntry == nil {
-		bucket.PushFront(&entry)
+		bucket.PushFront(kv)
 	} else {
+		// Update the value as well
+		copy(foundEntry.Value.(*KeyValue).Value, kv.Value)
 		bucket.MoveToFront(foundEntry)
 	}
 
 	return true
 }
 
-func (rt *RoutingTable) Update(entry Entry) bool {
+func (rt *RoutingTable) Update(kv *KeyValue) bool {
 	var success bool
 
-	closest := rt.FindClosest(entry.ZifAddress, 1)
-	if len(closest) == 1 {
-		closest_entry := closest[0]
+	closest := rt.FindClosest(kv.Key, MaxBucketSize)
 
-		dist_closest := closest_entry.ZifAddress.Xor(&entry.ZifAddress)
-		dist_this := rt.LocalAddress.Xor(&entry.ZifAddress)
+	// If this peer is the closest known peer, then store it.
+	if len(closest) > 0 {
 
-		if dist_this.Less(dist_closest) {
-			success = rt.UpdateBucket(rt.LongBuckets, entry)
+		nearest := true
+		dist_this := rt.LocalAddress.Xor(&kv.Key)
+
+		for _, i := range closest {
+			dist := i.Key.Xor(&kv.Key)
+
+			if !dist_this.Less(dist) {
+				nearest = false
+			}
 		}
+
+		if nearest {
+			success = rt.UpdateBucket(rt.LongBuckets, kv)
+		}
+
 	} else if len(closest) == 0 {
-		success = rt.UpdateBucket(rt.LongBuckets, entry)
+		success = rt.UpdateBucket(rt.LongBuckets, kv)
 	}
 
-	success = rt.UpdateBucket(rt.Buckets, entry)
+	success = rt.UpdateBucket(rt.Buckets, kv)
 
 	return success
 }
 
-func copyToEntrySlice(slice *[]*Entry, begin *list.Element, count int) {
+func copyToEntrySlice(slice *Pairs, begin *list.Element, count int) {
 
 	for i := begin; i != nil && len(*slice) < count; i = i.Next() {
-		*slice = append(*slice, i.Value.(*Entry))
+		*slice = append(*slice, i.Value.(*KeyValue))
 	}
 
 }
 
-func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Address, count int) []*Entry {
-	if len(target.Bytes) != AddressBinarySize {
+func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Address, count int) Pairs {
+	if len(target.Raw) != AddressBinarySize {
 		return nil
 	}
 
-	ret := make([]*Entry, 0, count)
+	ret := make(Pairs, 0, count)
 
 	bucket_num := target.Xor(&rt.LocalAddress).LeadingZeroes()
 	bucket := buckets[bucket_num]
@@ -204,7 +218,7 @@ func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Addres
 	copyToEntrySlice(&ret, bucket.Front(), count)
 
 	// If the bucket is not filled, look the the buckets either side.
-	for i := 1; (bucket_num-i >= 0 || bucket_num+i <= len(target.Bytes)*8) &&
+	for i := 1; (bucket_num-i >= 0 || bucket_num+i <= len(target.Raw)*8) &&
 		len(ret) < count; i++ {
 
 		if bucket_num-i >= 0 {
@@ -212,7 +226,7 @@ func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Addres
 			copyToEntrySlice(&ret, bucket.Front(), count)
 		}
 
-		if bucket_num+i < len(target.Bytes)*8 {
+		if bucket_num+i < len(target.Raw)*8 {
 			bucket = buckets[bucket_num+i]
 			copyToEntrySlice(&ret, bucket.Front(), count)
 		}
@@ -220,21 +234,21 @@ func (rt *RoutingTable) FindClosestInBuckets(buckets []*list.List, target Addres
 	}
 
 	for _, e := range ret {
-		e.distance = *e.ZifAddress.Xor(&target)
+		e.distance = *e.Key.Xor(&target)
 	}
 
-	sort.Sort(Entries(ret))
+	sort.Sort(Pairs(ret))
 
 	return ret
 }
 
-func (rt *RoutingTable) FindClosest(target Address, count int) []*Entry {
-	entries := make([]*Entry, 0)
+func (rt *RoutingTable) FindClosest(target Address, count int) Pairs {
+	entries := make(Pairs, 0)
 
 	entries = append(entries, rt.FindClosestInBuckets(rt.Buckets, target, count)...)
-	entries = append(entries, rt.FindClosestInBuckets(rt.Buckets, target, count)...)
+	entries = append(entries, rt.FindClosestInBuckets(rt.LongBuckets, target, count)...)
 
-	sort.Sort(Entries(entries))
+	sort.Sort(Pairs(entries))
 
 	// then remove duplicates, as the two bucket lists may contain the same
 	// entries
@@ -246,7 +260,7 @@ func (rt *RoutingTable) FindClosest(target Address, count int) []*Entry {
 	last := entries[0]
 	j := 1
 	for i := 1; i < len(entries); i++ {
-		if entries[i].ZifAddress.Equals(&last.ZifAddress) {
+		if entries[i].Key.Equals(&last.Key) {
 			continue
 		}
 

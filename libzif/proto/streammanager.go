@@ -1,6 +1,6 @@
 // Keeps track of open TCP connections, as well as yamux sessions
 
-package libzif
+package proto
 
 import (
 	"errors"
@@ -29,13 +29,17 @@ type StreamManager struct {
 	torDialer proxy.Dialer
 }
 
-func (sm *StreamManager) Setup(lp *LocalPeer) {
+func (sm *StreamManager) SetConnection(conn ConnHeader) {
+	sm.connection = conn
+}
+
+func (sm *StreamManager) Setup() {
 	sm.server = nil
 	sm.client = nil
 	sm.clients = make([]Client, 0, 10)
 }
 
-func (sm *StreamManager) OpenTor(addr string, lp *LocalPeer) (*ConnHeader, error) {
+func (sm *StreamManager) OpenTor(addr string, lp ProtocolHandler) (*ConnHeader, error) {
 	if sm.torDialer == nil {
 		dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:9050", nil, proxy.Direct)
 
@@ -64,12 +68,12 @@ func (sm *StreamManager) OpenTor(addr string, lp *LocalPeer) (*ConnHeader, error
 	return &pair, nil
 }
 
-func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (*ConnHeader, error) {
+func (sm *StreamManager) OpenTCP(addr string, lp ProtocolHandler) (*ConnHeader, error) {
 	if sm.Tor {
 		return sm.OpenTor(addr, lp)
 	}
 
-	if sm.connection.cl.conn != nil {
+	if sm.connection.Client.conn != nil {
 		return &sm.connection, nil
 	}
 
@@ -91,7 +95,7 @@ func (sm *StreamManager) OpenTCP(addr string, lp *LocalPeer) (*ConnHeader, error
 	return &pair, nil
 }
 
-func (sm *StreamManager) Handshake(conn net.Conn, lp *LocalPeer) (ed25519.PublicKey, error) {
+func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler) (ed25519.PublicKey, error) {
 	cl := NewClient(conn)
 	log.Debug("Sending handshake")
 	err := handshake_send(*cl, lp)
@@ -130,7 +134,7 @@ func (sm *StreamManager) ConnectClient() (*yamux.Session, error) {
 		return nil, errors.New("There is already a server connected to that socket")
 	}
 
-	client, err := yamux.Client(sm.connection.cl.conn, nil)
+	client, err := yamux.Client(sm.connection.Client.conn, nil)
 
 	if err != nil {
 		return nil, err
@@ -151,7 +155,7 @@ func (sm *StreamManager) ConnectServer() (*yamux.Session, error) {
 		return nil, errors.New("There is already a client connected to that socket")
 	}
 
-	server, err := yamux.Server(sm.connection.cl.conn, nil)
+	server, err := yamux.Server(sm.connection.Client.conn, nil)
 
 	if err != nil {
 		return nil, err
@@ -169,8 +173,8 @@ func (sm *StreamManager) Close() {
 		session.Close()
 	}
 
-	if sm.connection.cl.conn != nil {
-		sm.connection.cl.Close()
+	if sm.connection.Client.conn != nil {
+		sm.connection.Client.Close()
 	}
 }
 

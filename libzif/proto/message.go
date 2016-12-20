@@ -1,16 +1,33 @@
-package libzif
+package proto
 
 import (
 	"encoding/json"
 	"net"
+
+	"github.com/wjh/zif/libzif/dht"
 )
 
 type Message struct {
 	Header  int
 	Content []byte
 
-	From   *Peer
 	Stream net.Conn
+	Client *Client
+	From   *dht.Address
+}
+
+func (m *Message) WriteInt(i int) {
+	j, _ := json.Marshal(i)
+	m.Content = make([]byte, len(j))
+
+	copy(m.Content, j)
+}
+
+func (m *Message) ReadInt() (int, error) {
+	var ret int
+	err := json.Unmarshal(m.Content, &ret)
+
+	return ret, err
 }
 
 func (m *Message) Json() ([]byte, error) {

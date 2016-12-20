@@ -1,4 +1,4 @@
-package libzif
+package proto
 
 import (
 	"bytes"

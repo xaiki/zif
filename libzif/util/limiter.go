@@ -1,4 +1,4 @@
-package libzif
+package util
 
 import "time"
 

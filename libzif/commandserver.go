@@ -1,109 +1,14 @@
 package libzif
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 	data "github.com/wjh/zif/libzif/data"
 )
-
-// Command input types
-
-type CommandPeer struct {
-	Address string `json:"address"`
-}
-
-type CommandPing CommandPeer
-type CommandAnnounce CommandPeer
-type CommandRSearch struct {
-	CommandPeer
-	Query string `json:"query"`
-	Page  int    `json:"page"`
-}
-type CommandPeerSearch CommandRSearch
-type CommandPeerRecent struct {
-	CommandPeer
-	Page int `json:"page"`
-}
-type CommandPeerPopular CommandPeerRecent
-type CommandMirror CommandPeer
-type CommandPeerIndex struct {
-	CommandPeer
-	Since int `json:"since"`
-}
-
-type CommandMeta struct {
-	PId int    `json:"pid"`
-	Key string `json:"key"`
-}
-
-type CommandAddPost data.Post
-type CommandSelfIndex struct {
-	Since int `json:"since"`
-}
-type CommandResolve CommandPeer
-type CommandBootstrap CommandPeer
-
-type CommandSuggest struct {
-	Query string `json:"query"`
-}
-
-type CommandSelfSearch struct {
-	CommandSuggest
-	Page int `json:"page"`
-}
-type CommandSelfRecent struct {
-	Page int `json:"page"`
-}
-type CommandSelfPopular CommandSelfRecent
-type CommandAddMeta struct {
-	CommandMeta
-	Value string `json:"value"`
-}
-type CommandGetMeta CommandMeta
-type CommandSaveCollection interface{}
-type CommandRebuildCollection interface{}
-type CommandPeers interface{}
-type CommandSaveRoutingTable interface{}
-
-// Command output types
-
-type CommandResult struct {
-	IsOK   bool        `json:"status"`
-	Result interface{} `json:"value"`
-	Error  error       `json:"err"`
-}
-
-func (cr *CommandResult) WriteJSON(w io.Writer) {
-	e := json.NewEncoder(w)
-
-	if cr.IsOK {
-		if cr.Result == nil {
-			e.Encode(struct {
-				Status string `json:"status"`
-			}{"ok"})
-		} else {
-			e.Encode(struct {
-				Status string      `json:"status"`
-				Value  interface{} `json:"value"`
-			}{"ok", cr.Result})
-		}
-	} else {
-		if cr.Error == nil {
-			cr.Error = errors.New("Something bad happened, but we don't know bad, which makes the fact much worse.")
-		}
-
-		e.Encode(struct {
-			Status string `json:"status"`
-			Error  string `json:"err"`
-		}{"err", cr.Error.Error()})
-	}
-}
 
 // Command server type
 
@@ -116,8 +21,15 @@ type CommandServer struct {
 func (cs *CommandServer) Ping(p CommandPing) CommandResult {
 	log.Info("Command: Ping request")
 
-	// TODO: implement
-	return CommandResult{true, nil, nil}
+	peer, err := cs.LocalPeer.ConnectPeer(p.Address)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	time, err := peer.Ping()
+
+	return CommandResult{err == nil, time.Seconds(), err}
 }
 func (cs *CommandServer) Announce(a CommandAnnounce) CommandResult {
 	var err error
@@ -150,6 +62,8 @@ func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 	peer := cs.LocalPeer.GetPeer(rs.CommandPeer.Address)
 
 	if peer == nil {
+		// Remote searching is not allowed to be done on seeds, it has no
+		// verification so can be falsified easily. Mirror people, mirror!
 		peer, err = cs.LocalPeer.ConnectPeer(rs.CommandPeer.Address)
 		if err != nil {
 			return CommandResult{false, nil, err}
@@ -185,7 +99,7 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 
 	log.Info("Command: Peer Recent request")
 
-	if pr.CommandPeer.Address == cs.LocalPeer.Entry.ZifAddress.Encode() {
+	if pr.CommandPeer.Address == cs.LocalPeer.Entry.Address.String() {
 		posts, err = cs.LocalPeer.Database.QueryRecent(pr.Page)
 
 		return CommandResult{err != nil, posts, err}
@@ -213,7 +127,7 @@ func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 
 	log.Info("Command: Peer Popular request")
 
-	if pp.CommandPeer.Address == cs.LocalPeer.Entry.ZifAddress.Encode() {
+	if pp.CommandPeer.Address == cs.LocalPeer.Entry.Address.String() {
 		posts, err = cs.LocalPeer.Database.QueryPopular(pp.Page)
 
 		return CommandResult{err == nil, posts, err}
@@ -241,20 +155,22 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	log.Info("Command: Peer Mirror request")
 
 	peer := cs.LocalPeer.GetPeer(cm.Address)
+
 	if peer == nil {
 		peer, err = cs.LocalPeer.ConnectPeer(cm.Address)
+
 		if err != nil {
 			return CommandResult{false, nil, err}
 		}
 	}
 
 	// TODO: make this configurable
-	d := fmt.Sprintf("./data/%s", peer.ZifAddress.Encode())
+	d := fmt.Sprintf("./data/%s", peer.Address().String())
 	os.Mkdir(fmt.Sprintf("./data/%s", d), 0777)
 	db := data.NewDatabase(d)
 	db.Connect()
 
-	cs.LocalPeer.Databases.Set(peer.ZifAddress.Encode(), db)
+	cs.LocalPeer.Databases.Set(peer.Address().String(), db)
 
 	_, err = peer.Mirror(db)
 	if err != nil {
@@ -262,7 +178,7 @@ func (cs *CommandServer) Mirror(cm CommandMirror) CommandResult {
 	}
 
 	// TODO: wjh: is this needed? -poro
-	cs.LocalPeer.Databases.Set(peer.ZifAddress.Encode(), db)
+	cs.LocalPeer.Databases.Set(peer.Address().String(), db)
 
 	return CommandResult{true, nil, nil}
 }
@@ -281,13 +197,11 @@ func (cs *CommandServer) PeerIndex(ci CommandPeerIndex) CommandResult {
 	return CommandResult{err == nil, nil, err}
 }
 
-// self
-
 func (cs *CommandServer) AddPost(ap CommandAddPost) CommandResult {
 	log.Info("Command: Add Post request")
 
 	cs.LocalPeer.AddPost(
-		data.Post{ap.Id, ap.InfoHash, ap.Title, ap.Size, ap.FileCount, ap.Seeders, ap.Leechers, ap.UploadDate, ap.Tags},
+		data.Post{ap.Id, ap.InfoHash, ap.Title, ap.Size, ap.FileCount, ap.Seeders, ap.Leechers, ap.UploadDate, ap.Tags, ap.Meta},
 		false)
 
 	return CommandResult{true, nil, nil}
@@ -361,16 +275,9 @@ func (cs *CommandServer) SelfPopular(cp CommandSelfPopular) CommandResult {
 func (cs *CommandServer) AddMeta(cam CommandAddMeta) CommandResult {
 	log.Info("Command: Add Meta request")
 
-	err := cs.LocalPeer.Database.AddMeta(cam.CommandMeta.PId, cam.CommandMeta.Key, cam.Value)
+	err := cs.LocalPeer.Database.AddMeta(cam.CommandMeta.PId, cam.Value)
 
 	return CommandResult{err == nil, nil, err}
-}
-func (cs *CommandServer) GetMeta(cgm CommandGetMeta) CommandResult {
-	log.Info("Command: Get Meta request")
-
-	val, err := cs.LocalPeer.Database.GetMeta(cgm.PId, cgm.Key)
-
-	return CommandResult{err == nil, val, err}
 }
 func (cs *CommandServer) SaveCollection(csc CommandSaveCollection) CommandResult {
 	log.Info("Command: Save Collection request")
@@ -408,6 +315,20 @@ func (cs *CommandServer) SaveRoutingTable(csrt CommandSaveRoutingTable) CommandR
 
 	// TODO: make this configurable
 	err := cs.LocalPeer.RoutingTable.Save("dht")
+
+	return CommandResult{err == nil, nil, err}
+}
+
+func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResult {
+	log.Info("Command: Request Add Peer request")
+
+	peer, err := cs.LocalPeer.ConnectPeer(crap.Remote)
+
+	if err != nil {
+		return CommandResult{true, nil, err}
+	}
+
+	_, err = peer.RequestAddPeer(crap.Peer)
 
 	return CommandResult{err == nil, nil, err}
 }
