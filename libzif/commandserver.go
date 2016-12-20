@@ -76,7 +76,7 @@ func (cs *CommandServer) RSearch(rs CommandRSearch) CommandResult {
 		defer stream.Close()
 	}
 
-	return CommandResult{err != nil, posts, err}
+	return CommandResult{err == nil, posts, err}
 }
 func (cs *CommandServer) PeerSearch(ps CommandPeerSearch) CommandResult {
 	var err error
@@ -91,7 +91,7 @@ func (cs *CommandServer) PeerSearch(ps CommandPeerSearch) CommandResult {
 
 	posts, err := cs.LocalPeer.SearchProvider.Search(db.(*data.Database), ps.Query, ps.Page)
 
-	return CommandResult{err != nil, posts, err}
+	return CommandResult{err == nil, posts, err}
 }
 func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 	var err error
@@ -102,7 +102,7 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 	if pr.CommandPeer.Address == cs.LocalPeer.Entry.Address.String() {
 		posts, err = cs.LocalPeer.Database.QueryRecent(pr.Page)
 
-		return CommandResult{err != nil, posts, err}
+		return CommandResult{err == nil, posts, err}
 	}
 
 	peer := cs.LocalPeer.GetPeer(pr.CommandPeer.Address)
@@ -119,7 +119,7 @@ func (cs *CommandServer) PeerRecent(pr CommandPeerRecent) CommandResult {
 		defer stream.Close()
 	}
 
-	return CommandResult{err != nil, posts, err}
+	return CommandResult{err == nil, posts, err}
 }
 func (cs *CommandServer) PeerPopular(pp CommandPeerPopular) CommandResult {
 	var err error
