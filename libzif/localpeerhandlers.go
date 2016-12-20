@@ -2,7 +2,6 @@ package libzif
 
 import (
 	"bufio"
-	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"errors"
@@ -40,8 +39,9 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 		return err
 	}
 
-	closest_json := bytes.Buffer{}
-	encoder := json.NewEncoder(&closest_json)
+	results := &proto.Message{
+		Header: proto.ProtoEntry,
+	}
 
 	if address.Equals(lp.Address()) {
 		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
@@ -53,27 +53,35 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 		}
 		kv := dht.NewKeyValue(lp.Entry.Address, json)
 
-		encoder.Encode(kv)
+		results.WriteInt(1)
+		err = cl.WriteMessage(results)
+
+		if err != nil {
+			return errors.New("Failed to send query length")
+		}
+
+		err = cl.WriteMessage(kv)
 	} else {
 		log.Debug("Querying routing table")
 
-		for _, i := range lp.RoutingTable.FindClosest(address, dht.MaxBucketSize) {
-			encoder.Encode(i)
+		closest := lp.RoutingTable.FindClosest(address, dht.MaxBucketSize)
+
+		results.WriteInt(len(closest))
+
+		err = cl.WriteMessage(results)
+
+		if err != nil {
+			return errors.New("Failed to send query length")
+		}
+
+		for _, i := range closest {
+			err = cl.WriteMessage(i)
+
+			if err != nil {
+				return errors.New("Failed to write query result")
+			}
 		}
 	}
-
-	log.Debug("Query results: ", string(closest_json.String()))
-
-	if err != nil {
-		return errors.New("Failed to encode closest peers to json")
-	}
-
-	results := &proto.Message{
-		Header:  proto.ProtoEntry,
-		Content: closest_json.Bytes(),
-	}
-
-	err = cl.WriteMessage(results)
 
 	return err
 }

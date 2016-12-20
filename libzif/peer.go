@@ -205,7 +205,7 @@ func (p *Peer) Bootstrap(rt *dht.RoutingTable) (*proto.Client, error) {
 		return nil, err
 	}
 
-	dat, _ := initial.Bytes()
+	dat, _ := initial.Json()
 
 	rt.Update(dht.NewKeyValue(initial.Address, dat))
 	log.Info(rt.NumPeers())

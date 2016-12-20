@@ -16,6 +16,20 @@ type Message struct {
 	From   *dht.Address
 }
 
+func (m *Message) WriteInt(i int) {
+	j, _ := json.Marshal(i)
+	m.Content = make([]byte, len(j))
+
+	copy(m.Content, j)
+}
+
+func (m *Message) ReadInt() (int, error) {
+	var ret int
+	err := json.Unmarshal(m.Content, &ret)
+
+	return ret, err
+}
+
 func (m *Message) Json() ([]byte, error) {
 	return json.Marshal(m)
 }

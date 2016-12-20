@@ -73,6 +73,10 @@ func (c *Client) ReadMessage() (*Message, error) {
 	return &msg, nil
 }
 
+func (c *Client) Decode(i interface{}) error {
+	return c.decoder.Decode(i)
+}
+
 // Pings a client with a specified timeout, returns true/false depending on
 // if it recieves a reply.
 func (c *Client) Ping(timeout time.Duration) (time.Duration, error) {
@@ -107,7 +111,7 @@ func (c *Client) Pong() {
 
 // Sends a DHT entry to a peer.
 func (c *Client) SendStruct(e data.Encodable) error {
-	json, err := e.Bytes()
+	json, err := e.Json()
 	msg := Message{Header: ProtoEntry, Content: json}
 
 	if err != nil {
@@ -123,7 +127,7 @@ func (c *Client) SendStruct(e data.Encodable) error {
 // Announce the given DHT entry to a peer, passes on this peers details,
 // meaning that it can be reached by other peers on the network.
 func (c *Client) Announce(e data.Encodable) error {
-	json, err := e.Bytes()
+	json, err := e.Json()
 
 	if err != nil {
 		c.conn.Close()
@@ -189,8 +193,24 @@ func (c *Client) Query(address string) (dht.Pairs, error) {
 		return nil, err
 	}
 
-	var entries dht.Pairs
-	err = closest.Decode(&entries)
+	length, err := closest.ReadInt()
+
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make(dht.Pairs, 0, length)
+
+	for i := 0; i < length; i++ {
+		kv := &dht.KeyValue{}
+		err = c.Decode(kv)
+
+		if err != nil {
+			return nil, err
+		}
+
+		entries = append(entries, kv)
+	}
 
 	log.WithField("entries", len(entries)).Info("Query complete")
 	return entries, err

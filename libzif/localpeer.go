@@ -280,7 +280,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 
 	workers := 3
 	addresses := make(chan string, dht.MaxBucketSize)
-	results := make(chan dht.Pairs, dht.MaxBucketSize*workers)
+	results := make(chan workResult, dht.MaxBucketSize*workers)
 
 	defer close(results)
 	defer close(addresses)
@@ -295,17 +295,21 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		entry, err := JsonToEntry(i.Value)
 
 		if err != nil {
+			log.Error(err.Error())
+			log.Info(string(i.Value))
 			continue
 		}
 
+		log.Info("Working on ", entry.Address.String())
 		addresses <- fmt.Sprintf("%s:%s", entry.PublicAddress, entry.Port)
 	}
 
 	// Listen for results from workers, feeding addresses we have not seen before
 	// back into the system to be queried. Terminates when we have found what we
-	// are looking for.
+	// are looking for. If all workers return no new results then the search
+	// is terminated.
 	for i := range results {
-		for _, j := range i {
+		for _, j := range i.pairs {
 			// If this is a new address we have not yet seen
 			if _, ok := current[j.Key.String()]; !ok {
 				entry, err := JsonToEntry(j.Value)
@@ -318,6 +322,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 					return entry, nil
 				}
 
+				log.Info("Working on ", entry.Address.String())
 				addresses <- fmt.Sprintf("%s:%s", entry.PublicAddress, entry.Port)
 
 				closest = append(closest, j)
@@ -330,7 +335,8 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 }
 
 type workResult struct {
-	id int
+	id    int
+	pairs dht.Pairs
 }
 
 // Pass this the id of the worker, the address we are looking for, a channel
@@ -338,13 +344,20 @@ type workResult struct {
 // results on. Note that the addresses being passed in via channel are those
 // of public internet addresses and not Zif addresses. They should have
 // already been resolved :)
-func (lp *LocalPeer) worker(id int, address string, addresses <-chan string, results chan<- dht.Pairs) {
+func (lp *LocalPeer) worker(id int, address string, addresses <-chan string, results chan<- workResult) {
 
 	// If any errors occur, just skip that peer and attempt to work with the
 	// next. No point terminating if we meet one dodgy peer.
 
+	seen := make(map[string]bool)
+
 	for i := range addresses {
+		if seen[i] == true {
+			continue
+		}
+
 		p := lp.GetPeer(i)
+		seen[i] = true
 
 		if p == nil {
 			p = &Peer{}
@@ -363,7 +376,7 @@ func (lp *LocalPeer) worker(id int, address string, addresses <-chan string, res
 
 			defer client.Close()
 
-			results <- res
+			results <- workResult{id, res}
 		}
 	}
 }
