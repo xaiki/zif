@@ -100,7 +100,7 @@ func (lp *LocalPeer) HandleAnnounce(msg *proto.Message) error {
 		return err
 	}
 
-	json, _ := entry.Bytes()
+	json, _ := entry.Json()
 	saved := lp.RoutingTable.Update(dht.NewKeyValue(entry.Address, json))
 
 	if saved {
