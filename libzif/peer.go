@@ -224,8 +224,8 @@ func (p *Peer) Query(address string) (*proto.Client, dht.Pairs, error) {
 }
 
 // asks a peer to query its database and return the results
-func (p *Peer) Search(search string, page int) ([]*data.Post, *Client, error) {
-	log.Info("Searching ", p.Address.Encode())
+func (p *Peer) Search(search string, page int) ([]*data.Post, *proto.Client, error) {
+	log.Info("Searching ", p.Address().String())
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -241,7 +241,7 @@ func (p *Peer) Search(search string, page int) ([]*data.Post, *Client, error) {
 	return posts, &stream, nil
 }
 
-func (p *Peer) Recent(page int) ([]*data.Post, *Client, error) {
+func (p *Peer) Recent(page int) ([]*data.Post, *proto.Client, error) {
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -254,7 +254,7 @@ func (p *Peer) Recent(page int) ([]*data.Post, *Client, error) {
 
 }
 
-func (p *Peer) Popular(page int) ([]*data.Post, *Client, error) {
+func (p *Peer) Popular(page int) ([]*data.Post, *proto.Client, error) {
 	stream, err := p.OpenStream()
 
 	if err != nil {
@@ -267,13 +267,13 @@ func (p *Peer) Popular(page int) ([]*data.Post, *Client, error) {
 
 }
 
-func (p *Peer) Mirror(db *data.Database) (*Client, error) {
+func (p *Peer) Mirror(db *data.Database) (*proto.Client, error) {
 	pieces := make(chan *data.Piece, data.PieceSize)
 	defer close(pieces)
 
 	go db.InsertPieces(pieces, true)
 
-	log.WithField("peer", p.Address.Encode()).Info("Mirroring")
+	log.WithField("peer", p.Address().String()).Info("Mirroring")
 
 	stream, err := p.OpenStream()
 
@@ -295,7 +295,7 @@ func (p *Peer) Mirror(db *data.Database) (*Client, error) {
 	mcol, err := stream.Collection(entry.Address, entry.PublicKey)
 
 	collection := data.Collection{HashList: mcol.HashList}
-	collection.Save(fmt.Sprintf("./data/%s/collection.dat", entry.Address.Encode()))
+	collection.Save(fmt.Sprintf("./data/%s/collection.dat", entry.Address.String()))
 
 	if err != nil {
 		return nil, err
@@ -326,12 +326,12 @@ func (p *Peer) Mirror(db *data.Database) (*Client, error) {
 	bar.Finish()
 	log.Info("Mirror complete")
 
-	p.RequestAddPeer(p.Address.Encode())
+	p.RequestAddPeer(p.Address().String())
 
 	return &stream, err
 }
 
-func (p *Peer) RequestAddPeer(addr string) (*Client, error) {
+func (p *Peer) RequestAddPeer(addr string) (*proto.Client, error) {
 	stream, err := p.OpenStream()
 
 	if err != nil {

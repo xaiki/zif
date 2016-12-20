@@ -343,8 +343,6 @@ func (lp *LocalPeer) worker(id int, address string, addresses <-chan string, res
 	// If any errors occur, just skip that peer and attempt to work with the
 	// next. No point terminating if we meet one dodgy peer.
 
-	found := make(map[string]bool)
-
 	for i := range addresses {
 		p := lp.GetPeer(i)
 

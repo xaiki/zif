@@ -157,7 +157,7 @@ func (c *Client) Announce(e data.Encodable) error {
 // Given a Zif address, attempts to resolve it for a DHT entry. Returns the k
 // closest peers to the address. It only returns the closest entries that the
 // peer knows about, so more Queries may well be needed.
-func (c *Client) Query(address string) ([]dht.KeyValue, error) {
+func (c *Client) Query(address string) (dht.Pairs, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
@@ -189,7 +189,7 @@ func (c *Client) Query(address string) ([]dht.KeyValue, error) {
 		return nil, err
 	}
 
-	var entries []dht.KeyValue
+	var entries dht.Pairs
 	err = closest.Decode(&entries)
 
 	log.WithField("entries", len(entries)).Info("Query complete")
@@ -212,7 +212,7 @@ func (c *Client) Bootstrap(rt *dht.RoutingTable, address dht.Address) error {
 			continue
 		}
 
-		rt.Update(&e)
+		rt.Update(e)
 	}
 
 	if len(peers) > 1 {
