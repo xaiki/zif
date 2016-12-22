@@ -16,12 +16,15 @@ class Search extends Component
 			focus: false,
 			searchValue: "",
 			focuedWidth: this.props.focusedWidth,
-			dataSource: []
+			dataSource: [],
+			width: window.innerWidth,
+			height: window.innerHeight
 		};
 
 
 		this.onUpdateInput= this.onUpdateInput.bind(this);
 		this.onSubmit = this.onSubmit.bind(this);
+		this.onResize = this.onResize.bind(this);
 
 		// How many search results we need before they are displayed (and sorted)
 		this.searchTotal = 1 + this.props.Subscriptions.length;
@@ -112,6 +115,14 @@ class Search extends Component
 	componentWillUnmount() {
 		this.searchRequest.abort();
 	}
+
+	componentDidMount() {
+		window.addEventListener("resize", this.onResize);
+	}
+
+	onResize() {
+		this.setState({width: window.innerWidth, height: window.innerHeight})
+	}
 	
 	render()
 	{
@@ -119,10 +130,9 @@ class Search extends Component
 			backgroundColor: "white",
 			paddingLeft: "5px",
 			paddingRight: "5px",
-			marginRight: "210px",
+			marginRight: "150px",
 			marginTop: "8px",
-			transition: this.props.transitionTime,
-			width: window.innerWidth - 444
+			width: this.state.width - 333
 		};
 
 		return (

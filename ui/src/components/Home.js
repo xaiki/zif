@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import request from "superagent"
 
-import {Card, CardActions, CardHeader, CardText} from 'material-ui/Card';
+import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import FlatButton from 'material-ui/FlatButton';
 
 import Post from "./Post"
@@ -47,26 +47,36 @@ class Home extends Component{
 		return(
 
 			<div>
-				<div style={{
-						width: "80%",
-						margin: "0 auto"
-				}}>
 					<h3>Popular</h3>
-					{this.state.posts.map((post, index) => {
-						return (
-							<Post
-								key={post.Id}
-								Title={post.Title}
-								Source={post.Source}
-								Description="Description"
-								InfoHash={post.InfoHash}
-								Seeders={post.Seeders}
-								Leechers={post.Leechers}
-							>
-							</Post>
-						)
-					})}
-				</div>
+					<Table>
+
+						<TableHeader>
+						  <TableRow>
+							<TableHeaderColumn>Name</TableHeaderColumn>
+							<TableHeaderColumn>Size</TableHeaderColumn>
+							<TableHeaderColumn>Seeders</TableHeaderColumn>
+							<TableHeaderColumn>Leechers</TableHeaderColumn>
+						  </TableRow>
+						</TableHeader>
+
+						<TableBody>
+						{this.state.posts.map((post, index) => {
+							return (
+							<TableRow>
+								<TableRowColumn>
+								{post.Title}
+								</TableRowColumn>
+								<TableRowColumn>
+								{post.Seeders}
+								</TableRowColumn>
+								<TableRowColumn>
+								{post.Leechers}
+								</TableRowColumn>
+							</TableRow>
+							)
+						})}
+						</TableBody>
+					</Table>
 			</div>
 		)
 	}

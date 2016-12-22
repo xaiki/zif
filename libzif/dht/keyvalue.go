@@ -1,10 +1,13 @@
 package dht
 
+const (
+	MaxValueSize = 10 * 1024
+)
+
 type KeyValue struct {
 	Key   Address
 	Value []byte // Max size of 64kbs
 
-	// Used for sorting, compare on key-value result to another.
 	distance Address
 }
 
@@ -16,6 +19,10 @@ func NewKeyValue(key Address, value []byte) *KeyValue {
 	copy(ret.Value, value)
 
 	return ret
+}
+
+func (kv *KeyValue) Valid() bool {
+	return len(kv.Value) <= MaxValueSize && len(kv.Key.Raw) == AddressBinarySize
 }
 
 type Pairs []*KeyValue

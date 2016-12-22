@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Router, Route, hashHistory, Link } from 'react-router';
 
-import AppBar from 'material-ui/AppBar';
+import Toolbar from 'material-ui/Toolbar';
 import Drawer from 'material-ui/Drawer';
 import MenuItem from 'material-ui/MenuItem';
 import TextField from 'material-ui/TextField';
@@ -76,35 +76,18 @@ class App extends Component
 				paddingRight: "210px",
 				paddingBottom: "10px",
 				marginTop: "75px"
+			},
+			topbar: {
+				backgroundColor: "red"
 			}
 
 		}
 
+					/*<Search
+						onResults={this.onResults}
+						Subscriptions={this.config.subscriptions}/>*/
 		return(
 			<div style={{height: "100%"}}>
-				<AppBar 
-					title="Zif"
-					style={{position: "fixed", top: 0, paddingRight: 0}}
-					onLeftIconButtonTouchTap={this.handleToggle}>
-
-					<Search
-						onResults={this.onResults}
-						Subscriptions={this.config.subscriptions}/>
-
-				</AppBar>
-
-				<Drawer width={200} 
-						docked={true} 
-						open={this.state.drawerOpen} 
-						containerClassName="drawer"
-						containerStyle={style.drawer}>
-
-					<div style={style.drawerItems}>
-						<a onClick={this.homeButtonClick}><MenuItem>Home</MenuItem></a>
-					</div>
-
-				</Drawer>
-
 				<Welcome config={this.config}/>
 
 				<div style={style.router}>

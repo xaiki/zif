@@ -1,4 +1,4 @@
-package libzif_test
+package data
 
 import "testing"
 
