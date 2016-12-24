@@ -219,7 +219,7 @@ func (c *Client) Query(address string) (dht.Pairs, error) {
 // Adds the initial entries into the given routing table. Essentially queries for
 // both it's own and the peers address, storing the result. This means that after
 // a bootstrap, it should be possible to connect to *any* peer!
-func (c *Client) Bootstrap(rt *dht.RoutingTable, address dht.Address) error {
+func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
 	peers, err := c.Query(address.String())
 
 	if err != nil {
@@ -232,7 +232,7 @@ func (c *Client) Bootstrap(rt *dht.RoutingTable, address dht.Address) error {
 			continue
 		}
 
-		rt.Update(e)
+		d.Insert(e)
 	}
 
 	if len(peers) > 1 {

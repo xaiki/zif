@@ -240,7 +240,7 @@ func (cs *CommandServer) Bootstrap(cb CommandBootstrap) CommandResult {
 
 	peer.ConnectClient(cs.LocalPeer)
 
-	_, err = peer.Bootstrap(cs.LocalPeer.RoutingTable)
+	_, err = peer.Bootstrap(cs.LocalPeer.DHT)
 
 	return CommandResult{err == nil, nil, err}
 }
@@ -309,14 +309,6 @@ func (cs *CommandServer) Peers(cp CommandPeers) CommandResult {
 	}
 
 	return CommandResult{true, ps, nil}
-}
-func (cs *CommandServer) SaveRoutingTable(csrt CommandSaveRoutingTable) CommandResult {
-	log.Info("Command: Save Routing Table request")
-
-	// TODO: make this configurable
-	err := cs.LocalPeer.RoutingTable.Save("dht")
-
-	return CommandResult{err == nil, nil, err}
 }
 
 func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResult {

@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/wjh/zif/libzif/data"
 	"github.com/wjh/zif/libzif/dht"
+	"github.com/wjh/zif/libzif/util"
 )
 
 // Perform a handshake operation given a peer. server.go does the other end of this.
@@ -70,7 +71,7 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 	// Send the client a cookie for them to sign, this proves they have the
 	// private key, and it is highly unlikely an attacker has a signed cookie
 	// cached.
-	cookie, err := data.CryptoRandBytes(20)
+	cookie, err := util.CryptoRandBytes(20)
 
 	if check(err) {
 		return nil, err

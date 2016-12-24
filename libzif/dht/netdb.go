@@ -1,6 +1,10 @@
 package dht
 
-import "github.com/peterbourgon/diskv"
+import (
+	"errors"
+
+	"github.com/peterbourgon/diskv"
+)
 
 const (
 	BucketSize = 20
@@ -12,7 +16,7 @@ type NetDB struct {
 	database *diskv.Diskv
 }
 
-func NewNetDB(addr Address) *NetDB {
+func NewNetDB(addr Address, path string) *NetDB {
 	ret := &NetDB{}
 	ret.addr = addr
 
@@ -31,7 +35,7 @@ func NewNetDB(addr Address) *NetDB {
 	}
 
 	ret.database = diskv.New(diskv.Options{
-		BasePath:     "data/entries",
+		BasePath:     path,
 		Transform:    transform,
 		CacheSizeMax: 10 * 1024 * 1024,
 	})
@@ -89,10 +93,10 @@ func (ndb *NetDB) Insert(kv *KeyValue) error {
 	return nil
 }
 
-// Returns the KeyValue if this node has the address, nil otherwise.
+// Returns the KeyValue if this node has the address, nil and err otherwise.
 func (ndb *NetDB) Query(addr Address) (*KeyValue, error) {
 	if !ndb.database.Has(addr.String()) {
-		return nil, nil
+		return nil, errors.New("Not found")
 	}
 
 	value, err := ndb.database.Read(addr.String())
@@ -101,5 +105,82 @@ func (ndb *NetDB) Query(addr Address) (*KeyValue, error) {
 		return nil, err
 	}
 
-	return NewKeyValue(addr, value), nil
+	kv := NewKeyValue(addr, value)
+
+	// reinsert the kv, popular things will stay near the top
+	return kv, ndb.Insert(kv)
+}
+
+func (ndb *NetDB) queryAddresses(as []Address) Pairs {
+	ret := make(Pairs, 0, len(as))
+
+	for _, i := range as {
+		kv, err := ndb.Query(i)
+
+		if err != nil {
+			continue
+		}
+
+		ret = append(ret, kv)
+	}
+
+	return ret
+}
+
+func (ndb *NetDB) FindClosest(addr Address) (Pairs, error) {
+	// Find the distance between the kv address and our own address, this is the
+	// index in the table
+	index := addr.Xor(&ndb.addr).LeadingZeroes()
+	bucket := ndb.table[index]
+
+	if len(bucket) == BucketSize {
+		return ndb.queryAddresses(bucket), nil
+	}
+
+	ret := make(Pairs, 0, BucketSize)
+
+	// Start with bucket, copy all across, then move left outwards checking all
+	// other buckets.
+	for i := 1; (index-i >= 0 || index+i <= len(addr.Raw)*8) &&
+		len(ret) < BucketSize; i++ {
+
+		if index-i >= 0 {
+			bucket = ndb.table[index-i]
+
+			for _, i := range bucket {
+				if len(bucket) >= BucketSize {
+					break
+				}
+
+				kv, err := ndb.Query(i)
+
+				if err != nil {
+					continue
+				}
+
+				ret = append(ret, kv)
+			}
+		}
+
+		if index+i < len(addr.Raw)*8 {
+			bucket = ndb.table[index+i]
+
+			for _, i := range bucket {
+				if len(bucket) >= BucketSize {
+					break
+				}
+
+				kv, err := ndb.Query(i)
+
+				if err != nil {
+					continue
+				}
+
+				ret = append(ret, kv)
+			}
+		}
+
+	}
+
+	return ret, nil
 }

@@ -198,7 +198,7 @@ func (p *Peer) Ping() (time.Duration, error) {
 	return stream.Ping(time.Second * 10)
 }
 
-func (p *Peer) Bootstrap(rt *dht.RoutingTable) (*proto.Client, error) {
+func (p *Peer) Bootstrap(d *dht.DHT) (*proto.Client, error) {
 	initial, err := p.Entry()
 
 	if err != nil {
@@ -207,12 +207,11 @@ func (p *Peer) Bootstrap(rt *dht.RoutingTable) (*proto.Client, error) {
 
 	dat, _ := initial.Json()
 
-	rt.Update(dht.NewKeyValue(initial.Address, dat))
-	log.Info(rt.NumPeers())
+	d.Insert(dht.NewKeyValue(initial.Address, dat))
 
 	stream, _ := p.OpenStream()
 
-	return &stream, stream.Bootstrap(rt, rt.LocalAddress)
+	return &stream, stream.Bootstrap(d, d.Address())
 }
 
 func (p *Peer) Query(address string) (*proto.Client, dht.Pairs, error) {

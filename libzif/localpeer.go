@@ -25,7 +25,7 @@ const ResolveListSize = 1
 type LocalPeer struct {
 	Peer
 	Entry         Entry
-	RoutingTable  *dht.RoutingTable
+	DHT           *dht.DHT
 	Server        proto.Server
 	Collection    *data.Collection
 	Database      *data.Database
@@ -58,8 +58,6 @@ func (lp *LocalPeer) Setup() {
 	lp.PublicToZif = cmap.New()
 
 	lp.Address().Generate(lp.PublicKey())
-
-	lp.RoutingTable, err = dht.LoadRoutingTable("dht", *lp.Address())
 
 	if err != nil {
 		panic(err)
@@ -254,7 +252,23 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 
 	address := dht.DecodeAddress(addr)
 
-	closest := lp.RoutingTable.FindClosest(address, dht.MaxBucketSize)
+	// If we have the entry stored, then just return it!
+	if kv, err := lp.DHT.Query(address); err == nil {
+		entry, err := JsonToEntry(kv.Value)
+
+		return entry, err
+	}
+
+	closest, err := lp.DHT.FindClosest(address)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(closest) < 1 {
+		return nil, errors.New("Routing table is empty")
+	}
+
 	current := make(map[string]bool)
 
 	for _, i := range closest {
@@ -271,16 +285,12 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 		current[i.Key.String()] = true
 	}
 
-	if len(closest) < 1 {
-		return nil, errors.New("Routing table is empty")
-	}
-
 	// Create a worker pool of goroutines working on resolving an address, then
 	// proceed to block on a result.
 
 	workers := 3
-	addresses := make(chan string, dht.MaxBucketSize)
-	results := make(chan workResult, dht.MaxBucketSize*workers)
+	addresses := make(chan string, dht.BucketSize)
+	results := make(chan workResult, dht.BucketSize*workers)
 
 	defer close(results)
 	defer close(addresses)
@@ -385,7 +395,6 @@ func (lp *LocalPeer) Close() {
 	lp.CloseStreams()
 	lp.Server.Close()
 	lp.Database.Close()
-	lp.RoutingTable.Save("dht")
 	lp.Collection.Save("./data/collection.dat")
 }
 
