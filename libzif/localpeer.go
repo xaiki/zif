@@ -59,6 +59,8 @@ func (lp *LocalPeer) Setup() {
 
 	lp.Address().Generate(lp.PublicKey())
 
+	lp.DHT = dht.NewDHT(lp.address, "./data/dht")
+
 	if err != nil {
 		panic(err)
 	}
@@ -378,13 +380,15 @@ func (lp *LocalPeer) worker(id int, address string, addresses <-chan string, res
 				continue
 			}
 
-			client, res, err := p.Query(address)
+			client, kv, err := p.Query(address)
 
-			if err != nil {
-				continue
+			if err == nil {
+				results <- workResult{id, dht.Pairs{kv}}
+				client.Close()
+				return
 			}
 
-			defer client.Close()
+			client, res, err := p.FindClosest(address)
 
 			results <- workResult{id, res}
 		}

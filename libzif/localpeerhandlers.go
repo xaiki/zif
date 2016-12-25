@@ -25,7 +25,7 @@ const MaxSearchLength = 256
 // The top peer may well be the one that is being queried for :)
 func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	log.Info("Handling query")
-	cl := proto.NewClient(msg.Stream)
+	cl := msg.Client
 
 	//msg.From.limiter.queryLimiter.Wait()
 
@@ -42,7 +42,8 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 	if address.Equals(lp.Address()) {
 		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
 
-		json, err := lp.Entry.Json()
+		var json []byte
+		json, err = lp.Entry.Json()
 
 		if err != nil {
 			return err
@@ -52,13 +53,77 @@ func (lp *LocalPeer) HandleQuery(msg *proto.Message) error {
 		err = cl.WriteMessage(kv)
 
 	} else {
-		kv, err := lp.DHT.Query(address)
+		kv := &dht.KeyValue{}
+		kv, err = lp.DHT.Query(address)
 
 		if err != nil {
 			return err
 		}
 
 		err = cl.WriteMessage(kv)
+	}
+
+	return err
+}
+
+func (lp *LocalPeer) HandleFindClosest(msg *proto.Message) error {
+	cl := msg.Client
+
+	address := dht.DecodeAddress(string(msg.Content))
+	log.WithField("target", address.String()).Info("Recieved find closest")
+
+	ok := &proto.Message{Header: proto.ProtoOk}
+	err := cl.WriteMessage(ok)
+
+	if err != nil {
+		return err
+	}
+
+	log.Debug("Accepted address")
+
+	results := &proto.Message{
+		Header: proto.ProtoEntry,
+	}
+
+	if address.Equals(lp.Address()) {
+		log.WithField("name", lp.Entry.Name).Debug("Query for local peer")
+
+		json, err := lp.Entry.Json()
+
+		if err != nil {
+			return err
+		}
+
+		results.WriteInt(1)
+
+		err = cl.WriteMessage(results)
+
+		if err != nil {
+			return err
+		}
+
+		kv := dht.NewKeyValue(lp.Entry.Address, json)
+
+		err = cl.WriteMessage(kv)
+
+	} else {
+		pairs, err := lp.DHT.FindClosest(address)
+
+		if err != nil {
+			return err
+		}
+
+		results.WriteInt(len(pairs))
+
+		err = cl.WriteMessage(results)
+
+		if err != nil {
+			return err
+		}
+
+		for _, kv := range pairs {
+			err = cl.WriteMessage(kv)
+		}
 	}
 
 	return err

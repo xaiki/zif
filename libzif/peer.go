@@ -157,7 +157,7 @@ func (p *Peer) Entry() (*Entry, error) {
 		return p.entry, nil
 	}
 
-	client, entries, err := p.Query(p.Address().String())
+	client, kv, err := p.Query(p.Address().String())
 
 	if err != nil {
 		return nil, err
@@ -165,11 +165,7 @@ func (p *Peer) Entry() (*Entry, error) {
 
 	defer client.Close()
 
-	if len(entries) < 1 {
-		return nil, errors.New("Query did not return an entry")
-	}
-
-	entry, err := JsonToEntry(entries[0].Value)
+	entry, err := JsonToEntry(kv.Value)
 
 	if err != nil {
 		return nil, err
@@ -214,12 +210,20 @@ func (p *Peer) Bootstrap(d *dht.DHT) (*proto.Client, error) {
 	return &stream, stream.Bootstrap(d, d.Address())
 }
 
-func (p *Peer) Query(address string) (*proto.Client, dht.Pairs, error) {
+func (p *Peer) Query(address string) (*proto.Client, *dht.KeyValue, error) {
 	log.WithField("target", address).Info("Querying")
 
 	stream, _ := p.OpenStream()
 	entry, err := stream.Query(address)
 	return &stream, entry, err
+}
+
+func (p *Peer) FindClosest(address string) (*proto.Client, dht.Pairs, error) {
+	log.WithField("target", address).Info("Finding closest")
+
+	stream, _ := p.OpenStream()
+	res, err := stream.FindClosest(address)
+	return &stream, res, err
 }
 
 // asks a peer to query its database and return the results

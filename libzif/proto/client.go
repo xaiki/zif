@@ -158,14 +158,11 @@ func (c *Client) Announce(e data.Encodable) error {
 	return nil
 }
 
-// Given a Zif address, attempts to resolve it for a DHT entry. Returns the k
-// closest peers to the address. It only returns the closest entries that the
-// peer knows about, so more Queries may well be needed.
-func (c *Client) Query(address string) (dht.Pairs, error) {
+func (c *Client) FindClosest(address string) (dht.Pairs, error) {
 	// TODO: LimitReader
 
 	msg := &Message{
-		Header:  ProtoDhtQuery,
+		Header:  ProtoDhtFindClosest,
 		Content: []byte(address),
 	}
 
@@ -176,12 +173,16 @@ func (c *Client) Query(address string) (dht.Pairs, error) {
 		return nil, err
 	}
 
+	log.Debug("Send FindClosest request")
+
 	// Make sure the peer accepts the address
 	recv, err := c.ReadMessage()
 
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("Peer accepted address")
 
 	if !recv.Ok() {
 		return nil, errors.New("Peer refused query address")
@@ -212,15 +213,48 @@ func (c *Client) Query(address string) (dht.Pairs, error) {
 		entries = append(entries, kv)
 	}
 
-	log.WithField("entries", len(entries)).Info("Query complete")
+	log.WithField("entries", len(entries)).Info("Find closest complete")
 	return entries, err
+}
+
+func (c *Client) Query(address string) (*dht.KeyValue, error) {
+	// TODO: LimitReader
+
+	msg := &Message{
+		Header:  ProtoDhtQuery,
+		Content: []byte(address),
+	}
+
+	// Tell the peer the address we are looking for
+	err := c.WriteMessage(msg)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Make sure the peer accepts the address
+	recv, err := c.ReadMessage()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !recv.Ok() {
+		return nil, errors.New("Peer refused query address")
+	}
+
+	kv := &dht.KeyValue{}
+	err = c.Decode(kv)
+
+	return kv, err
+
 }
 
 // Adds the initial entries into the given routing table. Essentially queries for
 // both it's own and the peers address, storing the result. This means that after
 // a bootstrap, it should be possible to connect to *any* peer!
 func (c *Client) Bootstrap(d *dht.DHT, address dht.Address) error {
-	peers, err := c.Query(address.String())
+	peers, err := c.FindClosest(address.String())
 
 	if err != nil {
 		return err

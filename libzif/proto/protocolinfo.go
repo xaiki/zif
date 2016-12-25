@@ -42,6 +42,7 @@ var (
 	ProtoPiece    = 0x0203
 	ProtoPost     = 0x0204
 
-	ProtoDhtQuery    = 0x0300
-	ProtoDhtAnnounce = 0x0301
+	ProtoDhtQuery       = 0x0300
+	ProtoDhtAnnounce    = 0x0301
+	ProtoDhtFindClosest = 0x0302
 )

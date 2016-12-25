@@ -13,6 +13,7 @@ type ProtocolHandler interface {
 
 	HandleAnnounce(*Message) error
 	HandleQuery(*Message) error
+	HandleFindClosest(*Message) error
 	HandleSearch(*Message) error
 	HandleRecent(*Message) error
 	HandlePopular(*Message) error

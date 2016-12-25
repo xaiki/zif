@@ -98,6 +98,8 @@ func (s *Server) RouteMessage(msg *Message, handler ProtocolHandler) {
 		err = handler.HandleAnnounce(msg)
 	case ProtoDhtQuery:
 		err = handler.HandleQuery(msg)
+	case ProtoDhtFindClosest:
+		err = handler.HandleFindClosest(msg)
 	case ProtoSearch:
 		err = handler.HandleSearch(msg)
 	case ProtoRecent:
