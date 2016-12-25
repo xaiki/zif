@@ -1,15 +1,11 @@
 import React, { Component } from 'react';
 import { Router, Route, hashHistory, Link } from 'react-router';
 
-import Toolbar from 'material-ui/Toolbar';
-import Drawer from 'material-ui/Drawer';
-import MenuItem from 'material-ui/MenuItem';
-import TextField from 'material-ui/TextField';
-import Dialog from 'material-ui/Dialog';
+import {Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle} from 'material-ui/Toolbar';
 import {grey100, grey50} from 'material-ui/styles/colors';
 
+
 import Home from './Home';
-import Search from "./Search"
 import SearchResults from "./SearchResults"
 import Stream from "./Stream"
 import Welcome from "./WelcomeDialog"
@@ -83,12 +79,15 @@ class App extends Component
 
 		}
 
-					/*<Search
-						onResults={this.onResults}
-						Subscriptions={this.config.subscriptions}/>*/
 		return(
 			<div style={{height: "100%"}}>
 				<Welcome config={this.config}/>
+
+				<Toolbar>
+					<ToolbarGroup firstChild={true}>
+						<ToolbarTitle text="Zif" style={ {marginLeft:"10px"}}/>
+					</ToolbarGroup>
+				</Toolbar>
 
 				<div style={style.router}>
 					<Router history={hashHistory} routes={routes}>
