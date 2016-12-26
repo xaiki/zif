@@ -38,6 +38,13 @@ class App extends Component
 		this.config = util.loadConfig();
 
 		window.downloadClient = new WebTorrent();
+
+		window.zifColor = {
+			primary: "#3f3b3b",
+			secondary: "#eee9d9",
+			highlight: "#DE1B1B",
+			accent: "#E9E581"
+		};
 	}
 
 	handleToggle(){ this.setState({ drawerOpen: !this.state.drawerOpen }) }
@@ -58,23 +65,15 @@ class App extends Component
 	render() 
 	{
 		var style = {
-			drawer: {
-				backgroundColor: grey100,
-				zIndex: 1000
-			},
-
 			drawerItems: {
 				marginTop: "75px"
 			},
 
 			router: {
-				paddingLeft: "210px",
-				paddingRight: "210px",
-				paddingBottom: "10px",
-				marginTop: "75px"
+				marginTop: "10px"
 			},
 			topbar: {
-				backgroundColor: "red"
+				backgroundColor: window.zifColor.primary
 			}
 
 		}
@@ -83,13 +82,8 @@ class App extends Component
 			<div style={{height: "100%"}}>
 				<Welcome config={this.config}/>
 
-				<Toolbar>
-					<ToolbarGroup firstChild={true}>
-						<ToolbarTitle text="Zif" style={ {marginLeft:"10px"}}/>
-					</ToolbarGroup>
-				</Toolbar>
 
-				<div style={style.router}>
+				<div>
 					<Router history={hashHistory} routes={routes}>
 					</Router>
 				</div>

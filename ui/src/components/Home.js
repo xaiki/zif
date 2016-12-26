@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import request from "superagent"
 
-import FlatButton from 'material-ui/FlatButton';
 import FontIcon from 'material-ui/FontIcon';
+
+import NavBar from "./NavBar"
 
 class Home extends Component{
 
@@ -44,13 +45,18 @@ class Home extends Component{
 		console.log(this);
 		return(
 
-			<div>
-				<div className="searchBox">
-					<div className="searchContainer">
-						<span className="icon">
-							<FontIcon className="material-icons">search</FontIcon>
-						</span>
-						<input type="search" id="search" placeholder="Search" />
+			<div >
+				<NavBar />
+				<div className="outer">
+					<div className="middle">
+						<div className="searchBox inner">
+							<div className="searchContainer">
+								<span className="icon">
+									<FontIcon className="material-icons">search</FontIcon>
+								</span>
+								<input type="search" id="search" placeholder="Search" />
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

@@ -9,6 +9,20 @@
        url(font/MaterialIcons-Regular.woff2) format('woff2');
 }
 
+@font-face {
+	font-family: "Bree Serif";
+	font-style: normal;
+	font-weight: 400;
+	src: local("Bree Serif"), local("BreeSerif-Regular"), url("font/BreeSerif-Regular.ttf")
+}
+
+@font-face {
+	font-family: "Open Sans";
+	font-style: normal;
+	font-weight: 400;
+	src: local("Open Sans"), local("Open Sans"), url("font/OpenSans-Regular.ttf")
+}
+
 .material-icons {
   font-family: 'Material Icons';
   font-weight: normal;
@@ -35,11 +49,22 @@
 }
 /******************************************************************************/
 
+/* Text */
+/******************************************************************************/
+
+h1 {
+    font-family: 'Bree Serif', serif;
+    font-weight: 700;
+    line-height: 58px;
+    font-size: 58px;
+    margin: 0 0 43px 0;
+    line-height: 0;
+}
+/******************************************************************************/
+
 /* Search bar */
+/******************************************************************************/
 .searchBox {
-	display: block;
-	margin-left: auto;
-	margin-right: auto; 
 	width: 500px;
 }
 
@@ -48,6 +73,7 @@
 	white-space: nowrap;
 	position: relative;
 }
+
 .searchContainer input#search{
 	width: 500px;
 	height: 50px;
@@ -56,6 +82,13 @@
 	float: left;
 	padding-left: 45px;
 	border-radius: 5px;
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),0 0 8px rgba(63, 59, 59, 0.6);
+}
+
+.searchContainer input#search:focus{
+	outline: 0;
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),0 0 8px rgba(222, 27, 27, 0.6);
+	transition: .3s;
 }
 
 .searchContainer .icon{
@@ -64,7 +97,7 @@
 	margin-left: 17px;
 	margin-top: 14px;
 	z-index: 1;
-	color: #4f5b66;
+	color: #e9e581;
 }
 
 input[type="search"]::-webkit-search-decoration,
@@ -73,3 +106,78 @@ input[type="search"]::-webkit-search-results-button,
 input[type="search"]::-webkit-search-results-decoration { 
 	display: none;
 }
+/******************************************************************************/
+
+/* Vertical centre */
+/******************************************************************************/
+.outer {
+    display: table;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+}
+
+.middle {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.inner h1 {
+	text-align: center;
+}
+
+.inner {
+    margin-left: auto;
+    margin-right: auto; 
+    margin-top: -51px;
+}
+/******************************************************************************/
+
+/* Top nav bar */
+/******************************************************************************/
+
+/* Remove margins and padding from the list, and add a black background color */
+ul.topnav {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #3f3b3b;
+    position: fixed;
+    left: 0;
+    width: 100%;
+    z-index: 999;
+}
+
+/* Float the list items side by side */
+ul.topnav li {float: left;}
+
+/* Style the links inside the list items */
+ul.topnav li a {
+    display: inline-block;
+    color: #eee9d9;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    transition: 0.3s;
+    font-size: 17px;
+    font-family: "Open Sans";
+}
+
+#logo {
+    display: inline-block;
+    font-family: 'Bree Serif', serif;
+    font-weight: 700;
+    font-size: 30px;
+    padding: 14px 16px;
+    line-height: 0;
+    margin-top: 10px;
+    color: #eee9d9;
+}
+
+/* Change background color of links on hover */
+ul.topnav li a:hover {background-color: #555;}
+
+/* Hide the list item that contains the link that should open and close the topnav on small screens */
+ul.topnav li.icon {display: none;}
+/******************************************************************************/
