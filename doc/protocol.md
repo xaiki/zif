@@ -27,7 +27,7 @@ ProtoPong | 0x0007
 ProtoDone | 0x0008
 ProtoSearch | 0x0101
 ProtoRecent | 0x0102
-ProtoPopular | 0x103
+ProtoPopular | 0x0103
 ProtoRequestHashList | 0x0104
 ProtoRequestPiece | 0x0105
 ProtoRequestAddPeer | 0x0106
