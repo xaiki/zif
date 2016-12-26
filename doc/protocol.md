@@ -23,7 +23,7 @@ ProtoTerminate | 0x0003
 ProtoCookie | 0x0004
 ProtoSig | 0x0005
 ProtoPing | 0x0006
-ProtoPong 0x0007
+ProtoPong | 0x0007
 ProtoDone | 0x0008
 ProtoSearch | 0x0101
 ProtoRecent | 0x0102
