@@ -69,7 +69,7 @@ address from it. It will then generate 20 bytes (CSPRNG please) and send these
 to the client. The ``Message`` will have a ``Header`` of ``ProtoCookie`` and the
 ``Content`` field will be the bytes.
 
-The client should then use it's private key to sign the bytes, and send a
+The client should then use its private key to sign the bytes, and send a
 ``Message`` with a ``Header`` of ``ProtoSig`` and ``Content`` of the signature.
 
 The server recieves this signature, and will verify it. If it is correct, then
