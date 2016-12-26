@@ -50,11 +50,11 @@ From this point onwards, the "client" shall refer to the peer initiating a
 connection, and the "server" shall refer to the peer receiving a connection.
 
 Before any handshaking can begin, a client must send the "zif" bytes, which are
-``0x7a66``, and the "version" bytes, which presently are ``0x0000``. The former
-indicates that this is a Zif connection, the latter is protocol version - if 
-protocol versions do not match, then the connection can be dropped. At some
-future point I am interested in adding protocol extension negotiation, but that
-is for the future.
+``0x7a66``, and the "version" bytes, which presently are ``0x0000``. They are
+sent over the network as Big Endian. The former indicates that this is a Zif
+connection, the latter is protocol version - if protocol versions do not match,
+then the connection can be dropped. At some future point I am interested in
+adding protocol extension negotiation, but that is for the future.
 
 Once we know this is a Zif connection, we can begin to share ``Message``s. First
 of all, the client will send a ``Message`` with a ``Header`` of ``ProtoHeader``.
