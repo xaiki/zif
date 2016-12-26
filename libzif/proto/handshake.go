@@ -1,7 +1,9 @@
 package proto
 
 import (
+	"bytes"
 	"errors"
+	"io"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -45,6 +47,19 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 		}
 
 		return false
+	}
+
+	short := make([]byte, 2)
+	io.ReadFull(cl.conn, short)
+
+	if !bytes.Equal(short, ProtoZif) {
+		return nil, errors.New("This is not a Zif connection")
+	}
+
+	io.ReadFull(cl.conn, short)
+
+	if !bytes.Equal(short, ProtoVersion) {
+		return nil, errors.New("Incorrect protocol version")
 	}
 
 	header, err := cl.ReadMessage()
@@ -108,6 +123,9 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 // Sends a handshake to a peer.
 func handshake_send(cl Client, lp data.Signer) error {
 	log.Debug("Handshaking with ", cl.conn.RemoteAddr().String())
+
+	cl.conn.Write(ProtoZif)
+	cl.conn.Write(ProtoVersion)
 
 	header := Message{
 		Header:  ProtoHeader,

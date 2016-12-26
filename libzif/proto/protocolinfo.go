@@ -5,8 +5,8 @@ package proto
 var (
 	// Protocol header, so we know this is a zif client.
 	// Version should follow.
-	ProtoZif     = 0x7a66
-	ProtoVersion = 0x0000 //version 0 atm :D (change when spec is stable)
+	ProtoZif     = []byte{0x7a, 0x66}
+	ProtoVersion = []byte{0x00, 0x00}
 
 	ProtoHeader = 0x0000
 
@@ -20,10 +20,9 @@ var (
 	ProtoPong      = 0x0007
 	ProtoDone      = 0x0008
 
-	ProtoBootstrap = 0x0100 // Request a bootstrap
-	ProtoSearch    = 0x0101 // Request a search
-	ProtoRecent    = 0x0102 // Request recent posts
-	ProtoPopular   = 0x0103 // Request popular posts
+	ProtoSearch  = 0x0101 // Request a search
+	ProtoRecent  = 0x0102 // Request recent posts
+	ProtoPopular = 0x0103 // Request popular posts
 
 	// Request a signed hash list
 	// The content field should contain the bytes for a Zif address.
