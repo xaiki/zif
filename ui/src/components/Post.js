@@ -62,7 +62,7 @@ class Post extends Component
 						<div style={{display: "inline"}}>
 							<h2 className="title">{this.props.title}</h2>
 							<div className="info">
-								<div>{this.props.seeders} / {this.props.leechers}</div>
+								<div><span style={{color:"#279c10"}}>{this.props.seeders}</span> / <span style={{color:"#b11106"}}>{this.props.leechers}</span></div>
 								<div>{this.props.fileCount} files, {util.bytes_to_size(this.props.size)}</div>
 								<div>{this.formatUnixTime(this.props.uploadDate)}</div>
 							</div>
