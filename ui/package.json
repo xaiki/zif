@@ -23,6 +23,7 @@
     "electron-context-menu": "^0.8.0",
     "material-ui": "^0.16.1",
     "moment": "^2.17.1",
+    "react-autosuggest": "^7.0.2",
     "react-tap-event-plugin": "2.0.0",
     "superagent": "^2.3.0",
     "webtorrent": "^0.97.2"

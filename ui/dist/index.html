@@ -29,16 +29,17 @@
   </head>
   <body>
     <div id='root'/>
+
+	  <script>
+			require("babel-core/register")
+			var electron = require("electron");
+			var remote = electron.remote;
+
+			const Menu = remote.Menu;
+			const MenuItem = remote.MenuItem;
+			const clipboard = remote.clipboard;
+
+			require("../src/index.js")
+	  </script>
   </body>
-  <script>
-		require("babel-core/register")
-		var electron = require("electron");
-		var remote = electron.remote;
-
-		const Menu = remote.Menu;
-		const MenuItem = remote.MenuItem;
-		const clipboard = remote.clipboard;
-
-		require("../src/index.js")
-  </script>
 </html>

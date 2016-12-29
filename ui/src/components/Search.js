@@ -31,7 +31,7 @@ class Search extends Component
 		this.results = [];
 
 		this.lastEntered = "";
-		console.log(this.props.query)
+
 
 	}
 
@@ -45,20 +45,12 @@ class Search extends Component
 	
 	onUpdateInput(e)
 	{
-		if (e.length < 3 || e.length < this.lastEntered.length)
-		{ 
-			this.lastEntered = e;
-			return;
-		}
-
-		console.log(e)
 
 		// get completions
 		request.post("http://127.0.0.1:8080/self/suggest/")
 			.type("form")
-			.send({query: e})
+			.send({query: e.target.value})
 			.end((err, res) => {
-				this.setState({ dataSource: util.uniq(res.body.value) });
 			});
 	}
 
@@ -147,6 +139,7 @@ class Search extends Component
 						</span>
 						<input type="search" 
 							id="search" 
+							onChange={this.onUpdateInput}
 							defaultValue={this.props.query}
 							placeholder="Search"
 						/>
