@@ -4,6 +4,7 @@ import request from "superagent"
 import FontIcon from 'material-ui/FontIcon';
 
 import NavBar from "./NavBar"
+import Search from "./Search"
 
 class Home extends Component{
 
@@ -12,6 +13,8 @@ class Home extends Component{
 
 		this.state = {
 		};
+
+		this.config = this.props.config;
 
 		if(!this.props.Posts) this.state.posts = [];
 		else this.state.posts = this.props.Posts;
@@ -42,20 +45,26 @@ class Home extends Component{
 	}
 
 	render() {
-		console.log(this);
 		return(
 
 			<div >
 				<NavBar />
 				<div className="outer">
 					<div className="middle">
-						<div className="searchBox inner">
-							<div className="searchContainer">
-								<span className="icon">
-									<FontIcon className="material-icons">search</FontIcon>
-								</span>
-								<input type="search" id="search" placeholder="Search" />
-							</div>
+						<div className="inner">
+							<Search
+								onResults={
+									(res, query) => {
+										this.props.router.push({
+											pathname: "/search",
+											state: {
+												posts: res,
+												query: query
+											}
+										});
+									}
+								}
+							/>
 						</div>
 					</div>
 				</div>

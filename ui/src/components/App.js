@@ -35,15 +35,15 @@ class App extends Component
 		this.handleToggle = this.handleToggle.bind(this);
 		this.onResults = this.onResults.bind(this);
 
-		this.config = util.loadConfig();
+		window.config = util.loadConfig();
 
 		window.downloadClient = new WebTorrent();
 
 		window.zifColor = {
 			primary: "#3f3b3b",
 			secondary: "#eee9d9",
-			highlight: "#DE1B1B",
-			accent: "#E9E581"
+			highlight: "#7f5ab6",
+			accent: "#b11106"
 		};
 	}
 

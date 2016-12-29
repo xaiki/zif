@@ -18,7 +18,7 @@ class Welcome extends Component
 		this.config = this.props.config;
 
 		this.state = {
-			open: !this.config.welcomed,
+			open: !window.config.welcomed,
 			bootstrap: {
 				zif: false
 			}

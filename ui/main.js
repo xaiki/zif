@@ -1,10 +1,10 @@
 'use strict';
 
-
 var electron = require('electron');
 var {app, BrowserWindow} = electron;
 
 let mainWindow;
+
 
 function createWindow () {
   mainWindow = new BrowserWindow({width: 800, height: 600});
