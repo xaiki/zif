@@ -75,7 +75,8 @@ class SearchResults extends Component{
 								  meta={post.Meta}
 								  size={post.Size}
 								  fileCount={post.FileCount}
-								  tags={post.Tags}/>
+								  tags={post.Tags}
+								  uploadDate={post.UploadDate}/>
 						)
 					})}
 				</div>

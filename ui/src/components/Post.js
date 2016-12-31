@@ -18,7 +18,10 @@ class Post extends Component
 	constructor(props){
 		super(props);
 
+		this.state = {};
+
 		this.onContextMenu= this.onContextMenu.bind(this);
+		this.state.meta = JSON.parse(this.props.meta);
 	}
 
 	static get defaultProps() {
@@ -31,7 +34,8 @@ class Post extends Component
 			fileCount: 0,
 			size: 0,
 			tags: [],
-			source: "foo"
+			source: "foo",
+			meta: "{}"
 		}
 	}
 
@@ -72,8 +76,8 @@ class Post extends Component
 
 					<div className="body">
 						<div className="description">
-							<em>{this.props.meta.description == undefined &&
-								"No description"}</em>
+							<em>{this.state.meta.description != undefined &&
+							this.state.meta.description}</em>
 						</div>
 
 						<div className="info">
