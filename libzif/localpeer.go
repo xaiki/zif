@@ -24,7 +24,7 @@ const ResolveListSize = 1
 
 type LocalPeer struct {
 	Peer
-	Entry         Entry
+	Entry         *Entry
 	DHT           *dht.DHT
 	Server        proto.Server
 	Collection    *data.Collection
@@ -50,6 +50,7 @@ type LocalPeer struct {
 func (lp *LocalPeer) Setup() {
 	var err error
 
+	lp.Entry = &Entry{}
 	lp.Entry.Signature = make([]byte, ed25519.SignatureSize)
 
 	lp.Databases = cmap.New()
@@ -249,7 +250,7 @@ func (lp *LocalPeer) Resolve(addr string) (*Entry, error) {
 	log.Debug("Resolving ", addr)
 
 	if addr == lp.Address().String() {
-		return &lp.Entry, nil
+		return lp.Entry, nil
 	}
 
 	address := dht.DecodeAddress(addr)
@@ -360,7 +361,6 @@ func (lp *LocalPeer) worker(id int, address string, addresses <-chan string, res
 
 	// If any errors occur, just skip that peer and attempt to work with the
 	// next. No point terminating if we meet one dodgy peer.
-
 	seen := make(map[string]bool)
 
 	for i := range addresses {
@@ -393,6 +393,34 @@ func (lp *LocalPeer) worker(id int, address string, addresses <-chan string, res
 			results <- workResult{id, res}
 		}
 	}
+}
+
+func (lp *LocalPeer) SaveEntry() error {
+	dat, err := lp.Entry.Json()
+
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile("./data/entry.json", dat, 0644)
+}
+
+func (lp *LocalPeer) LoadEntry() error {
+	dat, err := ioutil.ReadFile("./data/entry.json")
+
+	if err != nil {
+		return err
+	}
+
+	entry, err := JsonToEntry(dat)
+
+	if err != nil {
+		return err
+	}
+
+	lp.Entry = entry
+
+	return nil
 }
 
 func (lp *LocalPeer) Close() {

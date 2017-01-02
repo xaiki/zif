@@ -52,14 +52,16 @@
 
 /* Text */
 /******************************************************************************/
-
-h1 {
+h1, h2, h3 {
     font-family: 'Bree Serif', serif;
     font-weight: 700;
     line-height: 58px;
     font-size: 58px;
     margin: 0 0 43px 0;
     line-height: 0;
+}
+p, a {
+    font-family: "Open Sans";
 }
 /******************************************************************************/
 
@@ -155,8 +157,9 @@ ul.topnav {
     z-index: 999;
 }
 
-/* Float the list items side by side */
-ul.topnav li {float: left;}
+ul.topnav li {
+	float: left; 
+}
 
 /* Style the links inside the list items */
 ul.topnav li a {
@@ -182,7 +185,10 @@ ul.topnav li a {
 }
 
 /* Change background color of links on hover */
-ul.topnav li a:hover {background-color: #555;}
+ul.topnav li a:hover {
+	background-color: #555;
+	cursor: pointer;
+}
 
 /* Hide the list item that contains the link that should open and close the topnav on small screens */
 ul.topnav li.icon {display: none;}
@@ -241,6 +247,10 @@ ul.topnav li.icon {display: none;}
 	padding-left: 15px;
 }
 
+/******************************************************************************/
+
+/* Form styling */
+/******************************************************************************/
 /******************************************************************************/
 
 .icon *{

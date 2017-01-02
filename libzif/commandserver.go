@@ -324,3 +324,42 @@ func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResul
 
 	return CommandResult{err == nil, nil, err}
 }
+
+// Set a value in the localpeer entry
+func (cs *CommandServer) LocalSet(cls CommandLocalSet) CommandResult {
+
+	switch strings.ToLower(cls.Key) {
+	case "name":
+		cs.LocalPeer.Entry.Name = cls.Value
+	case "desc":
+		cs.LocalPeer.Entry.Desc = cls.Value
+	case "public":
+		cs.LocalPeer.Entry.PublicAddress = cls.Value
+
+	default:
+		return CommandResult{false, nil, errors.New("Unknown key")}
+	}
+
+	cs.LocalPeer.SignEntry()
+	err := cs.LocalPeer.SaveEntry()
+
+	return CommandResult{err == nil, nil, err}
+}
+
+func (cs *CommandServer) LocalGet(clg CommandLocalGet) CommandResult {
+	value := ""
+
+	switch strings.ToLower(clg.Key) {
+	case "name":
+		value = cs.LocalPeer.Entry.Name
+	case "desc":
+		value = cs.LocalPeer.Entry.Desc
+	case "public":
+		value = cs.LocalPeer.Entry.PublicAddress
+
+	default:
+		return CommandResult{false, nil, errors.New("Unknown key")}
+	}
+
+	return CommandResult{true, value, nil}
+}

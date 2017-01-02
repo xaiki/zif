@@ -80,7 +80,7 @@ class App extends Component
 
 		return(
 			<div style={{height: "100%"}}>
-				<Welcome config={this.config}/>
+				<Welcome />
 
 
 				<div>
