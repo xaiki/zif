@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { Router, Route, hashHistory, Link } from 'react-router';
+import request from "superagent"
 
 import {Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle} from 'material-ui/Toolbar';
 import {grey100, grey50} from 'material-ui/styles/colors';
@@ -45,6 +46,33 @@ class App extends Component
 			highlight: "#7f5ab6",
 			accent: "#b11106"
 		};
+		  
+		request.get("http://127.0.0.1:8080/self/get/name/")
+				.end(((err, res) => {
+					if (err || res.body.status != "ok")
+						return;
+
+					window.name = res.body.value;
+
+					if (window.navbar)
+						window.navbar.setState({ name: window.name });
+				}));
+
+		request.get("http://127.0.0.1:8080/self/get/desc/")
+				.end((err, res) => {
+					if (err || res.body.status != "ok")
+						return;
+
+					window.desc = res.body.value;
+				});
+
+		request.get("http://127.0.0.1:8080/self/get/zif/")
+				.end((err, res) => {
+					if (err || res.body.status != "ok")
+						return;
+
+					window.address = res.body.value;
+				});
 	}
 
 	handleToggle(){ this.setState({ drawerOpen: !this.state.drawerOpen }) }

@@ -52,13 +52,16 @@
 
 /* Text */
 /******************************************************************************/
-h1, h2, h3 {
+h1 {
     font-family: 'Bree Serif', serif;
     font-weight: 700;
     line-height: 58px;
     font-size: 58px;
     margin: 0 0 43px 0;
     line-height: 0;
+}
+h2, h3 {
+    font-family: 'Bree Serif', serif;
 }
 p, a {
     font-family: "Open Sans";
@@ -154,11 +157,12 @@ ul.topnav {
     left: 0;
     top: 0;
     width: 100%;
-    z-index: 999;
+    z-index: 49;
 }
 
 ul.topnav li {
 	float: left; 
+	margin-right: 5px;
 }
 
 /* Style the links inside the list items */

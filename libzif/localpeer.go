@@ -430,13 +430,20 @@ func (lp *LocalPeer) Close() {
 	lp.Collection.Save("./data/collection.dat")
 }
 
-func (lp *LocalPeer) AddPost(p data.Post, store bool) {
+func (lp *LocalPeer) AddPost(p data.Post, store bool) error {
 	log.Info("Adding post with title ", p.Title)
+
+	lp.Entry.PostCount += 1
 
 	lp.Collection.AddPost(p, store)
 	err := lp.Database.InsertPost(p)
 
 	if err != nil {
-		log.Error(err.Error())
+		return err
 	}
+
+	lp.SignEntry()
+	err = lp.SaveEntry()
+
+	return err
 }

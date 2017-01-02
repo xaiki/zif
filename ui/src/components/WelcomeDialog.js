@@ -107,6 +107,7 @@ class Welcome extends Component
 				fullWidth={true}
 				/><br/>
 
+
 			<p>Pick one or more of the channels below</p>
 			<List>
 				  <ListItem 

@@ -347,6 +347,7 @@ func (cs *CommandServer) LocalSet(cls CommandLocalSet) CommandResult {
 }
 
 func (cs *CommandServer) LocalGet(clg CommandLocalGet) CommandResult {
+	log.Info("Command: LocalGet")
 	value := ""
 
 	switch strings.ToLower(clg.Key) {
@@ -356,6 +357,8 @@ func (cs *CommandServer) LocalGet(clg CommandLocalGet) CommandResult {
 		value = cs.LocalPeer.Entry.Desc
 	case "public":
 		value = cs.LocalPeer.Entry.PublicAddress
+	case "zif":
+		value = cs.LocalPeer.Entry.Address.String()
 
 	default:
 		return CommandResult{false, nil, errors.New("Unknown key")}
