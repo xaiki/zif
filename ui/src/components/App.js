@@ -46,33 +46,34 @@ class App extends Component
 			highlight: "#7f5ab6",
 			accent: "#b11106"
 		};
+
+		window.entry = { address: {} };
 		  
-		request.get("http://127.0.0.1:8080/self/get/name/")
+		request.get("http://127.0.0.1:8080/self/get/entry/")
 				.end(((err, res) => {
 					if (err || res.body.status != "ok")
 						return;
 
-					window.name = res.body.value;
+					var encoded = window.entry.address.encoded;
+
+					window.entry = JSON.parse(res.body.value);
+					console.log(window.entry)
 
 					if (window.navbar)
-						window.navbar.setState({ name: window.name });
+						window.navbar.setState({ name: window.entry.name });
+
+					if (encoded) {
+						window.entry.address.encoded = encoded;
+					}
 				}));
 
-		request.get("http://127.0.0.1:8080/self/get/desc/")
-				.end((err, res) => {
-					if (err || res.body.status != "ok")
-						return;
-
-					window.desc = res.body.value;
-				});
-
 		request.get("http://127.0.0.1:8080/self/get/zif/")
-				.end((err, res) => {
+				.end(((err, res) => {
 					if (err || res.body.status != "ok")
 						return;
 
-					window.address = res.body.value;
-				});
+					window.entry.address.encoded = res.body.value;
+				}));
 	}
 
 	handleToggle(){ this.setState({ drawerOpen: !this.state.drawerOpen }) }

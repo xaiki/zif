@@ -12,22 +12,22 @@ import (
 // This is an entry into the DHT. It is used to connect to a peer given just
 // it's Zif address.
 type Entry struct {
-	Address       dht.Address
-	Name          string
-	Desc          string
-	PublicAddress string
-	PublicKey     []byte
-	PostCount     int
+	Address       dht.Address `json:"address"`
+	Name          string      `json:"name"`
+	Desc          string      `json:"desc"`
+	PublicAddress string      `json:"publicAddress"`
+	PublicKey     []byte      `json:"publicKey"`
+	PostCount     int         `json:"postCount"`
 
 	// The owner of this entry should have signed it, we need to store the
 	// sigature. It's actually okay as we can verify that a peer owns a public
 	// key by generating an address from it - if the address is not the peers,
 	// then Mallory is just using someone elses entry for their own address.
-	Signature []byte
+	Signature []byte `json:"signature"`
 	// Signature of the root hash of a hash list representing all of the posts
 	// a peer has.
-	CollectionSig []byte
-	Port          int
+	CollectionSig []byte `json:"collectionSig"`
+	Port          int    `json:"port"`
 
 	// Essentially just a list of other peers who have this entry in their table.
 	// They may or may not actually have pieces, so mirror/piece requests may go
@@ -42,7 +42,7 @@ type Entry struct {
 	// peer actually be online in the first place.
 	// TODO: Switch this to be a struct containing the last time this peer was
 	// announced as a peer, then the list can be periodically culled.
-	Seeds [][]byte
+	Seeds [][]byte `json:"seeds"`
 
 	// Used in the FindClosest function, for sorting.
 	distance dht.Address

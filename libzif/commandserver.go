@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -359,6 +360,10 @@ func (cs *CommandServer) LocalGet(clg CommandLocalGet) CommandResult {
 		value = cs.LocalPeer.Entry.PublicAddress
 	case "zif":
 		value = cs.LocalPeer.Entry.Address.String()
+	case "postcount":
+		value = strconv.Itoa(cs.LocalPeer.Entry.PostCount)
+	case "entry":
+		value, _ = cs.LocalPeer.Entry.JsonString()
 
 	default:
 		return CommandResult{false, nil, errors.New("Unknown key")}

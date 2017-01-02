@@ -16,7 +16,7 @@ class NavBar extends Component{
 		super(props);
 
 
-		this.state = { name: window.name, uploadTooltip: false, channelTooltip: false };
+		this.state = { name: window.entry.name, uploadTooltip: false, channelTooltip: false };
 		window.navbar = this;
 	}
 
@@ -67,15 +67,22 @@ class NavBar extends Component{
 							parent="#channel">
 						<div>
 							<List>
-								<Subheader>{window.name}</Subheader>
+								<Subheader>{window.entry.name}</Subheader>
 								<Divider inset={true} />
 								<ListItem
+								  hoverColor="white"
 								  primaryText="Address"
-								  secondaryText={window.address}/>
+								  secondaryText={window.entry.address.encoded}/>
 								<Divider inset={true} />
 								<ListItem
+								  hoverColor="white"
 								  primaryText="Description"
-								  secondaryText={window.desc}/>
+								  secondaryText={window.entry.desc}
+								  secondaryTextLines={2}/>
+								<Divider inset={true} />
+								<ListItem
+								  hoverColor="white"
+								  primaryText={<div> {window.entry.postCount} Posts</div>}/>
 							</List>
 						</div>
 					</ToolTip>
