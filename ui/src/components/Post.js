@@ -1,3 +1,4 @@
+import request from "superagent"
 import React, { Component } from 'react';
 import Chip from 'material-ui/Chip';
 import { hashHistory, Link } from 'react-router';
@@ -6,6 +7,7 @@ import FlatButton from 'material-ui/FlatButton';
 import {List, ListItem} from 'material-ui/List';
 
 import moment from "moment"
+import resolve from "../EntryStore.js"
 
 const style = {
 	marginTop: "10px"
@@ -18,11 +20,15 @@ class Post extends Component
 	constructor(props){
 		super(props);
 
-		this.state = {};
+		this.state = {
+			source: props.source
+		};
 
 		this.onContextMenu= this.onContextMenu.bind(this);
 		this.state.meta = JSON.parse(this.props.meta);
+
 	}
+
 
 	static get defaultProps() {
 		return {
@@ -58,6 +64,12 @@ class Post extends Component
 		menu.popup(remote.getCurrentWindow());
 	}
 
+	componentDidMount(){
+		resolve(this.state.source, (err, res) => {
+			this.setState({ source: res.body.value.name });
+		});
+	}
+
 	render() {
 		return (
 			<div className="card" onContextMenu={this.onContextMenu}>
@@ -71,7 +83,7 @@ class Post extends Component
 								<div>{this.formatUnixTime(this.props.uploadDate)}</div>
 							</div>
 						</div>
-						<div className="source"><em>uploaded by {this.props.source}</em></div>
+						<div className="source"><em>uploaded by {this.state.source}</em></div>
 					</summary>
 
 					<div className="body">

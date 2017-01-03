@@ -35,8 +35,9 @@ class SearchResults extends Component{
 		{
 			if (!posts[i]) continue;
 
-			for (var j = 0; j < posts[i].length; j++) {
-				newPosts.push(posts[i][j]);
+			for (var j = 0; j < posts[i].posts.length; j++) {
+				posts[i].posts[j].source = posts[i].source;
+				newPosts.push(posts[i].posts[j]);
 			}
 		}
 
@@ -66,6 +67,7 @@ class SearchResults extends Component{
 
 				<div className="searchResults">
 					{this.state.posts.map((post, index) => {
+
 						return (
 							<Post key={index}
 								  title={post.Title}
@@ -76,7 +78,8 @@ class SearchResults extends Component{
 								  size={post.Size}
 								  fileCount={post.FileCount}
 								  tags={post.Tags}
-								  uploadDate={post.UploadDate}/>
+								  uploadDate={post.UploadDate}
+								  source={post.source}/>
 						)
 					})}
 				</div>

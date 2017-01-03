@@ -7,7 +7,7 @@ import Divider from 'material-ui/Divider';
 import Subheader from 'material-ui/Subheader';
 
 import util from "../util.js"
-import ReactTooltip from 'react-tooltip'
+import Upload from "./UploadDialog.js"
 import ToolTip from 'react-portal-tooltip'
 
 class NavBar extends Component{
@@ -18,6 +18,9 @@ class NavBar extends Component{
 
 		this.state = { name: window.entry.name, uploadTooltip: false, channelTooltip: false };
 		window.navbar = this;
+		this.uploadDialog = <Upload />;
+
+		this.upload = {};
 	}
 
 	toggleUploadTooltip(){
@@ -25,6 +28,15 @@ class NavBar extends Component{
 	}
 
 	toggleChannelTooltip(){
+		request.get("http://127.0.0.1:8080/self/get/postcount/")
+				.end(((err, res) => {
+					if (err || res.body.status != "ok")
+						return;
+
+					window.entry.postCount = res.body.value;
+					this.setState({});
+				}).bind(this));
+
 		this.setState({ channelTooltip: !this.state.channelTooltip, uploadTooltip: false })
 	}
 
@@ -46,7 +58,8 @@ class NavBar extends Component{
 					<li style={{float: "right", height:0}}>
 						<a id="upload" 
 								onMouseEnter={this.toggleUploadTooltip.bind(this)}
-								onMouseLeave={this.toggleUploadTooltip.bind(this)}>
+								onMouseLeave={this.toggleUploadTooltip.bind(this)}
+								onClick={this.upload.open}>
 							<i className="material-icons">file_upload</i>
 						</a>
 					</li>
@@ -86,6 +99,8 @@ class NavBar extends Component{
 							</List>
 						</div>
 					</ToolTip>
+
+					<Upload nav={this} />
 				</ul>
 
 			  )

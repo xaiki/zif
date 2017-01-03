@@ -57,7 +57,6 @@ class App extends Component
 					var encoded = window.entry.address.encoded;
 
 					window.entry = JSON.parse(res.body.value);
-					console.log(window.entry)
 
 					if (window.navbar)
 						window.navbar.setState({ name: window.entry.name });

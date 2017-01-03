@@ -90,7 +90,7 @@ func (cs *CommandServer) PeerSearch(ps CommandPeerSearch) CommandResult {
 
 	db, _ := cs.LocalPeer.Databases.Get(ps.CommandPeer.Address)
 
-	posts, err := cs.LocalPeer.SearchProvider.Search(db.(*data.Database), ps.Query, ps.Page)
+	posts, err := cs.LocalPeer.SearchProvider.Search(ps.CommandPeer.Address, db.(*data.Database), ps.Query, ps.Page)
 
 	return CommandResult{err == nil, posts, err}
 }
@@ -193,7 +193,7 @@ func (cs *CommandServer) PeerIndex(ci CommandPeerIndex) CommandResult {
 	}
 
 	db, _ := cs.LocalPeer.Databases.Get(ci.CommandPeer.Address)
-	err = db.(*data.Database).GenerateFts(ci.Since)
+	err = db.(*data.Database).GenerateFts(int64(ci.Since))
 
 	return CommandResult{err == nil, nil, err}
 }
@@ -201,16 +201,24 @@ func (cs *CommandServer) PeerIndex(ci CommandPeerIndex) CommandResult {
 func (cs *CommandServer) AddPost(ap CommandAddPost) CommandResult {
 	log.Info("Command: Add Post request")
 
-	cs.LocalPeer.AddPost(
-		data.Post{ap.Id, ap.InfoHash, ap.Title, ap.Size, ap.FileCount, ap.Seeders, ap.Leechers, ap.UploadDate, ap.Tags, ap.Meta},
-		false)
+	post := data.Post{ap.Id, ap.InfoHash, ap.Title, ap.Size, ap.FileCount, ap.Seeders, ap.Leechers, ap.UploadDate, ap.Tags, ap.Meta}
 
-	return CommandResult{true, nil, nil}
+	id, err := cs.LocalPeer.AddPost(post, false)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	if ap.Index {
+		cs.LocalPeer.Database.GenerateFts(id - 1)
+	}
+
+	return CommandResult{true, id, nil}
 }
 func (cs *CommandServer) SelfIndex(ci CommandSelfIndex) CommandResult {
 	log.Info("Command: FTS Index request")
 
-	err := cs.LocalPeer.Database.GenerateFts(ci.Since)
+	err := cs.LocalPeer.Database.GenerateFts(int64(ci.Since))
 
 	return CommandResult{err == nil, nil, err}
 }
@@ -255,7 +263,7 @@ func (cs *CommandServer) SelfSuggest(css CommandSuggest) CommandResult {
 func (cs *CommandServer) SelfSearch(css CommandSelfSearch) CommandResult {
 	log.Info("Command: Search request")
 
-	posts, err := cs.LocalPeer.SearchProvider.Search(cs.LocalPeer.Database, css.Query, css.Page)
+	posts, err := cs.LocalPeer.SearchProvider.Search(cs.LocalPeer.Address().String(), cs.LocalPeer.Database, css.Query, css.Page)
 
 	return CommandResult{err == nil, posts, err}
 }

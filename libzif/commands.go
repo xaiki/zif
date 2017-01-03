@@ -45,7 +45,10 @@ type CommandMeta struct {
 	PId int `json:"pid"`
 }
 
-type CommandAddPost data.Post
+type CommandAddPost struct {
+	data.Post
+	Index bool
+}
 type CommandSelfIndex struct {
 	Since int `json:"since"`
 }

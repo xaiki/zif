@@ -169,13 +169,17 @@ func (hs *HttpServer) PeerFtsIndex(w http.ResponseWriter, r *http.Request) {
 
 func (hs *HttpServer) AddPost(w http.ResponseWriter, r *http.Request) {
 	pj := r.FormValue("data")
+	index := r.FormValue("index") == "true"
 
 	var post CommandAddPost
 	err := json.Unmarshal([]byte(pj), &post)
+
 	if err != nil {
 		write_http_response(w, CommandResult{false, nil, err})
 		return
 	}
+
+	post.Index = index
 
 	write_http_response(w, hs.CommandServer.AddPost(post))
 }

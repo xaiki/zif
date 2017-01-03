@@ -24,6 +24,11 @@ type SearchProvider struct {
 	// if the model has been loaded, otherwise no autocomplete/spell suggestions
 }
 
+type SearchResult struct {
+	Posts  []*Post `json:"posts"`
+	Source string  `json:"source"`
+}
+
 func NewSearchProvider() *SearchProvider {
 	sp := &SearchProvider{false, nil}
 
@@ -166,10 +171,10 @@ func (sp *SearchProvider) Suggest(db *Database, query string) ([]string, error) 
 	return ret, nil
 }
 
-func (sp *SearchProvider) Search(db *Database, query string, page int) ([]*Post, error) {
+func (sp *SearchProvider) Search(source string, db *Database, query string, page int) (SearchResult, error) {
 	// TODO: Instead of searching for spell-corrected versions, suggest an
 	// alternate search.
 	results, err := db.Search(query, page, 25)
 
-	return results, err
+	return SearchResult{results, source}, err
 }
