@@ -18,6 +18,7 @@ class SearchResults extends Component{
 
 		this.state = {};
 		this.state.posts = this.sortPosts(this.props.location.state.posts);
+		console.log(this.state.posts);
 	}
 
 	static get defaultProps()

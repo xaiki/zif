@@ -229,7 +229,7 @@ func (p *Peer) FindClosest(address string) (*proto.Client, dht.Pairs, error) {
 }
 
 // asks a peer to query its database and return the results
-func (p *Peer) Search(search string, page int) ([]*data.Post, *proto.Client, error) {
+func (p *Peer) Search(search string, page int) (*data.SearchResult, *proto.Client, error) {
 	log.Info("Searching ", p.Address().String())
 	stream, err := p.OpenStream()
 
@@ -238,12 +238,16 @@ func (p *Peer) Search(search string, page int) ([]*data.Post, *proto.Client, err
 	}
 
 	posts, err := stream.Search(search, page)
+	res := &data.SearchResult{
+		Posts:  posts,
+		Source: p.Address().String(),
+	}
 
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return posts, &stream, nil
+	return res, &stream, nil
 }
 
 func (p *Peer) Recent(page int) ([]*data.Post, *proto.Client, error) {

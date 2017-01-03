@@ -92,6 +92,7 @@ class Search extends Component
 			if (err) return console.log(err);
 
 			var posts = [];
+			console.log(res)
 
 			for (var i = 0; i < res.length; i++) {
 				if (res[i].body) {

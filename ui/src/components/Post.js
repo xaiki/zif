@@ -25,7 +25,11 @@ class Post extends Component
 		};
 
 		this.onContextMenu= this.onContextMenu.bind(this);
-		this.state.meta = JSON.parse(this.props.meta);
+
+		if (this.props.meta.length > 0)
+			this.state.meta = JSON.parse(this.props.meta);
+		else
+			this.state.meta = {};
 
 	}
 
