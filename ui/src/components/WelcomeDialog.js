@@ -38,7 +38,7 @@ class Welcome extends Component
 
 		// BOOTSTRAP! :D
 		if (this.state.bootstrap.zif) {
-			this.bootstrapUrl("zif.io")
+			this.bootstrapUrl("vqthcutzukicppty.onion")
 		}
 
 		this.setChannelDetails();

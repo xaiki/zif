@@ -247,8 +247,6 @@ func (cs *CommandServer) Bootstrap(cb CommandBootstrap) CommandResult {
 		return CommandResult{false, nil, err}
 	}
 
-	peer.ConnectClient(cs.LocalPeer)
-
 	_, err = peer.Bootstrap(cs.LocalPeer.DHT)
 
 	return CommandResult{err == nil, nil, err}

@@ -171,6 +171,8 @@ func (p *Peer) Entry() (*Entry, error) {
 		return nil, err
 	}
 
+	log.WithField("addr", kv.Key.String()).Info("Recieved")
+
 	if !entry.Address.Equals(p.Address()) {
 		return nil, errors.New("Failed to fetch entry")
 	}
