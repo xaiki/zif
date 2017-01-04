@@ -5,6 +5,7 @@ import FontIcon from 'material-ui/FontIcon';
 
 import NavBar from "./NavBar"
 import Search from "./Search"
+import ToolTip from 'react-portal-tooltip'
 
 class Home extends Component{
 

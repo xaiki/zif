@@ -70,7 +70,7 @@ class Post extends Component
 
 	componentDidMount(){
 		resolve(this.state.source, (err, res) => {
-			this.setState({ source: res.body.value.name });
+			this.setState({ source: res.name });
 		});
 	}
 

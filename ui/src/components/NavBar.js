@@ -5,9 +5,12 @@ import request from "superagent"
 import {List, ListItem} from 'material-ui/List';
 import Divider from 'material-ui/Divider';
 import Subheader from 'material-ui/Subheader';
+import FontIcon from 'material-ui/FontIcon';
+import IconButton from 'material-ui/IconButton';
 
 import util from "../util.js"
 import Upload from "./UploadDialog.js"
+import EditAccount from "./EditAccount.js"
 import ToolTip from 'react-portal-tooltip'
 
 class NavBar extends Component{
@@ -80,19 +83,25 @@ class NavBar extends Component{
 							parent="#channel">
 						<div>
 							<List>
-								<Subheader>{window.entry.name}</Subheader>
-								<Divider inset={true} />
+								<Subheader>
+									{this.state.name}
+									<IconButton tooltip="Edit" style={{float: "right"}}
+										onTouchTap={() => this.editAccount.open()}>
+										<FontIcon className="material-icons">mode_edit</FontIcon>
+									</IconButton>
+								</Subheader>
+								<Divider />
 								<ListItem
 								  hoverColor="white"
 								  primaryText="Address"
 								  secondaryText={window.entry.address.encoded}/>
-								<Divider inset={true} />
+								<Divider />
 								<ListItem
 								  hoverColor="white"
 								  primaryText="Description"
 								  secondaryText={window.entry.desc}
 								  secondaryTextLines={2}/>
-								<Divider inset={true} />
+								<Divider />
 								<ListItem
 								  hoverColor="white"
 								  primaryText={<div> {window.entry.postCount} Posts</div>}/>
@@ -101,6 +110,7 @@ class NavBar extends Component{
 					</ToolTip>
 
 					<Upload nav={this} />
+					<EditAccount nav={this} />
 				</ul>
 
 			  )

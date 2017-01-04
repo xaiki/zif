@@ -32,7 +32,6 @@ class Upload extends Component
 	}
 
 	open() {
-		console.log("open")
 		this.setState({ open: true });
 	}
 
@@ -41,33 +40,35 @@ class Upload extends Component
 			return;
 		}
 
+		// Extract the files directory, then set this as the "download" location
+		// so seeding can begin straight away - no copying or downloading.
 		var dirRegex = "^(.+)/([^/]+)$";
-
 		var dir = this.uploadFile.files[0].path.match(dirRegex)[1];
-		var files = [];
 
-		for (var i = 0; i < this.uploadFile.files.length; i++) {
-			files.push(this.uploadFile.files[i].name);
-		}
+		window.downloadClient.seed(this.uploadFile.files, 
+									{
+										path: dir
+									},
+									(torrent) => {
+										
+										// actually send the upload request
+										var data = {
+											title: this.title,
+											meta: JSON.stringify({ description: this.desc }),
+											infoHash: torrent.infoHash
+										};
 
-		var rs = nt.make('udp://tracker.zer0day.to:1337/announce', 
-					dir,
-					files);
-		rs.pipe(fs.createWriteStream(this.title + '.torrent'));
+										request.post("http://127.0.0.1:8080/self/addpost/")
+											.type("form")
+											.send({data: JSON.stringify(data), index: true})
+											.end((err, res) => {
+												console.log(res);
+												this.setState({ open: false });
+											});
 
-		// actually send the upload request
-		var data = {
-			title: this.title,
-			meta: JSON.stringify({ description: this.desc })
-		};
+										fs.writeFile("./torrents/" + torrent.name + ".torrent", torrent.torrentFile, (err) => console.log(err));
+									});
 
-		request.post("http://127.0.0.1:8080/self/addpost/")
-			.type("form")
-			.send({data: JSON.stringify(data), index: true})
-			.end((err, res) => {
-				console.log(res);
-				this.setState({ open: false });
-			});
 	}
 
 	handleTitleChange(e) {
