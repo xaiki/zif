@@ -1,10 +1,11 @@
 'use strict';
-
 var electron = require('electron');
 var {app, BrowserWindow} = electron;
+var TorrentClient = require("./src/TorrentClient.js")
+
 
 let mainWindow;
-
+let torrent;
 
 function createWindow () {
   mainWindow = new BrowserWindow({width: 800, height: 600});
@@ -14,6 +15,8 @@ function createWindow () {
   mainWindow.on('closed', function() {
     mainWindow = null;
   });
+
+  torrent = TorrentClient(mainWindow);
 }
 
 app.on('ready', createWindow);
@@ -29,3 +32,4 @@ app.on('activate', function () {
     createWindow();
   }
 });
+

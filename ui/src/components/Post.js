@@ -1,3 +1,5 @@
+const {ipcRenderer} = require('electron');
+
 import request from "superagent"
 import React, { Component } from 'react';
 import Chip from 'material-ui/Chip';
@@ -59,12 +61,20 @@ class Post extends Component
 		e.preventDefault();
 
 		var menu = new Menu();	
-		menu.append(new MenuItem({ 
-			label: "Copy Magnet Link",
-			click: () => {
-				clipboard.writeText(util.make_magnet(this.props.infohash));
+		menu.append(new MenuItem(
+			{ 
+				label: "Download",
+				click: () => {
+					ipcRenderer.send("download", this.props.infohash);
+				}
+			},
+			{ 
+				label: "Copy Magnet Link",
+				click: () => {
+					clipboard.writeText(util.make_magnet(this.props.infohash));
+				}
 			}
-		}));
+		));
 		menu.popup(remote.getCurrentWindow());
 	}
 

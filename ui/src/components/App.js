@@ -7,18 +7,19 @@ import {grey100, grey50} from 'material-ui/styles/colors';
 
 
 import Home from './Home';
+import Downloads from './Downloads';
 import SearchResults from "./SearchResults"
 import Stream from "./Stream"
 import Welcome from "./WelcomeDialog"
 
 import util from "../util"
 
-var WebTorrent = require("webtorrent");
+import TorrentClient from "../TorrentClient"
 
 var routes = [{ path: "/", component: Home },
 			  { path: "/search", component: SearchResults },
 			  { path: "/stream/:infohash", component: Stream },
-			  { path: "/downloads", component: Stream }];
+			  { path: "/downloads", component: Downloads }];
 
 class App extends Component
 {
@@ -37,8 +38,6 @@ class App extends Component
 		this.onResults = this.onResults.bind(this);
 
 		window.config = util.loadConfig();
-
-		window.downloadClient = new WebTorrent();
 
 		window.zifColor = {
 			primary: "#3f3b3b",

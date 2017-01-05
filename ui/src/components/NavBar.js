@@ -49,6 +49,7 @@ class NavBar extends Component{
 					<li><span id="logo">Zif</span></li>
 
 					<li><Link to={"/"}>Home</Link></li>
+					<li><Link to={"/downloads"}>Downloads</Link></li>
 
 					<li style={{float: "right"}}>
 						<a id="channel"

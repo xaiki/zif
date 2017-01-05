@@ -36,6 +36,7 @@
 			var electron = require("electron");
 			var remote = electron.remote;
 
+			const {ipcRenderer} = require("electron");
 			const Menu = remote.Menu;
 			const MenuItem = remote.MenuItem;
 			const clipboard = remote.clipboard;

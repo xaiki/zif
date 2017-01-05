@@ -13,6 +13,8 @@ import util from "../util"
 import nt from "nt"
 import fs from "fs"
 
+const {ipcRenderer} = require('electron');
+
 class Upload extends Component
 {
 	constructor(props)
@@ -29,6 +31,13 @@ class Upload extends Component
 		this.open = this.open.bind(this);
 
 		this.title = this.desc = "";
+
+		this.onTorrent = this.onTorrent.bind(this);
+		ipcRenderer.on("torrent", this.onTorrent);
+	}
+
+	onTorrent(){
+		this.setState({ open: false });
 	}
 
 	open() {
@@ -40,35 +49,18 @@ class Upload extends Component
 			return;
 		}
 
-		// Extract the files directory, then set this as the "download" location
-		// so seeding can begin straight away - no copying or downloading.
-		var dirRegex = "^(.+)/([^/]+)$";
-		var dir = this.uploadFile.files[0].path.match(dirRegex)[1];
+		var files = [];
+		for (var i = 0; i < this.uploadFile.files.length; i++) {
+			files.push(this.uploadFile.files[i].path);
+		}
 
-		window.downloadClient.seed(this.uploadFile.files, 
-									{
-										path: dir
-									},
-									(torrent) => {
-										
-										// actually send the upload request
-										var data = {
-											title: this.title,
-											meta: JSON.stringify({ description: this.desc }),
-											infoHash: torrent.infoHash
-										};
+		var meta = {  description: this.desc };
 
-										request.post("http://127.0.0.1:8080/self/addpost/")
-											.type("form")
-											.send({data: JSON.stringify(data), index: true})
-											.end((err, res) => {
-												console.log(res);
-												this.setState({ open: false });
-											});
-
-										fs.writeFile("./torrents/" + torrent.name + ".torrent", torrent.torrentFile, (err) => console.log(err));
-									});
-
+		ipcRenderer.send("seed", { 
+			title: this.title,
+			meta: meta,
+			files: files
+		});
 	}
 
 	handleTitleChange(e) {
