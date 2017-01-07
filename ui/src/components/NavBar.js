@@ -43,13 +43,19 @@ class NavBar extends Component{
 		this.setState({ channelTooltip: !this.state.channelTooltip, uploadTooltip: false })
 	}
 
+	static get defaultProps(){
+		return {
+		
+		}
+	}
+
 	render(){
 		return(
 				<ul className="topnav" id="mainMenu">
 					<li><span id="logo">Zif</span></li>
 
-					<li><Link to={"/"}>Home</Link></li>
-					<li><Link to={"/downloads"}>Downloads</Link></li>
+					<li><a href="#">Home</a></li>
+					<li><a href="#downloads">Downloads</a></li>
 
 					<li style={{float: "right"}}>
 						<a id="channel"
@@ -59,7 +65,7 @@ class NavBar extends Component{
 						</a>
 					</li>
 
-					<li style={{float: "right", height:0}}>
+					<li style={{float: "right"}}>
 						<a id="upload" 
 								onMouseEnter={this.toggleUploadTooltip.bind(this)}
 								onMouseLeave={this.toggleUploadTooltip.bind(this)}
@@ -67,6 +73,15 @@ class NavBar extends Component{
 							<i className="material-icons">file_upload</i>
 						</a>
 					</li>
+
+					{this.props.advancedClick && 
+					<li style={{float: "right"}}>
+						<a id="advancedDownload" 
+							onClick={this.props.advancedClick}>
+							<i className="material-icons">flash_on</i>
+						</a>
+					</li>
+					}
 
 
 					<ToolTip active={this.state.uploadTooltip} 

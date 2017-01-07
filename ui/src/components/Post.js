@@ -63,18 +63,21 @@ class Post extends Component
 		var menu = new Menu();	
 		menu.append(new MenuItem(
 			{ 
-				label: "Download",
-				click: () => {
-					ipcRenderer.send("download", this.props.infohash);
-				}
-			},
-			{ 
 				label: "Copy Magnet Link",
 				click: () => {
 					clipboard.writeText(util.make_magnet(this.props.infohash));
 				}
+			}));
+
+		menu.append(new MenuItem(
+			{ 
+				label: "Download",
+				click: () => {
+					ipcRenderer.send("download", util.make_magnet(this.props.infohash));
+				}
 			}
 		));
+
 		menu.popup(remote.getCurrentWindow());
 	}
 

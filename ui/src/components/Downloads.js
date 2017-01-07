@@ -3,6 +3,7 @@ import request from "superagent"
 const {ipcRenderer} = require('electron');
 
 import FontIcon from 'material-ui/FontIcon';
+import FloatingActionButton from 'material-ui/FloatingActionButton';
 
 import NavBar from "./NavBar"
 import Search from "./Search"
@@ -17,47 +18,38 @@ class Downloads extends Component{
 		super(props);
 
 		this.state = {
-			torrents: []
+			torrents: [],
+			advanced: false
 		}
 
-		this.mounted = false;
+		this.tick = this.tick.bind(this);
 		this.componentDidMount = this.componentDidMount.bind(this);
 		this.componentWillUnmount = this.componentWillUnmount.bind(this);
-		this.onTorrents = this.onTorrents.bind(this);
-		this.onTorrent = this.onTorrent.bind(this);
-
-		ipcRenderer.on("torrent", this.onTorrent);
-		ipcRenderer.on("torrents", this.onTorrents);
-	}
-
-	onTorrent(e, torrent){
-		if(this.mounted)
-			this.setState({ torrents: this.state.torrents.push(torrent)});
-	}
-
-	onTorrents(e, torrents){
-		if(this.mounted)
-			this.setState({ torrents: torrents });
 	}
 
 	componentDidMount(){
-		this.mounted = true;
-		ipcRenderer.send("torrents");
+		this.tick();
 	}
 
 	componentWillUnmount(){
-		this.mounted = false;
+		clearTimeout(this.timer);
+	}
 
-		ipcRenderer.removeListener("clienttorrent", this.onTorrent);
-		ipcRenderer.removeListener("torrents", this.onTorrents);
+	tick(){
+		hadouken.list((err, res) => {
+			this.setState({ torrents: res });
+
+			this.timer = setTimeout(this.tick, 3000);
+		});
 	}
 
 	render() {
-		console.log(this.state.torrents)
 		return (
-			<div>
-				<NavBar />
-				<div style={{marginTop: "50px"}}>
+			<div style={{height: "100%"}}>
+			<div className="parent">
+				<NavBar advancedClick={()=>this.setState({ advanced: !this.state.advanced})} />
+				{ !this.state.advanced &&
+				<div>
 					<Table fixedHeader={false} style={{tableLayout: "auto"}}>
 						<TableHeader>
 							<TableRow>
@@ -66,25 +58,34 @@ class Downloads extends Component{
 								<TableHeaderColumn>Size</TableHeaderColumn>
 								<TableHeaderColumn>Download</TableHeaderColumn>
 								<TableHeaderColumn>Upload</TableHeaderColumn>
-								<TableHeaderColumn>Seed/Leech</TableHeaderColumn>
+								<TableHeaderColumn>Seed/Peer</TableHeaderColumn>
 							</TableRow>
 						</TableHeader>
 
 						<TableBody>
 								{this.state.torrents.map((torrent, index) => {
 									return (<TableRow key={index}>
-												<TableRowColumn>{torrent.name ? torrent.name : torrent.infoHash}</TableRowColumn>
-												<TableRowColumn>{torrent.progress}</TableRowColumn>
+												<TableRowColumn>{torrent.name ? torrent.name : torrent.infohash}</TableRowColumn>
+												<TableRowColumn>{torrent.progress /10}%</TableRowColumn>
 												<TableRowColumn>
-													{torrent.info ? util.bytes_to_size(torrent.info.length) : <span>?</span>}
+													{util.bytes_to_size(torrent.size)}
 												</TableRowColumn>
-												<TableRowColumn></TableRowColumn>
-												<TableRowColumn></TableRowColumn>
-												<TableRowColumn></TableRowColumn>
+												<TableRowColumn>{util.bytes_to_size(torrent.down)}/s</TableRowColumn>
+												<TableRowColumn>{util.bytes_to_size(torrent.up)}/s</TableRowColumn>
+												<TableRowColumn>{torrent.listSeeds}/{torrent.listPeers}</TableRowColumn>
 											</TableRow>)
 								})}
 						</TableBody>
 					</Table>
+				</div>
+				}
+			
+				
+				{ this.state.advanced &&
+						<iframe 
+							id="advancedTorrent"
+							src="http://admin:admin@127.0.0.1:7070"/>
+				}
 				</div>
 			</div>
 		)

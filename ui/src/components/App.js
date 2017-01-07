@@ -12,7 +12,10 @@ import SearchResults from "./SearchResults"
 import Stream from "./Stream"
 import Welcome from "./WelcomeDialog"
 
+import NavBar from "./NavBar"
+
 import util from "../util"
+import hadouken from "../hadouken"
 
 import TorrentClient from "../TorrentClient"
 
@@ -38,6 +41,8 @@ class App extends Component
 		this.onResults = this.onResults.bind(this);
 
 		window.config = util.loadConfig();
+		window.hadouken = hadouken;
+		window.routerHistory = hashHistory;
 
 		window.zifColor = {
 			primary: "#3f3b3b",
@@ -105,12 +110,11 @@ class App extends Component
 
 		}
 
+
 		return(
 			<div style={{height: "100%"}}>
 				<Welcome />
-
-
-				<div>
+				<div style={{height: "100%"}}>
 					<Router history={hashHistory} routes={routes}>
 					</Router>
 				</div>

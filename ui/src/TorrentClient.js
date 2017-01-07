@@ -1,4 +1,4 @@
-const WebTorrent = require("webtorrent");
+const WebTorrent = require("webtorrent-hybrid");
 const {ipcMain} = require("electron");
 const fs = require("fs");
 
@@ -12,6 +12,10 @@ function TorrentClient(web){
 	client.seed = seed.bind(client);
 	client.download = download.bind(client);
 	client.client = new WebTorrent();
+
+	client.client.on("error", (err) => {
+		console.log(err);
+	});
 
 	ipcMain.on("seed", client.seed);
 	ipcMain.on("download", client.download);

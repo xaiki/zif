@@ -3,8 +3,26 @@ var fs = require("fs");
 
 function make_magnet(infohash) 
 {
-	// TODO: Include name, trackers, etc. This will work for now though :)
-	return "magnet:?xt=urn:btih:" + infohash;
+	var trackers = [
+		"udp://tracker.internetwarriors.net:1337/announce",
+		"udp://tracker.leechers-paradise.org:6969/announce",
+		"udp://tracker.coppersurfer.tk:6969/announce",
+		"udp://exodus.desync.com:6969/announce",
+		"udp://tracker.openbittorrent.com:80/announce",
+		"udp://tracker.sktorrent.net:6969/announce",
+		"udp://tracker.zer0day.to:1337/announce",
+		"udp://tracker.pirateparty.gr:6969/announce"
+	];
+
+	var link = "magnet:?xt=urn:btih:" + infohash;
+
+	for (var i = 0; i < trackers.length; i++) {
+		link += "&tr=" + encodeURIComponent(trackers[i]);
+	}
+
+	console.log(link)
+
+	return link;
 }
 
 function chunk(data, size) 
