@@ -5,10 +5,11 @@ import React, { Component } from 'react';
 import Chip from 'material-ui/Chip';
 import { hashHistory, Link } from 'react-router';
 import {Card, CardActions, CardHeader, CardText} from 'material-ui/Card';
-import FlatButton from 'material-ui/FlatButton';
+import RaisedButton from 'material-ui/RaisedButton';
 import {List, ListItem} from 'material-ui/List';
 
 import moment from "moment"
+import Stream from "./Stream"
 import resolve from "../EntryStore.js"
 
 const style = {
@@ -23,7 +24,8 @@ class Post extends Component
 		super(props);
 
 		this.state = {
-			source: props.source
+			source: props.source,
+			showStream: false
 		};
 
 		this.onContextMenu= this.onContextMenu.bind(this);
@@ -73,7 +75,7 @@ class Post extends Component
 			{ 
 				label: "Download",
 				click: () => {
-					ipcRenderer.send("download", util.make_magnet(this.props.infohash));
+					hadouken.addLink(util.make_magnet(this.props.infohash), ()=>{});
 				}
 			}
 		));
@@ -116,10 +118,21 @@ class Post extends Component
 								<i className="material-icons">link</i>
 								<span> Magnet</span>
 							</a>
+
+							<RaisedButton
+								onClick={() => this.setState({showStream: !this.state.showStream})}>
+								Stream
+							</RaisedButton>
 						</div>
 					</div>
 
 				</details>
+
+				{ this.state.showStream && 
+					<Stream title={this.props.title}
+							magnet={util.make_magnet(this.props.infohash)}
+							onClose={()=>this.setState({ showStream: false })}/>
+				}
 			</div>)
 	}
 }

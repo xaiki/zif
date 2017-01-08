@@ -250,7 +250,7 @@ ul.topnav li.icon {display: none;}
 .card .source {
 	padding-left: 15px;
 }
-
+t
 /******************************************************************************/
 
 /* Form styling */
@@ -290,3 +290,5 @@ a {
     height: 100%;
     border: 0px;
 }
+
+.video-overlay, .video-overlay *, .video { width: 100%; }

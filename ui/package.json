@@ -25,11 +25,14 @@
     "moment": "^2.17.1",
     "nt": "^0.5.3",
     "react-autosuggest": "^7.0.2",
+    "react-html5video": "^1.4.0",
+    "react-list": "^0.8.0",
     "react-modal-box": "^1.0.3",
     "react-portal-tooltip": "^1.1.5",
     "react-tap-event-plugin": "2.0.0",
     "react-tooltip": "^3.2.2",
     "superagent": "^2.3.0",
+    "torrent-stream": "^1.0.3",
     "webtorrent": "^0.97.2"
   }
 }

@@ -31,13 +31,6 @@ class Upload extends Component
 		this.open = this.open.bind(this);
 
 		this.title = this.desc = "";
-
-		this.onTorrent = this.onTorrent.bind(this);
-		ipcRenderer.on("torrent", this.onTorrent);
-	}
-
-	onTorrent(){
-		this.setState({ open: false });
 	}
 
 	open() {

@@ -12,7 +12,6 @@ function resolve(address, cb) {
 		.end((err, res) => {
 			if (err) return;
 
-			console.log("cunt")
 			entries[address]= res.body.value;
 
 			if (cb) cb(err, res.body.value);

@@ -56,4 +56,15 @@ hadouken.list = function(cb){
 		});
 }
 
+hadouken.addLink = function(link, cb) {
+		this.method("webui.addTorrent", ["url", link],(err, res) => {
+			if (err) {
+				cb(err, null);
+				return;
+			}
+
+			cb(err, res.body)
+		});
+}
+
 module.exports = hadouken;

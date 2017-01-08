@@ -20,8 +20,6 @@ function make_magnet(infohash)
 		link += "&tr=" + encodeURIComponent(trackers[i]);
 	}
 
-	console.log(link)
-
 	return link;
 }
 
