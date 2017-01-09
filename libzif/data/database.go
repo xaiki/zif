@@ -134,27 +134,29 @@ func (db *Database) InsertPieces(pieces chan *Piece, fts bool) (err error) {
 }
 
 // Insert a single post into the database.
-func (db *Database) InsertPost(post Post) error {
+func (db *Database) InsertPost(post Post) (int64, error) {
 	// TODO: Is preparing all statements before hand worth doing for perf?
 	stmt, err := db.conn.Prepare(sql_insert_post)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	_, err = stmt.Exec(post.InfoHash, post.Title, post.Size, post.FileCount, post.Seeders,
+	res, err := stmt.Exec(post.InfoHash, post.Title, post.Size, post.FileCount, post.Seeders,
 		post.Leechers, post.UploadDate, post.Tags, post.Meta)
 
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	return nil
+	id, err := res.LastInsertId()
+
+	return id, nil
 }
 
 // Generate a full text search index since the given id. This should ideally be
 // done only for new additions, otherwise on a large dataset it can take a bit of
 // time.
-func (db *Database) GenerateFts(since int) error {
+func (db *Database) GenerateFts(since int64) error {
 	stmt, err := db.conn.Prepare(sql_generate_fts)
 
 	if err != nil {

@@ -1,23 +1,28 @@
 import React, { Component } from 'react';
 import { Router, Route, hashHistory, Link } from 'react-router';
+import request from "superagent"
 
 import {Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle} from 'material-ui/Toolbar';
 import {grey100, grey50} from 'material-ui/styles/colors';
 
 
 import Home from './Home';
+import Downloads from './Downloads';
 import SearchResults from "./SearchResults"
 import Stream from "./Stream"
 import Welcome from "./WelcomeDialog"
 
-import util from "../util"
+import NavBar from "./NavBar"
 
-var WebTorrent = require("webtorrent");
+import util from "../util"
+import hadouken from "../hadouken"
+
+import TorrentClient from "../TorrentClient"
 
 var routes = [{ path: "/", component: Home },
 			  { path: "/search", component: SearchResults },
 			  { path: "/stream/:infohash", component: Stream },
-			  { path: "/downloads", component: Stream }];
+			  { path: "/downloads", component: Downloads }];
 
 class App extends Component
 {
@@ -35,9 +40,43 @@ class App extends Component
 		this.handleToggle = this.handleToggle.bind(this);
 		this.onResults = this.onResults.bind(this);
 
-		this.config = util.loadConfig();
+		window.config = util.loadConfig();
+		window.hadouken = hadouken;
+		window.routerHistory = hashHistory;
 
-		window.downloadClient = new WebTorrent();
+		window.zifColor = {
+			primary: "#3f3b3b",
+			secondary: "#eee9d9",
+			highlight: "#7f5ab6",
+			accent: "#b11106"
+		};
+
+		window.entry = { address: {} };
+		  
+		request.get("http://127.0.0.1:8080/self/get/entry/")
+				.end(((err, res) => {
+					if (err || res.body.status != "ok")
+						return;
+
+					var encoded = window.entry.address.encoded;
+
+					window.entry = JSON.parse(res.body.value);
+
+					if (window.navbar)
+						window.navbar.setState({ name: window.entry.name });
+
+					if (encoded) {
+						window.entry.address.encoded = encoded;
+					}
+				}));
+
+		request.get("http://127.0.0.1:8080/self/get/zif/")
+				.end(((err, res) => {
+					if (err || res.body.status != "ok")
+						return;
+
+					window.entry.address.encoded = res.body.value;
+				}));
 	}
 
 	handleToggle(){ this.setState({ drawerOpen: !this.state.drawerOpen }) }
@@ -58,38 +97,24 @@ class App extends Component
 	render() 
 	{
 		var style = {
-			drawer: {
-				backgroundColor: grey100,
-				zIndex: 1000
-			},
-
 			drawerItems: {
 				marginTop: "75px"
 			},
 
 			router: {
-				paddingLeft: "210px",
-				paddingRight: "210px",
-				paddingBottom: "10px",
-				marginTop: "75px"
+				marginTop: "10px"
 			},
 			topbar: {
-				backgroundColor: "red"
+				backgroundColor: window.zifColor.primary
 			}
 
 		}
 
+
 		return(
 			<div style={{height: "100%"}}>
-				<Welcome config={this.config}/>
-
-				<Toolbar>
-					<ToolbarGroup firstChild={true}>
-						<ToolbarTitle text="Zif" style={ {marginLeft:"10px"}}/>
-					</ToolbarGroup>
-				</Toolbar>
-
-				<div style={style.router}>
+				<Welcome />
+				<div style={{height: "100%"}}>
 					<Router history={hashHistory} routes={routes}>
 					</Router>
 				</div>

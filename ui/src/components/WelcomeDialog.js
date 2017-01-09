@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
-import request from "request";
+import request from "superagent";
 
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import Subheader from 'material-ui/Subheader';
 import Checkbox from 'material-ui/Checkbox';
 import {List, ListItem} from 'material-ui/List';
+import TextField from 'material-ui/TextField';
 
 import util from "../util"
 
@@ -15,10 +16,8 @@ class Welcome extends Component
 	{
 		super(props);
 
-		this.config = this.props.config;
-
 		this.state = {
-			open: !this.config.welcomed,
+			open: !window.config.welcomed,
 			bootstrap: {
 				zif: false
 			}
@@ -27,6 +26,10 @@ class Welcome extends Component
 		this.handleClose = this.handleClose.bind(this);
 
 		this.checkZif = this.checkZif.bind(this);
+		this.handleNameChange = this.handleNameChange.bind(this);
+		this.handleDescChange = this.handleDescChange.bind(this);
+
+		this.setChannelDetails = this.setChannelDetails.bind(this);
 	}
 
 	handleClose() { 
@@ -35,24 +38,48 @@ class Welcome extends Component
 
 		// BOOTSTRAP! :D
 		if (this.state.bootstrap.zif) {
-			this.bootstrapUrl("zif.io")
+			this.bootstrapUrl("vqthcutzukicppty.onion")
 		}
+
+		this.setChannelDetails();
 
 		this.setState({ open: !this.state.open });
 
-		this.config.welcomed = true;
-		util.saveConfig(this.config);
+		window.config.welcomed = true;
+		util.saveConfig(window.config);
 	}
 
 	bootstrapUrl(url) {
-		request('http://127.0.0.1:8080/self/bootstrap/' + url + "/",
-					function (error, response, body){ console.log(response); })
+		request.get('http://127.0.0.1:8080/self/bootstrap/' + url + "/")
+				.end((error, response) => { console.log(response); })
+	}
+
+	setChannelDetails(){
+		request.post("http://127.0.0.1:8080/self/set/name/")
+				.type("form")
+				.send({ value: this.name })
+				.end((err, res) => {
+				});
+
+		request.post("http://127.0.0.1:8080/self/set/desc/")
+				.type("form")
+				.send({ value: this.desc})
+				.end((err, res) => {
+				});
 	}
 
 	checkZif(e, checked) {
 		this.setState({
 			bootstrap: { zif: checked }
 		});
+	}
+
+	handleNameChange(event){
+		this.name = event.target.value;
+	}
+
+	handleDescChange(event){
+		this.desc = event.target.value;
 	}
 
 	render() 
@@ -65,9 +92,23 @@ class Welcome extends Component
 		  actions={<FlatButton label="Go"
         						primary={true}
         						onTouchTap={this.handleClose}
-        						disabled={!(this.state.bootstrap.zif)}/>}
-		>
-			<p>Pick one or more of the channels below to get started</p>
+        						disabled={!(this.state.bootstrap.zif)}/>}>
+
+			<p>Enter the details of your channel</p>
+			<TextField
+				onChange={this.handleNameChange}
+				floatingLabelText="Name"
+				fullWidth={true}/><br/>
+
+			<TextField
+				onChange={this.handleDescChange}
+				floatingLabelText="Description"
+				multiLine={true}
+				fullWidth={true}
+				/><br/>
+
+
+			<p>Pick one or more of the channels below</p>
 			<List>
 				  <ListItem 
 				  		primaryText="zif.io" 

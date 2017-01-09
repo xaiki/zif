@@ -1,8 +1,11 @@
 import React, { Component } from 'react';
 import request from "superagent"
 
-import FlatButton from 'material-ui/FlatButton';
 import FontIcon from 'material-ui/FontIcon';
+
+import NavBar from "./NavBar"
+import Search from "./Search"
+import ToolTip from 'react-portal-tooltip'
 
 class Home extends Component{
 
@@ -11,6 +14,8 @@ class Home extends Component{
 
 		this.state = {
 		};
+
+		this.config = this.props.config;
 
 		if(!this.props.Posts) this.state.posts = [];
 		else this.state.posts = this.props.Posts;
@@ -41,16 +46,27 @@ class Home extends Component{
 	}
 
 	render() {
-		console.log(this);
 		return(
 
 			<div>
-				<div className="searchBox">
-					<div className="searchContainer">
-						<span className="icon">
-							<FontIcon className="material-icons">search</FontIcon>
-						</span>
-						<input type="search" id="search" placeholder="Search" />
+				<NavBar />
+				<div className="outer">
+					<div className="middle">
+						<div className="inner">
+							<Search
+								onResults={
+									(res, query) => {
+										this.props.router.push({
+											pathname: "/search",
+											state: {
+												posts: res,
+												query: query
+											}
+										});
+									}
+								}
+							/>
+						</div>
 					</div>
 				</div>
 			</div>

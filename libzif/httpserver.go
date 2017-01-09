@@ -45,6 +45,8 @@ func (hs *HttpServer) ListenHttp(addr string) {
 	router.HandleFunc("/self/rebuildcollection/", hs.RebuildCollection)
 	router.HandleFunc("/self/peers/", hs.Peers)
 	router.HandleFunc("/self/requestaddpeer/{remote}/{peer}/", hs.RequestAddPeer)
+	router.HandleFunc("/self/set/{key}/", hs.SelfSet).Methods("POST")
+	router.HandleFunc("/self/get/{key}/", hs.SelfGet)
 
 	log.Info("Starting HTTP server on ", addr)
 
@@ -167,13 +169,17 @@ func (hs *HttpServer) PeerFtsIndex(w http.ResponseWriter, r *http.Request) {
 
 func (hs *HttpServer) AddPost(w http.ResponseWriter, r *http.Request) {
 	pj := r.FormValue("data")
+	index := r.FormValue("index") == "true"
 
 	var post CommandAddPost
 	err := json.Unmarshal([]byte(pj), &post)
+
 	if err != nil {
 		write_http_response(w, CommandResult{false, nil, err})
 		return
 	}
+
+	post.Index = index
 
 	write_http_response(w, hs.CommandServer.AddPost(post))
 }
@@ -273,6 +279,23 @@ func (hs *HttpServer) RequestAddPeer(w http.ResponseWriter, r *http.Request) {
 	write_http_response(w, hs.CommandServer.RequestAddPeer(CommandRequestAddPeer{
 		vars["remote"], vars["peer"],
 	}))
+}
+
+func (hs *HttpServer) SelfSet(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	key := vars["key"]
+	value := r.FormValue("value")
+
+	write_http_response(w, hs.CommandServer.LocalSet(CommandLocalSet{key, value}))
+}
+
+func (hs *HttpServer) SelfGet(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	key := vars["key"]
+
+	write_http_response(w, hs.CommandServer.LocalGet(CommandLocalGet{key}))
 }
 
 func (hs *HttpServer) IndexHandler(w http.ResponseWriter, r *http.Request) {

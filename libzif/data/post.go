@@ -3,8 +3,10 @@ package data
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"strconv"
+	"time"
 )
 
 const (
@@ -93,4 +95,16 @@ func (p *Post) Write(sep, term string, w io.Writer) {
 		bw.WriteString(sep)
 		bw.WriteString(term)
 		bw.Flush()*/
+}
+
+func (p *Post) Valid() error {
+	if len(p.Title) > 140 {
+		return errors.New("Title too long")
+	}
+
+	if p.UploadDate > int(time.Now().Unix()) {
+		return errors.New("Upload data cannot be in the future")
+	}
+
+	return nil
 }

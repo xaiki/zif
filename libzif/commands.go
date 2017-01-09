@@ -45,7 +45,10 @@ type CommandMeta struct {
 	PId int `json:"pid"`
 }
 
-type CommandAddPost data.Post
+type CommandAddPost struct {
+	data.Post
+	Index bool
+}
 type CommandSelfIndex struct {
 	Since int `json:"since"`
 }
@@ -73,6 +76,16 @@ type CommandSaveCollection interface{}
 type CommandRebuildCollection interface{}
 type CommandPeers interface{}
 type CommandSaveRoutingTable interface{}
+
+// Used for setting values in the localpeer entry
+type CommandLocalSet struct {
+	Key   string `json:"key"`
+	Value string `json:"key"`
+}
+
+type CommandLocalGet struct {
+	Key string `json:"key"`
+}
 
 // Command output types
 

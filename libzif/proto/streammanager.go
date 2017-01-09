@@ -114,12 +114,13 @@ func (sm *StreamManager) Handshake(conn net.Conn, lp ProtocolHandler) (ed25519.P
 	// but...
 	// is the server who we think it is?
 	// better check!
-	log.Debug("Receiving handshake")
 	server_header, err := handshake_recieve(*cl)
 
 	if err != nil {
 		return server_header, err
 	}
+
+	log.Info("Handshake complete")
 
 	return server_header, nil
 }

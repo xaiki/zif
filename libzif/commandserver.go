@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -89,7 +90,7 @@ func (cs *CommandServer) PeerSearch(ps CommandPeerSearch) CommandResult {
 
 	db, _ := cs.LocalPeer.Databases.Get(ps.CommandPeer.Address)
 
-	posts, err := cs.LocalPeer.SearchProvider.Search(db.(*data.Database), ps.Query, ps.Page)
+	posts, err := cs.LocalPeer.SearchProvider.Search(ps.CommandPeer.Address, db.(*data.Database), ps.Query, ps.Page)
 
 	return CommandResult{err == nil, posts, err}
 }
@@ -192,7 +193,7 @@ func (cs *CommandServer) PeerIndex(ci CommandPeerIndex) CommandResult {
 	}
 
 	db, _ := cs.LocalPeer.Databases.Get(ci.CommandPeer.Address)
-	err = db.(*data.Database).GenerateFts(ci.Since)
+	err = db.(*data.Database).GenerateFts(int64(ci.Since))
 
 	return CommandResult{err == nil, nil, err}
 }
@@ -200,16 +201,24 @@ func (cs *CommandServer) PeerIndex(ci CommandPeerIndex) CommandResult {
 func (cs *CommandServer) AddPost(ap CommandAddPost) CommandResult {
 	log.Info("Command: Add Post request")
 
-	cs.LocalPeer.AddPost(
-		data.Post{ap.Id, ap.InfoHash, ap.Title, ap.Size, ap.FileCount, ap.Seeders, ap.Leechers, ap.UploadDate, ap.Tags, ap.Meta},
-		false)
+	post := data.Post{ap.Id, ap.InfoHash, ap.Title, ap.Size, ap.FileCount, ap.Seeders, ap.Leechers, ap.UploadDate, ap.Tags, ap.Meta}
 
-	return CommandResult{true, nil, nil}
+	id, err := cs.LocalPeer.AddPost(post, false)
+
+	if err != nil {
+		return CommandResult{false, nil, err}
+	}
+
+	if ap.Index {
+		cs.LocalPeer.Database.GenerateFts(id - 1)
+	}
+
+	return CommandResult{true, id, nil}
 }
 func (cs *CommandServer) SelfIndex(ci CommandSelfIndex) CommandResult {
 	log.Info("Command: FTS Index request")
 
-	err := cs.LocalPeer.Database.GenerateFts(ci.Since)
+	err := cs.LocalPeer.Database.GenerateFts(int64(ci.Since))
 
 	return CommandResult{err == nil, nil, err}
 }
@@ -238,8 +247,6 @@ func (cs *CommandServer) Bootstrap(cb CommandBootstrap) CommandResult {
 		return CommandResult{false, nil, err}
 	}
 
-	peer.ConnectClient(cs.LocalPeer)
-
 	_, err = peer.Bootstrap(cs.LocalPeer.DHT)
 
 	return CommandResult{err == nil, nil, err}
@@ -254,7 +261,7 @@ func (cs *CommandServer) SelfSuggest(css CommandSuggest) CommandResult {
 func (cs *CommandServer) SelfSearch(css CommandSelfSearch) CommandResult {
 	log.Info("Command: Search request")
 
-	posts, err := cs.LocalPeer.SearchProvider.Search(cs.LocalPeer.Database, css.Query, css.Page)
+	posts, err := cs.LocalPeer.SearchProvider.Search(cs.LocalPeer.Address().String(), cs.LocalPeer.Database, css.Query, css.Page)
 
 	return CommandResult{err == nil, posts, err}
 }
@@ -323,4 +330,50 @@ func (cs *CommandServer) RequestAddPeer(crap CommandRequestAddPeer) CommandResul
 	_, err = peer.RequestAddPeer(crap.Peer)
 
 	return CommandResult{err == nil, nil, err}
+}
+
+// Set a value in the localpeer entry
+func (cs *CommandServer) LocalSet(cls CommandLocalSet) CommandResult {
+
+	switch strings.ToLower(cls.Key) {
+	case "name":
+		cs.LocalPeer.Entry.Name = cls.Value
+	case "desc":
+		cs.LocalPeer.Entry.Desc = cls.Value
+	case "public":
+		cs.LocalPeer.Entry.PublicAddress = cls.Value
+
+	default:
+		return CommandResult{false, nil, errors.New("Unknown key")}
+	}
+
+	cs.LocalPeer.SignEntry()
+	err := cs.LocalPeer.SaveEntry()
+
+	return CommandResult{err == nil, nil, err}
+}
+
+func (cs *CommandServer) LocalGet(clg CommandLocalGet) CommandResult {
+	log.Info("Command: LocalGet")
+	value := ""
+
+	switch strings.ToLower(clg.Key) {
+	case "name":
+		value = cs.LocalPeer.Entry.Name
+	case "desc":
+		value = cs.LocalPeer.Entry.Desc
+	case "public":
+		value = cs.LocalPeer.Entry.PublicAddress
+	case "zif":
+		value = cs.LocalPeer.Entry.Address.String()
+	case "postcount":
+		value = strconv.Itoa(cs.LocalPeer.Entry.PostCount)
+	case "entry":
+		value, _ = cs.LocalPeer.Entry.JsonString()
+
+	default:
+		return CommandResult{false, nil, errors.New("Unknown key")}
+	}
+
+	return CommandResult{true, value, nil}
 }

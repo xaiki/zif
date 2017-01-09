@@ -4,3 +4,5 @@ node_modules
 bower_components
 ui/lib/materialize
 ui/data
+ui/torrents
+ui/hadouken

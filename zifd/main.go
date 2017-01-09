@@ -67,11 +67,17 @@ func main() {
 		}
 	}
 
-	lp.Entry.Name = "Zif"
-	lp.Entry.Desc = "Decentralize all the things! :D"
 	lp.Entry.Port = port
 	lp.Entry.SetLocalPeer(lp)
 	lp.SignEntry()
+
+	lp.LoadEntry()
+
+	err := lp.SaveEntry()
+
+	if err != nil {
+		panic(err)
+	}
 
 	post := data.Post{}
 	post.InfoHash = "foo"
@@ -79,7 +85,7 @@ func main() {
 
 	lp.Database = data.NewDatabase(*db_path)
 
-	err := lp.Database.Connect()
+	err = lp.Database.Connect()
 
 	if err != nil {
 		log.Fatal(err.Error())
@@ -87,6 +93,7 @@ func main() {
 
 	lp.Listen(*addr)
 
+	log.Info("My name: ", lp.Entry.Name)
 	log.Info("My address: ", lp.Address().String())
 
 	var commandServer zif.CommandServer

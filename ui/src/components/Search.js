@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import request from "superagent"
 import async from "async";
 import util from "../util"
-
 import TextField from 'material-ui/TextField';
 import AutoComplete from 'material-ui/AutoComplete';
 
@@ -27,53 +26,38 @@ class Search extends Component
 		this.onResize = this.onResize.bind(this);
 
 		// How many search results we need before they are displayed (and sorted)
-		this.searchTotal = 1 + this.props.Subscriptions.length;
+		this.searchTotal = 1 + window.config.subscriptions.length;
 
 		this.results = [];
 
 		this.lastEntered = "";
+
+
 	}
 
-	static get defaultProps()
-	{ 
-		return{
-			underlineShow: false,
-			hintText: "Search...",
-			growOnFocus: true,
-			unfocusedWidth: "256px",
-			focusedWidth: "512px",
-			transitionTime: ".3s",
-			onResults: function(){}
-		} 
+	static get defaultProps() {
+		return {
+			onResults: function(res){},
+			query: "query",
+			placeholder: "Search"
+		}
 	}
-
-	static get searchWidth()
-	{
-		return window.innerWidth - 446;
-	}
-
+	
 	onUpdateInput(e)
 	{
-		if (e.length < 3 || e.length < this.lastEntered.length)
-		{ 
-			this.lastEntered = e;
-			return;
-		}
-
-		console.log(e)
 
 		// get completions
 		request.post("http://127.0.0.1:8080/self/suggest/")
 			.type("form")
-			.send({query: e})
+			.send({query: e.target.value})
 			.end((err, res) => {
-				this.setState({ dataSource: util.uniq(res.body.value) });
 			});
 	}
 
-	onSubmit(req, i)
+	onSubmit(req)
 	{
 		var functions = [];
+		var subs = window.config.subscriptions;
 
 		// Append local search
 		functions.push((cb) => {
@@ -84,11 +68,11 @@ class Search extends Component
 					.end(cb)
 		});
 
-		for (var i = 0; i < this.props.Subscriptions.length; i++) 
+		for (var i = 0; i < subs.length; i++) 
 		{
 			var fn = ((i) => { 
 				return ((cb) => {
-					request.post("http://127.0.0.1:8080/peer/" + this.props.Subscriptions[i] + "/search/")
+					request.post("http://127.0.0.1:8080/peer/" + subs[i] + "/search/")
 							.type("form")
 							.send({ query: req, page:0 })
 
@@ -104,50 +88,64 @@ class Search extends Component
 			functions.push(fn);
 		}
 
-		async.parallel(functions, (err, res) => {
+		async.parallel(functions, ((err, res) => {
 			if (err) return console.log(err);
+
+			var posts = [];
 			console.log(res)
-			this.props.onResults(res);
-		});
+
+			for (var i = 0; i < res.length; i++) {
+				if (res[i].body) {
+					posts.push(res[i].body.value);
+				}
+			}
+
+			this.props.onResults(posts, req);
+
+		}).bind(this));
 
 	}
 
 	componentWillUnmount() {
-		this.searchRequest.abort();
 	}
 
 	componentDidMount() {
-		window.addEventListener("resize", this.onResize);
+		var search = document.getElementById("search");
+
+		search.addEventListener("keyup", function(event) {
+			event.preventDefault();
+			if (event.keyCode == 13) {
+				this.onSubmit(search.value);
+			}
+		}.bind(this));
 	}
 
 	onResize() {
 		this.setState({width: window.innerWidth, height: window.innerHeight})
 	}
+
+	static get defaultProps() {
+		return {
+			placeholder: "Search"
+		}
+	}
 	
 	render()
 	{
-		var style = {
-			backgroundColor: "white",
-			paddingLeft: "5px",
-			paddingRight: "5px",
-			marginRight: "150px",
-			marginTop: "8px",
-			width: this.state.width - 333
-		};
-
 		return (
-				<div>
-			<AutoComplete
-				style={style}
-				dataSource={this.state.dataSource}
-				underlineShow={this.props.underlineShow}
-				hintText={this.props.hintText}
-				onUpdateInput={util.throttle(this.onUpdateInput, 100, this)}
-				filter={AutoComplete.fuzzyFilter}
-				fullWidth={true}
-				onNewRequest={this.onSubmit}
-			/>
-			</div>
+				<div className="searchBox">
+					<div className="searchContainer">
+						<span className="icon">
+							<i className="material-icons">search</i>
+						</span>
+						<input type="search" 
+							id="search" 
+							onChange={this.onUpdateInput}
+							defaultValue={this.props.query}
+							placeholder="Search"
+						/>
+					</div>
+				</div>
 		)
 	}
 }

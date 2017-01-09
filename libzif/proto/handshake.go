@@ -1,7 +1,6 @@
 package proto
 
 import (
-	"encoding/binary"
 	"errors"
 
 	"golang.org/x/crypto/ed25519"
@@ -48,18 +47,24 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 		return false
 	}
 
-	var short int16 = 0x0000
+	log.Debug("Receiving handshake")
+
+	/*var short int16 = 0x0000
 	binary.Read(cl.conn, binary.BigEndian, &short)
 
 	if short != ProtoZif {
 		return nil, errors.New("This is not a Zif connection")
 	}
 
+	log.Debug("Zif connection")
+
 	binary.Read(cl.conn, binary.BigEndian, &short)
 
 	if short != ProtoVersion {
 		return nil, errors.New("Incorrect protocol version")
 	}
+
+	log.Debug("Correct version")*/
 
 	header, err := cl.ReadMessage()
 	log.Debug("Read header")
@@ -123,8 +128,8 @@ func handshake_recieve(cl Client) (ed25519.PublicKey, error) {
 func handshake_send(cl Client, lp data.Signer) error {
 	log.Debug("Handshaking with ", cl.conn.RemoteAddr().String())
 
-	binary.Write(cl.conn, binary.BigEndian, ProtoZif)
-	binary.Write(cl.conn, binary.BigEndian, ProtoVersion)
+	/*binary.Write(cl.conn, binary.BigEndian, ProtoZif)
+	binary.Write(cl.conn, binary.BigEndian, ProtoVersion)*/
 
 	header := Message{
 		Header:  ProtoHeader,
