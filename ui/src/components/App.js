@@ -11,6 +11,7 @@ import Downloads from './Downloads';
 import SearchResults from "./SearchResults"
 import Stream from "./Stream"
 import Welcome from "./WelcomeDialog"
+import Playback from "./Playback"
 
 import NavBar from "./NavBar"
 

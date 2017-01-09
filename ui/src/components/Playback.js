@@ -14,6 +14,8 @@ import File from "./File";
 import util from "../util"
 
 var torrent = remote.require("torrent-stream");
+var wjs = require("wcjs-player");
+
 
 class Playback extends Component
 {
@@ -24,21 +26,34 @@ class Playback extends Component
 		this.state = {
 			open: true
 		};
+
+		this.componentDidMount = this.componentDidMount.bind(this);
 	}
 
 	componentDidMount(){
-	
+		this.player = new wjs("#player").addPlayer({
+			  autoplay: true,
+			   wcjs: require('webchimera.js')
+			});
+
+			this.player.addPlaylist(this.props.url);
+
+			if (this.playerDOM.style.height != this.playerDOM.parentNode.style.maxHeight){
+				this.playerDOM.style.height = this.playerDOM.parentNode.style.maxHeight;
+				this.playerDOM.parentNode.style.padding = "0";
+				this.forceUpdate();
+			}
 	}
 
 	render() {
 		return (<Dialog
 		  modal={false}
 		  open={this.state.open}
-		  onRequestClose={() => {this.setState({ open: false}); this.props.onClose();}}>
+		  onRequestClose={() => {this.setState({ open: false}); this.props.onClose();}}
+		  style={{padding: "0"}}>
 		
-		  <Video width="100%" controls autoPlay >
-		  	<source src={this.props.url}></source>
-		  </Video>
+		  <div ref={(i) => this.playerDOM = i } id="player" 
+		  		style={{width: "100%"}}></div>
 		
 		</Dialog>)
 	}
