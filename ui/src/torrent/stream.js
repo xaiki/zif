@@ -8,26 +8,32 @@ function torrentStream(ipc){
 	ret.client = new torrent();
 
 	ipc.on("stream-magnet", (e, arg) => {
-		if (ret.server)
-			ret.server.close();
+		function add(){
+			var t = ret.client.get(arg);
 
-		var t = ret.client.get(arg);
+			if (t) {
+				ret.server = t.createServer();
+				ret.server.listen(60000);
+				e.sender.send("torrent", t);
 
-		if (t) {
-			ret.server = t.createServer();
-			ret.server.listen(60000);
-			e.sender.send("torrent", t);
-			return;
+				return;
+			}
+
+			ret.client.add(arg, {path: "$HOME/Downloads"}, (torrent) => {
+				console.log("downloading", torrent.infoHash);
+
+				ret.server = torrent.createServer();
+				ret.server.listen(60000);
+
+				e.sender.send("torrent", torrent);
+			});
 		}
 
-		ret.client.add(arg, {path: "$HOME/Downloads"}, (torrent) => {
-			console.log("downloading", torrent.infoHash);
+		if (ret.server)
+			ret.server.close(add);
+		else
+			add()
 
-			ret.server = torrent.createServer();
-			ret.server.listen(60000);
-
-			e.sender.send("torrent", torrent);
-		});
 	});
 
 	return ret;

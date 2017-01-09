@@ -17,8 +17,6 @@ import NavBar from "./NavBar"
 import util from "../util"
 import hadouken from "../hadouken"
 
-import TorrentClient from "../TorrentClient"
-
 var routes = [{ path: "/", component: Home },
 			  { path: "/search", component: SearchResults },
 			  { path: "/stream/:infohash", component: Stream },

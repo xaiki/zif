@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "async": "^2.1.2",
+    "better-react-spinkit": "^2.0.0-4",
     "electron-context-menu": "^0.8.0",
     "material-ui": "^0.16.1",
     "moment": "^2.17.1",
