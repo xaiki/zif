@@ -85,31 +85,26 @@ class Stream extends Component
 	}
 
 	render() {
-		return (<Dialog
-		  title={"Streaming " + this.props.title}
-		  modal={false}
-		  open={this.state.open}
-		  onRequestClose={() => {this.setState({ open: false}); this.props.onClose();}}>
+		return (
 
+		  <div style={{ overflow: "auto", maxHeight: "400px"}}>
 		  { this.state.files.length == 0 && 
 		  	<div style={{ marginLeft: "50%" }}>
 		  	  <Wave />
 		  	</div>
 		  }
-
-		  <div style={{ overflow: "auto", maxHeight: "400px"}}>
 			<ReactList 
 				itemRenderer={this.renderItem}
 				length={this.state.files.length}
 				type='uniform'/>
-			</div>
 
 			{ this.state.playback && 
 				<Playback file={this.state.streamFile} url={"http://localhost:60000/" + this.state.index}
 							onClose={()=>{this.setState({ playback: false})}}/>
 			}
 		
-		</Dialog>)
+			</div>
+		)
 	}
 }
 

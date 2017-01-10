@@ -41,7 +41,6 @@ class Playback extends Component
 
 			if (this.playerDOM.style.height != this.playerDOM.parentNode.style.maxHeight){
 				// ugghhh. the hacks :/
-				console.log(this.playerDOM)
 				this.playerDOM.style.height = this.playerDOM.parentNode.style.maxHeight;
 				this.playerDOM.parentNode.style.padding = "0";
 				this.playerDOM.parentNode.parentNode.parentNode.style.maxWidth= "";

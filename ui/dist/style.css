@@ -219,6 +219,7 @@ ul.topnav li.icon {display: none;}
 
 .card:hover {
     box-shadow: 0 4px 8px 0 rgba(177, 17, 6, 0.6);
+    cursor: pointer;
 }
 
 .card .header {
@@ -290,3 +291,5 @@ a {
     height: 100%;
     border: 0px;
 }
+
+
