@@ -28,6 +28,7 @@ class Playback extends Component
 		};
 
 		this.componentDidMount = this.componentDidMount.bind(this);
+		this.componentWillUnmount = this.componentWillUnmount.bind(this);
 	}
 
 	componentDidMount(){
@@ -39,10 +40,17 @@ class Playback extends Component
 			this.player.addPlaylist(this.props.url);
 
 			if (this.playerDOM.style.height != this.playerDOM.parentNode.style.maxHeight){
+				// ugghhh. the hacks :/
+				console.log(this.playerDOM)
 				this.playerDOM.style.height = this.playerDOM.parentNode.style.maxHeight;
 				this.playerDOM.parentNode.style.padding = "0";
+				this.playerDOM.parentNode.parentNode.parentNode.style.maxWidth= "";
 				this.forceUpdate();
 			}
+	}
+
+	componentWillUnmount(){
+		this.player.stop();
 	}
 
 	render() {
@@ -50,7 +58,7 @@ class Playback extends Component
 		  modal={false}
 		  open={this.state.open}
 		  onRequestClose={() => {this.setState({ open: false}); this.props.onClose();}}
-		  style={{padding: "0"}}>
+		  style={{padding: "0", maxWidth: ""}}>
 		
 		  <div ref={(i) => this.playerDOM = i } id="player" 
 		  		style={{width: "100%"}}></div>

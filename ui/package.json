@@ -34,6 +34,8 @@
     "react-tooltip": "^3.2.2",
     "superagent": "^2.3.0",
     "torrent-stream": "^1.0.3",
+    "wcjs-player": "^6.0.1",
+    "webchimera.js": "^0.2.7",
     "webtorrent": "^0.97.2"
   }
 }
