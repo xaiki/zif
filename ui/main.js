@@ -11,6 +11,11 @@ let mainWindow;
 let torrent;
 let hadouken;
 
+if(process.platform == "win32"){
+    process.env["VLC_PLUGIN_PATH"] = path.join(global.appPath, "node_modules/wcjs-prebuilt/bin/plugins");
+}
+
+
 function runHadouken() {
 	hadouken = spawn("./hadouken", { cwd: "./hadouken" });
 
