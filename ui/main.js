@@ -14,7 +14,7 @@ let hadouken;
 let zifd;
 
 if(process.platform == "win32"){
-    process.env["VLC_PLUGIN_PATH"] = path.join(global.appPath, "node_modules/wcjs-prebuilt/bin/plugins");
+    process.env["VLC_PLUGIN_PATH"] = path.join(__dirname, "node_modules/webchimera.js/bin/plugins");
 }
 
 
