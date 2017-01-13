@@ -5,7 +5,6 @@ import RaisedButton from 'material-ui/RaisedButton';
 import Subheader from 'material-ui/Subheader';
 import {List, ListItem} from 'material-ui/List';
 
-import Video from 'react-html5video';
 
 import ReactList from 'react-list';
 import {Wave} from "better-react-spinkit";
@@ -14,7 +13,6 @@ import File from "./File";
 import util from "../util"
 import Stream from "./Stream"
 
-var torrent = remote.require("torrent-stream");
 var wjs = require("wcjs-player");
 
 
@@ -50,11 +48,11 @@ class PostFocus extends Component
 
 	render() {
 		return (<Dialog
-		  modal={false}
-		  open={this.props.open}
-		  onRequestClose={() => {this.setState({ open: false}); this.props.onClose();}}
-		  style={{padding: "0", maxWidth: ""}}
-		  title={[<h2 style={{marginBottom:0, marginLeft: "10px"}}>{this.props.title}</h2>, 
+				  modal={false}
+				  open={this.props.open}
+				  onRequestClose={() => {this.setState({ open: false}); this.props.onClose();}}
+				  style={{padding: "0", maxWidth: ""}}
+				  title={[<h2 style={{marginBottom:0, marginLeft: "10px"}}>{this.props.title}</h2>, 
 		  	  				<em style={{marginLeft:"35px"}}>uploaded by {this.props.source}</em>]}>
 
 				<div className="body">

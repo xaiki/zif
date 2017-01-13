@@ -4,6 +4,7 @@ import request from "superagent"
 
 import {Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle} from 'material-ui/Toolbar';
 import {grey100, grey50} from 'material-ui/styles/colors';
+import {RotatingPlane} from "better-react-spinkit";
 
 
 import Home from './Home';
@@ -33,15 +34,18 @@ class App extends Component
 		this.state = { drawerOpen : true, 
 			search: {
 				focus: false
-			}
+			},
+			showSpinner: false
 		};
 
 		this.handleToggle = this.handleToggle.bind(this);
 		this.onResults = this.onResults.bind(this);
+		this.setSpinner = this.setSpinner.bind(this);
 
 		window.config = util.loadConfig();
 		window.hadouken = hadouken;
 		window.routerHistory = hashHistory;
+		window.setSpinner = this.setSpinner;
 
 		window.zifColor = {
 			primary: "#3f3b3b",
@@ -51,6 +55,7 @@ class App extends Component
 		};
 
 		window.entry = { address: {} };
+
 		  
 		request.get("http://127.0.0.1:8080/self/get/entry/")
 				.end(((err, res) => {
@@ -79,6 +84,10 @@ class App extends Component
 	}
 
 	handleToggle(){ this.setState({ drawerOpen: !this.state.drawerOpen }) }
+
+	setSpinner(on){
+		this.setState({ showSpinner: on});
+	}
 
 	onResults(res) 
 	{
@@ -113,6 +122,9 @@ class App extends Component
 		return(
 			<div style={{height: "100%"}}>
 				<Welcome />
+				{ this.state.showSpinner == true &&
+					<RotatingPlane size={36} style={{position: "fixed", top: "50%", left:"50%"}} />
+				}
 				<div style={{height: "100%"}}>
 					<Router history={hashHistory} routes={routes}>
 					</Router>

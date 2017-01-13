@@ -6,7 +6,6 @@ import Subheader from 'material-ui/Subheader';
 import {List, ListItem} from 'material-ui/List';
 
 import ReactList from 'react-list';
-import {Wave} from "better-react-spinkit";
 
 import Playback from "./Playback";
 import util from "../util"
@@ -88,11 +87,6 @@ class Stream extends Component
 		return (
 
 		  <div style={{ overflow: "auto", maxHeight: "400px"}}>
-		  { this.state.files.length == 0 && 
-		  	<div style={{ marginLeft: "50%" }}>
-		  	  <Wave />
-		  	</div>
-		  }
 			<ReactList 
 				itemRenderer={this.renderItem}
 				length={this.state.files.length}

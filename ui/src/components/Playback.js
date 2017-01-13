@@ -5,15 +5,12 @@ import RaisedButton from 'material-ui/RaisedButton';
 import Subheader from 'material-ui/Subheader';
 import {List, ListItem} from 'material-ui/List';
 
-import Video from 'react-html5video';
-
 import ReactList from 'react-list';
 import {Wave} from "better-react-spinkit";
 
 import File from "./File";
 import util from "../util"
 
-var torrent = remote.require("torrent-stream");
 var wjs = require("wcjs-player");
 
 
