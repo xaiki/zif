@@ -133,7 +133,7 @@ class Search extends Component
 	render()
 	{
 		return (
-				<div className="searchBox">
+				<div className="searchBox animated bounceInDown">
 					<div className="searchContainer">
 						<span className="icon">
 							<i className="material-icons">search</i>

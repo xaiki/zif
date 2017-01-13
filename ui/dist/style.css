@@ -293,3 +293,12 @@ a {
 }
 
 
+/* Animation */
+/******************************************************************************/
+.postAnim-enter, .postAnim-appear {
+	animation: 0.8s bounceInLeft ease;
+}
+
+.postAnim-leave{
+	animation: 0.8s bounceOutRight ease;
+}
