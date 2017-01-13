@@ -58,7 +58,7 @@ class Stream extends Component
 	}
 
 	onTorrent(e, arg){
-		this.setState({ files: this.sortFiles(arg.files), torrent: arg });
+		this.setState({ files: arg.torrent.files, torrent: arg.torrent, port: arg.port });
 		console.log(arg)
 	}
 
@@ -99,7 +99,7 @@ class Stream extends Component
 				type='uniform'/>
 
 			{ this.state.playback && 
-				<Playback file={this.state.streamFile} url={"http://localhost:60000/" + this.state.index}
+				<Playback file={this.state.streamFile} url={"http://localhost:" + this.state.port + "/" + this.state.index}
 							onClose={()=>{this.setState({ playback: false})}}/>
 			}
 		

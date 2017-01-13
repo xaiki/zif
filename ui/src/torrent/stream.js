@@ -3,6 +3,8 @@ var http = require("http");
 var util = require("../util");
 
 function torrentStream(ipc){
+	var home = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
+
 	var ret = {};
 	ret.ipc = ipc;
 	ret.client = new torrent();
@@ -13,19 +15,24 @@ function torrentStream(ipc){
 
 			if (t) {
 				ret.server = t.createServer();
-				ret.server.listen(60000);
-				e.sender.send("torrent", t);
+
+				ret.server.listen(0, () => {
+					e.sender.send("torrent", { torrent: t, port: ret.server.address().port });
+				});
 
 				return;
 			}
 
-			ret.client.add(arg, {path: "$HOME/Downloads"}, (torrent) => {
+			ret.client.add(arg, {path: home + "/Downloads"}, (torrent) => {
 				console.log("downloading", torrent.infoHash);
 
-				ret.server = torrent.createServer();
-				ret.server.listen(60000);
+				ret.server = torrent.createServer(0);
 
-				e.sender.send("torrent", torrent);
+				console.log("starting to listen")
+				ret.server.listen(0, () => {
+					console.log("listening")
+					e.sender.send("torrent", { torrent: torrent, port: ret.server.address().port });
+				});
 			});
 		}
 
