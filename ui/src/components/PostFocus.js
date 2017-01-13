@@ -23,7 +23,8 @@ class PostFocus extends Component
 		super(props);
 
 		this.state = {
-			open: true
+			open: true,
+			streamOpen: false
 		};
 
 		if (this.props.meta.length > 0)
@@ -61,7 +62,6 @@ class PostFocus extends Component
 						this.state.meta.description}</span>
 					</div>
 
-					<Stream style={{float: "left"}} magnet={this.props.magnet} />
 
 					<div style={{ float: "right" }}>
 						<a style={{display: "block"}}
@@ -71,10 +71,13 @@ class PostFocus extends Component
 						</a>
 
 						<RaisedButton style={{display:"block"}}
-							onClick={() => this.setState({showStream: !this.state.showStream})}>
+							onClick={() => this.setState({streamOpen: true})}>
 							Stream
 						</RaisedButton>
 					</div>
+
+					<Stream open={this.state.streamOpen} magnet={this.props.magnet} onClose={() => this.setState({streamOpen: false})} />
+
 				</div>
 		
 		</Dialog>)

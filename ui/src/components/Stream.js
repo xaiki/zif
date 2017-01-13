@@ -4,6 +4,7 @@ import Dialog from 'material-ui/Dialog';
 import RaisedButton from 'material-ui/RaisedButton';
 import Subheader from 'material-ui/Subheader';
 import {List, ListItem} from 'material-ui/List';
+import {FoldingCube} from "better-react-spinkit";
 
 import ReactList from 'react-list';
 
@@ -19,7 +20,7 @@ class Stream extends Component
 	{
 		super(props);
 		
-		this.state = { open: true, files: [], playback:  false, torrent: null };
+		this.state = { open: this.props.open, files: [], playback:  false, torrent: null };
 
 		this.componentDidMount = this.componentDidMount.bind(this);
 		this.componentWillUnmount = this.componentWillUnmount.bind(this);
@@ -62,6 +63,8 @@ class Stream extends Component
 	}
 
 	componentDidMount(){
+		this.state.open = this.props.open;
+
 		ipcRenderer.on("torrent", this.onTorrent);
 
 		if (!this.torrent)
@@ -86,18 +89,26 @@ class Stream extends Component
 	render() {
 		return (
 
-		  <div style={{ overflow: "auto", maxHeight: "400px"}}>
-			<ReactList 
-				itemRenderer={this.renderItem}
-				length={this.state.files.length}
-				type='uniform'/>
+			<Dialog open={this.props.open} onRequestClose={() => this.props.onClose()}
+					autoScrollBodyContent={true}>
 
-			{ this.state.playback && 
-				<Playback file={this.state.streamFile} url={"http://localhost:" + this.state.port + "/" + this.state.index}
-							onClose={()=>{this.setState({ playback: false})}}/>
-			}
-		
-			</div>
+					{this.state.files.length == 0 &&
+						<div style={{textAlign: "center"}}>
+							<h3>Loading files...</h3>
+							<FoldingCube style={{display: "inline-block"}} />
+						</div>
+					}
+
+				<ReactList 
+					itemRenderer={this.renderItem}
+					length={this.state.files.length}
+					type='uniform'/>
+
+				{ this.state.playback && 
+					<Playback file={this.state.streamFile} url={"http://localhost:" + this.state.port + "/" + this.state.index}
+								onClose={()=>{this.setState({ playback: false})}}/>
+				}
+			</Dialog>
 		)
 	}
 }
