@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/yamux"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ed25519"
-	"gopkg.in/cheggaaa/pb.v1"
+	"github.com/cheggaaa/pb"
 
 	data "github.com/wjh/zif/libzif/data"
 	"github.com/wjh/zif/libzif/dht"
