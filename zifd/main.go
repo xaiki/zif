@@ -46,6 +46,7 @@ func main() {
 	var db_path = flag.String("database", "./data/posts.db", "Posts database path")
 	var newAddr = flag.Bool("new", false, "Ignore identity file and create a new address")
 	var tor = flag.Bool("tor", false, "Start hidden service and proxy connections through tor")
+	var torport = flag.Int("torport", 9051, "The port we should connect to the tor deamon")
 	var torpath = flag.String("torpath", "./tor/", "Path to the tor folder")
 
 	var http = flag.String("http", "127.0.0.1:8080", "HTTP address and port")
@@ -57,7 +58,7 @@ func main() {
 	lp := SetupLocalPeer(fmt.Sprintf("%s:%v", *addr), *newAddr)
 
 	if *tor {
-		_, onion, err := zif.SetupZifTorService(5050, 9051, fmt.Sprintf("%s/cookie", *torpath))
+		_, onion, err := zif.SetupZifTorService(5050, *torport, fmt.Sprintf("%s/cookie", *torpath))
 
 		if err == nil {
 			lp.PublicAddress = onion
